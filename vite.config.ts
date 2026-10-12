@@ -5,6 +5,7 @@ import {defineConfig} from 'vite';
 
 export default defineConfig(() => {
   return {
+    base: '/Royal-Backgammon-3d/',
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {
