@@ -1,0 +1,12 @@
+{
+  "name": "Royal Backgammon 3D",
+  "short_name": "RoyalBackgammon",
+  "description": "Luxury 3D Backgammon experience powered by a libGDX GLB 3D model engine with standard 30 sculpted checkers and 3D dice.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#020705",
+  "theme_color": "#05110c",
+  "categories": ["games", "board", "strategy"]
+}

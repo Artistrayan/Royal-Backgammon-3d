@@ -1,0 +1,6 @@
+{
+  "name": "Royal Backgammon 3D",
+  "description": "Luxury 3D Backgammon experience powered by a libGDX GLB 3D model engine with interactive board unfolding and typewriter menu animations.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

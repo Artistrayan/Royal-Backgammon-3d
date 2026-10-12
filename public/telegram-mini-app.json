@@ -1,0 +1,32 @@
+{
+  "app_name": "Royal Backgammon 3D",
+  "short_name": "royal_backgammon",
+  "version": "1.0.0",
+  "platform": "Telegram Mini Apps (Bot API 8.0+)",
+  "orientation": "landscape",
+  "fullscreen": true,
+  "disable_vertical_swipes": true,
+  "header_color": "#05110c",
+  "background_color": "#020705",
+  "botfather_commands": [
+    {
+      "command": "start",
+      "description": "Launch Royal Backgammon 3D Table"
+    },
+    {
+      "command": "play",
+      "description": "Open the 3D Backgammon Parlor"
+    },
+    {
+      "command": "table",
+      "description": "Invite a friend to a Private 3D Table"
+    }
+  ],
+  "botfather_setup_steps": [
+    "1. Open @BotFather in Telegram and send /newbot (or select your existing bot).",
+    "2. Send /newapp to @BotFather, select your bot, and enter 'Royal Backgammon 3D'.",
+    "3. When prompted for the Web App URL, paste your deployed HTTPS application URL.",
+    "4. Enter short name: royal_backgammon",
+    "5. Send /setmenubutton to @BotFather, select your bot, paste the HTTPS URL, and set button title to 'PLAY 3D BACKGAMMON'."
+  ]
+}
