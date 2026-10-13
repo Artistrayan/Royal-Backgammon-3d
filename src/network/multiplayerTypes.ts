@@ -171,6 +171,7 @@ export interface OnlineGameRoomState {
 }
 
 export type ClientToServerMessage =
+  | { type: 'auth:telegram'; initData: string }
   | {
       type: 'user:register';
       user: {
@@ -245,6 +246,7 @@ export type ClientToServerMessage =
     };
 
 export type ServerToClientMessage =
+  | { type: 'auth:success'; telegramUserId: string }
   | {
       type: 'user:registered';
       user: OnlineUser;
