@@ -7,6 +7,7 @@ import {
   OnlineGameRoomState,
 } from './multiplayerTypes';
 import { BoardLocation, CheckerState3D } from '../libgdx/Gdx3DEngine';
+import { getTelegramWebApp } from '../telegram/telegramMiniApp';
 
 type Listener<T> = (data: T) => void;
 
@@ -28,6 +29,7 @@ class RealMultiplayerClient {
   private pendingQueue: ClientToServerMessage[] = [];
 
   public isConnected = false;
+  private telegramAuthenticated = false;
 
   public connect(user: {
     id: string;
@@ -46,7 +48,9 @@ class RealMultiplayerClient {
       (this.socket.readyState === WebSocket.OPEN ||
         this.socket.readyState === WebSocket.CONNECTING)
     ) {
-      this.send({ type: 'user:register', user });
+      if (this.telegramAuthenticated && this.socket?.readyState === WebSocket.OPEN) {
+        this.send({ type: 'user:register', user });
+      }
       return;
     }
 
@@ -56,27 +60,35 @@ class RealMultiplayerClient {
       this.socket = new WebSocket(wsUrl);
 
       this.socket.onopen = () => {
-        this.isConnected = true;
-        this.emit('connection_status', { connected: true });
-        if (this.currentUser) {
-          this.send({ type: 'user:register', user: this.currentUser });
-        }
-        while (this.pendingQueue.length > 0) {
-          const msg = this.pendingQueue.shift();
-          if (msg) this.send(msg);
-        }
+        this.telegramAuthenticated = false;
+        const initData = getTelegramWebApp()?.initData || '';
+        this.socket?.send(JSON.stringify({ type: 'auth:telegram', initData }));
       };
 
       this.socket.onmessage = (event) => {
         try {
-          const msg: ServerToClientMessage = JSON.parse(event.data);
+          const msg: any = JSON.parse(event.data);
           this.emit(msg.type, msg);
+          if (msg.type === 'auth:success') {
+            this.telegramAuthenticated = true;
+            this.isConnected = true;
+            this.emit('connection_status', { connected: true });
+            if (this.currentUser) this.send({ type: 'user:register', user: this.currentUser });
+            while (this.pendingQueue.length > 0) {
+              const queued = this.pendingQueue.shift();
+              if (queued) this.send(queued);
+            }
+          } else if (msg.type === 'error' && !this.telegramAuthenticated) {
+            this.isConnected = false;
+            this.emit('connection_status', { connected: false, error: msg.message });
+          }
         } catch (err) {
           console.warn('[WS Client] Failed to parse message', err);
         }
       };
 
       this.socket.onclose = () => {
+        this.telegramAuthenticated = false;
         this.isConnected = false;
         this.emit('connection_status', { connected: false });
         this.scheduleReconnect();
@@ -250,6 +262,7 @@ class RealMultiplayerClient {
       this.socket.close();
       this.socket = null;
     }
+    this.telegramAuthenticated = false;
     this.isConnected = false;
   }
 }
