@@ -37,10 +37,8 @@ class RealMultiplayerClient {
       return;
     }
 
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const host = window.location.host;
-    const wsUrl = `${protocol}//${host}/ws`;
-
+    const wsUrl = 'wss://royal-backgammon-3d.onrender.com/ws';
+    
     try {
       this.socket = new WebSocket(wsUrl);
 
