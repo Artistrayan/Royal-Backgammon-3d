@@ -35,18 +35,19 @@ export function IncomingChallengeModal({
           <span className="font-cinzel text-[9px] text-[#52f29c] font-medium tracking-wide">
             LEVEL {challenge.challenger.level} • {challenge.challenger.wins} WINS
           </span>
-          <p className="font-cormorant text-[11px] text-[#c0b9ab] mt-2">
-            Invited you to an Online Backgammon Match!
-          </p>
+          <p className="font-cormorant text-[11px] text-[#c0b9ab] mt-2">Invited you to an Online Backgammon Match!</p>
+          <p className="font-cinzel text-[11px] font-semibold text-[#f7d774] mt-2">Match amount: {Number(challenge.amountUsdt || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })} USDT</p>
+          {Number(challenge.amountUsdt || 0) > 0 && <p className="font-cormorant text-[10px] text-[#e89080] mt-1">Paid matches are not available yet. Do not send funds; choose a free match (0 USDT).</p>}
         </div>
 
         <div className="flex gap-2">
           <button
             type="button"
+            disabled={Number(challenge.amountUsdt || 0) > 0}
             onClick={() => onAccept(challenge.challengeId)}
-            className="flex-1 py-2 rounded brass-button-surface border border-[#ead4a4] font-cinzel text-[9.5px] font-bold tracking-[0.14em] text-[#140e05] cursor-pointer active:scale-95 transition-transform"
+            className="flex-1 py-2 rounded brass-button-surface border border-[#ead4a4] font-cinzel text-[9.5px] font-bold tracking-[0.14em] text-[#140e05] cursor-pointer active:scale-95 transition-transform disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            ACCEPT & PLAY
+            {Number(challenge.amountUsdt || 0) > 0 ? 'PAID MATCH UNAVAILABLE' : 'ACCEPT & PLAY'}
           </button>
           <button
             type="button"
