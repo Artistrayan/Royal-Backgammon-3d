@@ -33,7 +33,7 @@ function verifyTelegramInitData(initData: unknown): VerifiedTelegramUser | null 
     const dataCheckString = Array.from(params.entries())
       .sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)
       .map(([key, value]) => `${key}=${value}`)
-      .join('\\n');
+      .join('\n');
     const secretKey = createHmac('sha256', 'WebAppData').update(botToken).digest();
     const expectedHash = createHmac('sha256', secretKey).update(dataCheckString).digest();
     const actualHash = Buffer.from(receivedHash, 'hex');
