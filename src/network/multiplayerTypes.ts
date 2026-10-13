@@ -144,6 +144,7 @@ export interface FriendChallenge {
   };
   targetUserId: string;
   createdAt: number;
+  amountUsdt?: number;
 }
 
 export interface OnlineGameRoomState {
@@ -191,7 +192,7 @@ export type ClientToServerMessage =
   | { type: 'friend:request_send'; targetUserId: string }
   | { type: 'friend:request_accept'; requestId: string }
   | { type: 'friend:request_reject'; requestId: string }
-  | { type: 'friend:challenge_send'; targetUserId: string }
+  | { type: 'friend:challenge_send'; targetUserId: string; amountUsdt: number }
   | { type: 'friend:challenge_respond'; challengeId: string; accept: boolean }
   | {
       type: 'matchmaking:join';
