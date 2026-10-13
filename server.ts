@@ -201,8 +201,9 @@ function persistStore() {
   if (pgPool) {
     postgresWriteQueue = postgresWriteQueue
       .then(async () => {
-        if (!pgPool) return;
-        await pgPool.query(
+        const pool = pgPool;
+        if (!pool) return;
+        await pool.query(
           `INSERT INTO royal_backend_state (id, payload, updated_at)
            VALUES (1, $1::jsonb, NOW())
            ON CONFLICT (id) DO UPDATE
