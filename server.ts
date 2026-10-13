@@ -429,11 +429,9 @@ async function initializePostgres() {
       );
 
       CREATE OR REPLACE FUNCTION prevent_financial_record_mutation()
-      RETURNS TRIGGER AS $
-      BEGIN
-        RAISE EXCEPTION 'Financial journal and audit records are append-only';
-      END;
-      $ LANGUAGE plpgsql;
+      RETURNS TRIGGER AS 'BEGIN
+        RAISE EXCEPTION ''Financial journal and audit records are append-only'';
+      END;' LANGUAGE plpgsql;
 
       DROP TRIGGER IF EXISTS financial_journal_entries_append_only ON financial_journal_entries;
       CREATE TRIGGER financial_journal_entries_append_only
