@@ -3268,12 +3268,14 @@ export default function App() {
             onRejectFriendRequest={(reqId) =>
               multiplayerClient.rejectFriendRequest(reqId)
             }
-            onChallengeFriend={(targetId) => {
-              multiplayerClient.sendFriendChallenge(targetId);
+            onChallengeFriend={(targetId, amountUsdt) => {
+              multiplayerClient.sendFriendChallenge(targetId, amountUsdt);
               showToastNotification(
                 'challenge-sent',
                 'CHALLENGE SENT',
-                'Waiting for friend to accept...'
+                amountUsdt > 0
+                  ? `Invitation sent with ${amountUsdt} USDT selected. Paid matches are not active yet; no funds are transferred.`
+                  : 'Free match invitation sent. Waiting for friend to accept...'
               );
             }}
           />
