@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow"><title>Royal Backgammon — Admin Console</title>
+<style>
+:root{color-scheme:dark;--bg:#07110d;--panel:#101c16;--panel2:#14231b;--line:#2b4032;--gold:#d8b875;--muted:#91a196;--text:#f0f2eb;--red:#e58d83;--green:#8fc8a0}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 70% -10%,#213b2b 0,transparent 45%),var(--bg);color:var(--text);font:14px/1.5 Inter,system-ui,-apple-system,Segoe UI,sans-serif}button,input{font:inherit}button{cursor:pointer}.hidden{display:none!important}
+.shell{min-height:100vh;display:grid;grid-template-columns:240px 1fr}.side{background:#08100cdd;border-right:1px solid var(--line);padding:26px 16px;display:flex;flex-direction:column;gap:28px}.brand{display:flex;align-items:center;gap:12px;padding:0 8px}.crest{width:42px;height:42px;border:1px solid var(--gold);border-radius:12px;display:grid;place-items:center;color:var(--gold);font-size:22px}.brand strong{display:block;letter-spacing:.12em;font-size:12px}.brand small{color:var(--muted);letter-spacing:.18em;font-size:9px}.nav{display:grid;gap:6px}.nav button{color:#aebbb0;background:transparent;border:1px solid transparent;text-align:left;padding:12px 13px;border-radius:10px}.nav button.active,.nav button:hover{background:#1a2b20;border-color:#344b39;color:var(--gold)}.sidefoot{margin-top:auto;color:var(--muted);font-size:11px;padding:8px}.main{min-width:0;padding:28px clamp(16px,3vw,42px) 50px}.top{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-bottom:28px}.eyebrow{color:var(--gold);font-size:10px;letter-spacing:.2em;text-transform:uppercase}.top h1{margin:4px 0 0;font-size:clamp(23px,3vw,32px);letter-spacing:-.03em}.topright{display:flex;align-items:center;gap:12px}.pill{border:1px solid var(--line);background:#112017;border-radius:999px;padding:7px 11px;color:var(--muted);font-size:11px}.pill:before{content:"";display:inline-block;width:7px;height:7px;background:var(--green);border-radius:50%;margin-right:7px}.btn{border:1px solid #806c43;background:#c9a968;color:#16170f;padding:9px 13px;border-radius:8px;font-weight:700}.btn.secondary{background:#14231b;color:var(--text);border-color:var(--line)}.banner{border:1px solid #765d31;background:linear-gradient(90deg,#35291480,#14231b);border-radius:12px;padding:14px 16px;margin-bottom:20px;display:flex;gap:12px;align-items:flex-start}.banner b{color:var(--gold)}.banner p{margin:3px 0 0;color:#c4cbbf;font-size:12px}.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}.card{background:linear-gradient(145deg,#14231b,#0d1711);border:1px solid var(--line);border-radius:14px;padding:17px;min-width:0}.metriclabel{font-size:11px;color:var(--muted);letter-spacing:.06em}.metric{font-size:28px;font-weight:700;letter-spacing:-.04em;margin:9px 0 3px}.sub{font-size:11px;color:var(--muted)}.sectionhead{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:28px 0 12px}.sectionhead h2{font-size:16px;margin:0}.status{display:inline-flex;align-items:center;border-radius:999px;padding:4px 8px;font-size:10px;background:#1d2a21;color:var(--green);border:1px solid #344a39}.status.warn{color:var(--gold);border-color:#6b562d;background:#302719}.status.bad{color:var(--red);border-color:#603b36;background:#2c1917}.tablewrap{overflow:auto;border:1px solid var(--line);border-radius:12px;background:#0b1510}table{width:100%;border-collapse:collapse;min-width:650px}th,td{padding:12px 14px;text-align:left;border-bottom:1px solid #203127;white-space:nowrap;font-size:12px}th{color:var(--muted);font-weight:600;background:#101d15}td{color:#e2e8df}tr:last-child td{border-bottom:0}.mono{font-family:ui-monospace,SFMono-Regular,monospace;font-size:11px;color:#c8d5ca}.empty{padding:35px 18px;text-align:center;color:var(--muted)}.view{display:none}.view.active{display:block}.loginwrap{min-height:100vh;display:grid;place-items:center;padding:20px}.login{width:min(430px,100%);padding:30px;background:linear-gradient(145deg,#14231b,#0b1510);border:1px solid #3a4b3d;border-radius:18px;box-shadow:0 25px 90px #0008}.login h1{font-size:24px;margin:20px 0 5px}.login p{color:var(--muted);font-size:13px}.field{display:grid;gap:7px;margin:20px 0}.field label{font-size:12px;color:#bdc8bc}.field input{background:#07110d;border:1px solid #334738;border-radius:8px;color:white;padding:13px;outline:none}.field input:focus{border-color:var(--gold)}.login .btn{width:100%;padding:12px}.error{color:var(--red);font-size:12px;margin-top:12px;min-height:18px}.smallnote{font-size:11px;color:var(--muted);margin-top:20px}.refresh{border:1px solid var(--line);border-radius:8px;background:#14231b;color:#d9e2d8;padding:8px 11px}
+@media(max-width:1000px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.shell{grid-template-columns:190px 1fr}.side{padding:20px 10px}}
+@media(max-width:650px){.shell{display:block}.side{padding:12px;gap:12px;border-right:0;border-bottom:1px solid var(--line)}.brand{padding:0 3px}.crest{width:34px;height:34px}.nav{display:flex;overflow:auto}.nav button{white-space:nowrap;padding:9px 11px}.sidefoot{display:none}.main{padding:18px 12px 36px}.top{align-items:flex-start}.topright{flex-direction:column;align-items:flex-end}.grid{gap:9px}.card{padding:13px}.metric{font-size:23px}.banner{padding:12px}.top h1{font-size:24px}}
+</style>
+</head>
+<body>
+<div id="loginView" class="loginwrap">
+ <form id="loginForm" class="login">
+  <div class="brand" style="padding:0"><div class="crest">♛</div><div><strong>ROYAL BACKGAMMON</strong><small>SECURE ADMINISTRATION</small></div></div>
+  <h1>Admin console</h1><p>Sign in to view live server and financial audit data. Administrator access is separate from player accounts.</p>
+  <div class="field"><label for="password">Administrator password</label><input id="password" type="password" autocomplete="current-password" required minlength="1" placeholder="Enter your admin password"></div>
+  <button class="btn" type="submit">Secure sign in</button><div id="loginError" class="error"></div>
+  <div class="smallnote">Protected session · expires after 20 minutes · read-only financial controls</div>
+ </form>
+</div>
+<div id="appView" class="shell hidden">
+ <aside class="side">
+  <div class="brand"><div class="crest">♛</div><div><strong>ROYAL BACKGAMMON</strong><small>ADMIN CONSOLE</small></div></div>
+  <nav class="nav" id="nav">
+   <button class="active" data-view="overview">◈ &nbsp; Overview</button>
+   <button data-view="ledger">▤ &nbsp; Financial ledger</button>
+   <button data-view="transfers">⇄ &nbsp; Blockchain transfers</button>
+   <button data-view="withdrawals">↗ &nbsp; Withdrawals</button>
+   <button data-view="audit">◉ &nbsp; Audit trail</button>
+  </nav>
+  <div class="sidefoot">ROYAL CONTROL SYSTEM<br><span style="color:#d8b875">Read-only financial console</span><br><br>Never share admin credentials or wallet keys.</div>
+ </aside>
+ <main class="main">
+  <header class="top"><div><div class="eyebrow">Operations & oversight</div><h1 id="pageTitle">System overview</h1></div><div class="topright"><span class="pill" id="dbPill">Checking server</span><button id="logout" class="btn secondary">Sign out</button></div></header>
+  <div class="banner"><div style="font-size:20px;color:#d8b875">◇</div><div><b>Financial operations are disabled</b><p>This console is connected to the backend audit tables. It does not send, approve, or withdraw funds. Real-money activity must remain disabled until on-chain verification, custody and payout controls are tested.</p></div></div>
+  <section id="view-overview" class="view active">
+   <div class="grid">
+    <div class="card"><div class="metriclabel">REGISTERED PLAYERS (LIVE)</div><div id="players" class="metric">—</div><div class="sub">Loaded from current server memory</div></div>
+    <div class="card"><div class="metriclabel">ACTIVE ROOMS</div><div id="rooms" class="metric">—</div><div class="sub">Live multiplayer sessions</div></div>
+    <div class="card"><div class="metriclabel">LEDGER EVENTS</div><div id="ledgerCount" class="metric">—</div><div id="ledgerSub" class="sub">Financial journal records</div></div>
+    <div class="card"><div class="metriclabel">PENDING WITHDRAWALS</div><div id="withdrawCount" class="metric">—</div><div class="sub">Requires secure review workflow</div></div>
+   </div>
+   <div class="sectionhead"><h2>Control status</h2><button class="refresh" data-refresh>Refresh data ↻</button></div>
+   <div class="grid">
+    <div class="card"><div class="metriclabel">DATABASE</div><div id="databaseStatus" class="metric" style="font-size:20px">Checking…</div><div class="sub">PostgreSQL connection</div></div>
+    <div class="card"><div class="metriclabel">CHAIN TRANSFERS</div><div id="transferCount" class="metric">—</div><div class="sub">Confirmed / detected</div></div>
+    <div class="card"><div class="metriclabel">AUDIT EVENTS</div><div id="auditCount" class="metric">—</div><div class="sub">Append-only history</div></div>
+    <div class="card"><div class="metriclabel">DISPUTED MATCHES</div><div id="disputedCount" class="metric">—</div><div class="sub">Financial settlement status</div></div>
+   </div>
+   <div class="sectionhead"><h2>System notes</h2></div>
+   <div class="card"><p style="margin:0 0 10px">• Player count and room count reflect live process memory; they are not a historical player report.</p><p style="margin:0 0 10px">• Blockchain transfers and financial totals are shown only when the PostgreSQL tables exist and the backend can query them.</p><p style="margin:0">• All amount fields are stored in atomic token units. Display conversion must use the token's configured decimals and network.</p></div>
+  </section>
+  <section id="view-ledger" class="view"><div class="sectionhead"><h2>Journal transactions</h2><button class="refresh" data-refresh>Refresh ↻</button></div><div id="ledgerTable" class="tablewrap"><div class="empty">Loading ledger…</div></div></section>
+  <section id="view-transfers" class="view"><div class="sectionhead"><h2>On-chain transfers</h2><button class="refresh" data-refresh>Refresh ↻</button></div><div id="transfersTable" class="tablewrap"><div class="empty">Loading transfers…</div></div></section>
+  <section id="view-withdrawals" class="view"><div class="sectionhead"><h2>Withdrawal requests</h2><button class="refresh" data-refresh>Refresh ↻</button></div><div id="withdrawalsTable" class="tablewrap"><div class="empty">Loading withdrawal requests…</div></div></section>
+  <section id="view-audit" class="view"><div class="sectionhead"><h2>Audit events</h2><button class="refresh" data-refresh>Refresh ↻</button></div><div id="auditTable" class="tablewrap"><div class="empty">Loading audit trail…</div></div></section>
+  <div id="globalError" class="error"></div>
+ </main>
+</div>
+<script>
+const $=id=>document.getElementById(id);let token=sessionStorage.getItem('royal_admin_token')||'';let activeView='overview';
+const titles={overview:'System overview',ledger:'Financial ledger',transfers:'Blockchain transfers',withdrawals:'Withdrawal queue',audit:'Audit trail'};
+function esc(v){return String(v??'—').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function short(v,n=18){v=String(v??'—');return v.length>n?v.slice(0,n)+'…':v}
+function status(v){let c=['confirmed','posted','settled','matched'].includes(String(v))?'':(['pending','requested','held','confirming','broadcast'].includes(String(v))?' warn':' bad');return '<span class="status'+c+'">'+esc(v)+'</span>'}
+function table(container,cols,items){if(!items?.length){$(container).innerHTML='<div class="empty">No records available yet.</div>';return}$(container).innerHTML='<table><thead><tr>'+cols.map(c=>'<th>'+esc(c.label)+'</th>').join('')+'</tr></thead><tbody>'+items.map(row=>'<tr>'+cols.map(c=>'<td>'+ (c.render?c.render(row[c.key],row):esc(row[c.key]))+'</td>').join('')+'</tr>').join('')+'</tbody></table>'}
+async function api(path){const r=await fetch(path,{headers:{Authorization:'Bearer '+token}});const d=await r.json().catch(()=>({error:'Invalid server response'}));if(r.status===401){logout();throw Error('Session expired. Sign in again.')}if(!r.ok)throw Error(d.error||'Request failed');return d}
+function logout(){token='';sessionStorage.removeItem('royal_admin_token');$('appView').classList.add('hidden');$('loginView').classList.remove('hidden');$('password').value=''}
+function show(view){activeView=view;document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===view));document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id==='view-'+view));$('pageTitle').textContent=titles[view]||'Admin';loadView(view)}
+async function loadView(view=activeView){$('globalError').textContent='';try{
+ if(view==='overview'){const d=await api('/api/admin/overview');$('dbPill').textContent='Database '+d.system.database;$('databaseStatus').textContent='Connected';$('players').textContent=d.system.registeredUsers;$('rooms').textContent=d.system.activeRooms;$('ledgerCount').textContent=d.ledger.total;$('ledgerSub').textContent=d.ledger.posted+' posted · '+d.ledger.pending+' pending';$('withdrawCount').textContent=d.withdrawals.pending;$('transferCount').textContent=d.transfers.confirmed+' / '+d.transfers.total;$('auditCount').textContent=d.audit.total;$('disputedCount').textContent=d.matches.disputed}
+ if(view==='ledger'){const d=await api('/api/admin/ledger');table('ledgerTable',[{key:'created_at',label:'Created'},{key:'event_key',label:'Event key',render:v=>'<span class="mono">'+esc(short(v,26))+'</span>'},{key:'kind',label:'Type'},{key:'status',label:'Status',render:status},{key:'asset_code',label:'Asset'},{key:'network',label:'Network'},{key:'external_ref',label:'External ref',render:v=>'<span class="mono">'+esc(short(v,24))+'</span>'}],d.items)}
+ if(view==='transfers'){const d=await api('/api/admin/transfers');table('transfersTable',[{key:'detected_at',label:'Detected'},{key:'network',label:'Network'},{key:'asset_code',label:'Asset'},{key:'tx_hash',label:'Transaction',render:v=>'<span class="mono">'+esc(short(v,24))+'</span>'},{key:'amount_atomic',label:'Amount (atomic)'},{key:'network_fee_atomic',label:'Network fee (atomic)'},{key:'confirmations',label:'Confirmations'},{key:'chain_status',label:'Status',render:status}],d.items)}
+ if(view==='withdrawals'){const d=await api('/api/admin/withdrawals');table('withdrawalsTable',[{key:'created_at',label:'Requested'},{key:'user_id',label:'User'},{key:'network',label:'Network'},{key:'destination_address',label:'Destination',render:v=>'<span class="mono">'+esc(short(v,25))+'</span>'},{key:'amount_atomic',label:'Amount (atomic)'},{key:'quoted_network_fee_atomic',label:'Quoted fee'},{key:'actual_network_fee_atomic',label:'Actual fee'},{key:'status',label:'Status',render:status},{key:'tx_hash',label:'Tx hash',render:v=>'<span class="mono">'+esc(short(v,22))+'</span>'}],d.items)}
+ if(view==='audit'){const d=await api('/api/admin/audit');table('auditTable',[{key:'created_at',label:'Time'},{key:'actor_type',label:'Actor'},{key:'actor_id',label:'Actor ID'},{key:'action',label:'Action'},{key:'object_type',label:'Object'},{key:'object_id',label:'Object ID'},{key:'event_hash',label:'Event hash',render:v=>'<span class="mono">'+esc(short(v,22))+'</span>'}],d.items)}
+ }catch(e){$('globalError').textContent=e.message; if(view==='overview')$('databaseStatus').textContent='Unavailable';}}
+$('loginForm').addEventListener('submit',async e=>{e.preventDefault();$('loginError').textContent='';const button=e.submitter;button.disabled=true;button.textContent='Verifying…';try{const r=await fetch('/api/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:$('password').value})});const d=await r.json();if(!r.ok)throw Error(d.error||'Sign-in failed');token=d.token;sessionStorage.setItem('royal_admin_token',token);$('loginView').classList.add('hidden');$('appView').classList.remove('hidden');show('overview')}catch(e){$('loginError').textContent=e.message}finally{button.disabled=false;button.textContent='Secure sign in'}});
+$('nav').addEventListener('click',e=>{const b=e.target.closest('button[data-view]');if(b)show(b.dataset.view)});document.querySelectorAll('[data-refresh]').forEach(b=>b.addEventListener('click',()=>loadView()));$('logout').addEventListener('click',logout);
+if(token){$('loginView').classList.add('hidden');$('appView').classList.remove('hidden');show('overview')}
+</script>
+</body></html>
