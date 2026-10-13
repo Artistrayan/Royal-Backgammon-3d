@@ -273,6 +273,178 @@ async function initializePostgres() {
 
   try {
     await candidate.query('SELECT 1');
+
+    // Financial ledger foundation. Real-money endpoints remain disabled until
+    // on-chain verification, custody controls, and payout approval are implemented.
+    await candidate.query(`
+      CREATE TABLE IF NOT EXISTS financial_accounts (
+        id BIGSERIAL PRIMARY KEY,
+        account_code TEXT NOT NULL UNIQUE,
+        account_type TEXT NOT NULL CHECK (account_type IN (
+          'user_available', 'user_locked', 'deposit_pending', 'withdrawal_pending',
+          'platform_fee', 'treasury', 'chain_fee', 'suspense'
+        )),
+        user_id TEXT,
+        asset_code TEXT NOT NULL,
+        is_active BOOLEAN NOT NULL DEFAULT TRUE,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        UNIQUE (user_id, asset_code, account_type, account_code)
+      );
+
+      CREATE TABLE IF NOT EXISTS financial_journal_transactions (
+        id BIGSERIAL PRIMARY KEY,
+        event_key TEXT NOT NULL UNIQUE,
+        kind TEXT NOT NULL CHECK (kind IN (
+          'deposit', 'withdrawal', 'match_stake', 'match_refund', 'match_payout',
+          'platform_fee', 'network_fee', 'adjustment', 'reversal', 'reconciliation'
+        )),
+        status TEXT NOT NULL CHECK (status IN (
+          'pending', 'confirmed', 'posted', 'failed', 'reversed', 'held'
+        )),
+        asset_code TEXT NOT NULL,
+        network TEXT,
+        external_ref TEXT,
+        related_match_id TEXT,
+        metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        finalized_at TIMESTAMPTZ
+      );
+
+      CREATE UNIQUE INDEX IF NOT EXISTS financial_journal_external_ref_unique
+        ON financial_journal_transactions (network, external_ref)
+        WHERE external_ref IS NOT NULL;
+
+      CREATE TABLE IF NOT EXISTS financial_journal_entries (
+        id BIGSERIAL PRIMARY KEY,
+        transaction_id BIGINT NOT NULL REFERENCES financial_journal_transactions(id),
+        account_id BIGINT NOT NULL REFERENCES financial_accounts(id),
+        asset_code TEXT NOT NULL,
+        amount_atomic NUMERIC(78, 0) NOT NULL CHECK (amount_atomic <> 0),
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS financial_journal_entries_transaction_idx
+        ON financial_journal_entries (transaction_id);
+      CREATE INDEX IF NOT EXISTS financial_journal_entries_account_idx
+        ON financial_journal_entries (account_id, created_at);
+
+      CREATE TABLE IF NOT EXISTS chain_transfers (
+        id BIGSERIAL PRIMARY KEY,
+        network TEXT NOT NULL,
+        asset_code TEXT NOT NULL,
+        token_contract TEXT,
+        tx_hash TEXT NOT NULL,
+        event_index INTEGER NOT NULL DEFAULT 0,
+        block_number NUMERIC(78, 0),
+        sender_address TEXT,
+        recipient_address TEXT NOT NULL,
+        amount_atomic NUMERIC(78, 0) NOT NULL CHECK (amount_atomic > 0),
+        network_fee_atomic NUMERIC(78, 0) NOT NULL DEFAULT 0 CHECK (network_fee_atomic >= 0),
+        network_fee_asset TEXT,
+        confirmations INTEGER NOT NULL DEFAULT 0 CHECK (confirmations >= 0),
+        chain_status TEXT NOT NULL CHECK (chain_status IN (
+          'detected', 'confirming', 'confirmed', 'failed', 'reorged', 'ignored'
+        )),
+        raw_payload JSONB NOT NULL DEFAULT '{}'::jsonb,
+        detected_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        confirmed_at TIMESTAMPTZ,
+        UNIQUE (network, tx_hash, event_index)
+      );
+      CREATE INDEX IF NOT EXISTS chain_transfers_recipient_idx
+        ON chain_transfers (network, recipient_address, detected_at);
+
+      CREATE TABLE IF NOT EXISTS withdrawal_requests (
+        id BIGSERIAL PRIMARY KEY,
+        request_key TEXT NOT NULL UNIQUE,
+        user_id TEXT NOT NULL,
+        network TEXT NOT NULL,
+        asset_code TEXT NOT NULL,
+        destination_address TEXT NOT NULL,
+        amount_atomic NUMERIC(78, 0) NOT NULL CHECK (amount_atomic > 0),
+        quoted_network_fee_atomic NUMERIC(78, 0) NOT NULL DEFAULT 0 CHECK (quoted_network_fee_atomic >= 0),
+        actual_network_fee_atomic NUMERIC(78, 0),
+        fee_asset TEXT,
+        status TEXT NOT NULL CHECK (status IN (
+          'requested', 'held', 'approved', 'broadcast', 'confirmed', 'rejected', 'cancelled', 'failed'
+        )),
+        reviewed_by TEXT,
+        review_reason TEXT,
+        tx_hash TEXT,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        confirmed_at TIMESTAMPTZ
+      );
+      CREATE UNIQUE INDEX IF NOT EXISTS withdrawal_requests_tx_hash_unique
+        ON withdrawal_requests (network, tx_hash)
+        WHERE tx_hash IS NOT NULL;
+
+      CREATE TABLE IF NOT EXISTS match_escrows (
+        id BIGSERIAL PRIMARY KEY,
+        match_id TEXT NOT NULL UNIQUE,
+        player_one_id TEXT NOT NULL,
+        player_two_id TEXT NOT NULL,
+        asset_code TEXT NOT NULL,
+        stake_each_atomic NUMERIC(78, 0) NOT NULL CHECK (stake_each_atomic >= 0),
+        platform_fee_atomic NUMERIC(78, 0) NOT NULL DEFAULT 0 CHECK (platform_fee_atomic >= 0),
+        prize_atomic NUMERIC(78, 0) NOT NULL DEFAULT 0 CHECK (prize_atomic >= 0),
+        winner_user_id TEXT,
+        status TEXT NOT NULL CHECK (status IN (
+          'created', 'funded', 'in_progress', 'settling', 'settled', 'refunding', 'refunded', 'disputed', 'cancelled'
+        )),
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        settled_at TIMESTAMPTZ,
+        CHECK (player_one_id <> player_two_id),
+        CHECK (winner_user_id IS NULL OR winner_user_id IN (player_one_id, player_two_id))
+      );
+
+      CREATE TABLE IF NOT EXISTS financial_audit_events (
+        id BIGSERIAL PRIMARY KEY,
+        event_key TEXT NOT NULL UNIQUE,
+        actor_type TEXT NOT NULL CHECK (actor_type IN ('system', 'user', 'admin', 'chain_watcher')),
+        actor_id TEXT,
+        action TEXT NOT NULL,
+        object_type TEXT NOT NULL,
+        object_id TEXT,
+        request_id TEXT,
+        details JSONB NOT NULL DEFAULT '{}'::jsonb,
+        previous_hash TEXT,
+        event_hash TEXT NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS financial_audit_events_created_idx
+        ON financial_audit_events (created_at);
+      CREATE INDEX IF NOT EXISTS financial_audit_events_object_idx
+        ON financial_audit_events (object_type, object_id);
+
+      CREATE TABLE IF NOT EXISTS financial_reconciliation_runs (
+        id BIGSERIAL PRIMARY KEY,
+        network TEXT NOT NULL,
+        asset_code TEXT NOT NULL,
+        wallet_address TEXT NOT NULL,
+        chain_balance_atomic NUMERIC(78, 0) NOT NULL,
+        ledger_liability_atomic NUMERIC(78, 0) NOT NULL,
+        variance_atomic NUMERIC(78, 0) NOT NULL,
+        status TEXT NOT NULL CHECK (status IN ('matched', 'variance', 'failed')),
+        report JSONB NOT NULL DEFAULT '{}'::jsonb,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+
+      CREATE OR REPLACE FUNCTION prevent_financial_record_mutation()
+      RETURNS TRIGGER AS $
+      BEGIN
+        RAISE EXCEPTION 'Financial journal and audit records are append-only';
+      END;
+      $ LANGUAGE plpgsql;
+
+      DROP TRIGGER IF EXISTS financial_journal_entries_append_only ON financial_journal_entries;
+      CREATE TRIGGER financial_journal_entries_append_only
+        BEFORE UPDATE OR DELETE ON financial_journal_entries
+        FOR EACH ROW EXECUTE FUNCTION prevent_financial_record_mutation();
+
+      DROP TRIGGER IF EXISTS financial_audit_events_append_only ON financial_audit_events;
+      CREATE TRIGGER financial_audit_events_append_only
+        BEFORE UPDATE OR DELETE ON financial_audit_events
+        FOR EACH ROW EXECUTE FUNCTION prevent_financial_record_mutation();
+    `);
     await candidate.query(`
       CREATE TABLE IF NOT EXISTS royal_backend_state (
         id INTEGER PRIMARY KEY CHECK (id = 1),
