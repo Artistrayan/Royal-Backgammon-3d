@@ -681,6 +681,14 @@ app.get('/api/admin/audit', requireAdmin, async (req, res) => {
   } catch (error) { console.error('[Admin] audit failed', error); res.status(500).json({ error: 'Could not load audit events' }); }
 });
 app.get('/admin', (_req, res) => res.redirect('/admin/'));
+app.get('/admin/', (_req, res) => {
+  res.sendFile(path.resolve(__dirname, 'public', 'admin', 'index.html'), (error) => {
+    if (error && !res.headersSent) {
+      console.error('[Admin] Could not serve console:', error.message);
+      res.status(404).type('text/plain').send('Admin console file not found. Verify public/admin/index.html is included in the deployment.');
+    }
+  });
+});
 
 const server = http.createServer(app);
 const wss = new WebSocketServer({ noServer: true });
