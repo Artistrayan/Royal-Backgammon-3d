@@ -549,7 +549,140 @@ function sendMsg(ws: WebSocket, payload: any) {
 
 // Express & WebSocket Server Setup
 const app = express();
-app.use(express.json());
+app.use(express.json({ limit: '256kb' }));
+
+// Separate administrator API. Configure ADMIN_PASSWORD and ADMIN_SESSION_SECRET
+// in Render before enabling access. No financial mutations are exposed here.
+const adminLoginAttempts = new Map<string, { count: number; until: number }>();
+function safeEqualText(a: string, b: string): boolean {
+  const aa = Buffer.from(a);
+  const bb = Buffer.from(b);
+  return aa.length === bb.length && timingSafeEqual(aa, bb);
+}
+function makeAdminToken(exp: number): string {
+  const secret = process.env.ADMIN_SESSION_SECRET;
+  if (!secret || secret.length < 32) throw new Error('ADMIN_SESSION_SECRET must be at least 32 characters');
+  const payload = Buffer.from(JSON.stringify({ role: 'admin', exp })).toString('base64url');
+  const signature = createHmac('sha256', secret).update(payload).digest('base64url');
+  return payload + '.' + signature;
+}
+function verifyAdminToken(token: string): boolean {
+  try {
+    const secret = process.env.ADMIN_SESSION_SECRET;
+    if (!secret || secret.length < 32) return false;
+    const [payload, signature, extra] = token.split('.');
+    if (!payload || !signature || extra) return false;
+    const expected = createHmac('sha256', secret).update(payload).digest();
+    const actual = Buffer.from(signature, 'base64url');
+    if (actual.length !== expected.length || !timingSafeEqual(actual, expected)) return false;
+    const decoded = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
+    return decoded.role === 'admin' && Number.isFinite(decoded.exp) && decoded.exp > Date.now();
+  } catch { return false; }
+}
+function requireAdmin(req: express.Request, res: express.Response, next: express.NextFunction) {
+  const header = req.headers.authorization || '';
+  const token = header.startsWith('Bearer ') ? header.slice(7) : '';
+  if (!token || !verifyAdminToken(token)) {
+    res.status(401).json({ error: 'Administrator authentication required' });
+    return;
+  }
+  next();
+}
+app.post('/api/admin/login', (req, res) => {
+  const ip = String(req.ip || req.socket.remoteAddress || 'unknown');
+  const now = Date.now();
+  const attempts = adminLoginAttempts.get(ip);
+  if (attempts && attempts.until > now && attempts.count >= 8) {
+    res.status(429).json({ error: 'Too many login attempts. Try again later.' });
+    return;
+  }
+  const configuredPassword = process.env.ADMIN_PASSWORD;
+  const sessionSecret = process.env.ADMIN_SESSION_SECRET;
+  if (!configuredPassword || !sessionSecret || sessionSecret.length < 32) {
+    res.status(503).json({ error: 'Admin login is not configured. Set ADMIN_PASSWORD and ADMIN_SESSION_SECRET in Render.' });
+    return;
+  }
+  const supplied = typeof req.body?.password === 'string' ? req.body.password : '';
+  if (!safeEqualText(supplied, configuredPassword)) {
+    const next = attempts && attempts.until > now ? attempts : { count: 0, until: now + 15 * 60 * 1000 };
+    next.count += 1;
+    adminLoginAttempts.set(ip, next);
+    res.status(401).json({ error: 'Invalid credentials' });
+    return;
+  }
+  adminLoginAttempts.delete(ip);
+  try {
+    res.json({ token: makeAdminToken(now + 20 * 60 * 1000), expiresIn: 1200 });
+  } catch {
+    res.status(503).json({ error: 'Admin session signing is not configured' });
+  }
+});
+app.get('/api/admin/overview', requireAdmin, async (_req, res) => {
+  try {
+    if (!pgPool) {
+      res.status(503).json({ error: 'PostgreSQL is unavailable; financial dashboard is read-only and unavailable until DATABASE_URL is connected.' });
+      return;
+    }
+    const [ledger, transfers, withdrawals, audit, matches] = await Promise.all([
+      pgPool.query("SELECT COUNT(*)::text AS total, COUNT(*) FILTER (WHERE status='posted')::text AS posted, COUNT(*) FILTER (WHERE status IN ('pending','held'))::text AS pending FROM financial_journal_transactions"),
+      pgPool.query("SELECT COUNT(*)::text AS total, COUNT(*) FILTER (WHERE chain_status='confirmed')::text AS confirmed, COUNT(*) FILTER (WHERE chain_status IN ('detected','confirming'))::text AS pending FROM chain_transfers"),
+      pgPool.query("SELECT COUNT(*)::text AS total, COUNT(*) FILTER (WHERE status IN ('requested','held','approved','broadcast'))::text AS pending FROM withdrawal_requests"),
+      pgPool.query("SELECT COUNT(*)::text AS total FROM financial_audit_events"),
+      pgPool.query("SELECT COUNT(*)::text AS total, COUNT(*) FILTER (WHERE status='disputed')::text AS disputed FROM match_escrows")
+    ]);
+    res.json({
+      generatedAt: new Date().toISOString(),
+      system: { database: 'connected', onlineUsers: userSockets.size, activeRooms: activeRooms.size, registeredUsers: registeredUsers.size },
+      ledger: ledger.rows[0], transfers: transfers.rows[0], withdrawals: withdrawals.rows[0],
+      audit: audit.rows[0], matches: matches.rows[0],
+      safety: { realMoneyEnabled: false, message: 'Financial operations remain disabled until chain verification and payout controls are implemented.' }
+    });
+  } catch (error) {
+    console.error('[Admin] overview failed', error);
+    res.status(500).json({ error: 'Could not load financial overview' });
+  }
+});
+app.get('/api/admin/ledger', requireAdmin, async (req, res) => {
+  try {
+    if (!pgPool) { res.status(503).json({ error: 'PostgreSQL unavailable' }); return; }
+    const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 50));
+    const result = await pgPool.query(
+      `SELECT id, event_key, kind, status, asset_code, network, external_ref, related_match_id, metadata, created_at, finalized_at
+       FROM financial_journal_transactions ORDER BY created_at DESC LIMIT $1`, [limit]);
+    res.json({ items: result.rows });
+  } catch (error) { console.error('[Admin] ledger failed', error); res.status(500).json({ error: 'Could not load ledger' }); }
+});
+app.get('/api/admin/transfers', requireAdmin, async (req, res) => {
+  try {
+    if (!pgPool) { res.status(503).json({ error: 'PostgreSQL unavailable' }); return; }
+    const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 50));
+    const result = await pgPool.query(
+      `SELECT id, network, asset_code, token_contract, tx_hash, event_index, block_number, sender_address, recipient_address, amount_atomic, network_fee_atomic, network_fee_asset, confirmations, chain_status, detected_at, confirmed_at
+       FROM chain_transfers ORDER BY detected_at DESC LIMIT $1`, [limit]);
+    res.json({ items: result.rows });
+  } catch (error) { console.error('[Admin] transfers failed', error); res.status(500).json({ error: 'Could not load blockchain transfers' }); }
+});
+app.get('/api/admin/withdrawals', requireAdmin, async (req, res) => {
+  try {
+    if (!pgPool) { res.status(503).json({ error: 'PostgreSQL unavailable' }); return; }
+    const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 50));
+    const result = await pgPool.query(
+      `SELECT id, request_key, user_id, network, asset_code, destination_address, amount_atomic, quoted_network_fee_atomic, actual_network_fee_atomic, fee_asset, status, reviewed_by, review_reason, tx_hash, created_at, updated_at, confirmed_at
+       FROM withdrawal_requests ORDER BY created_at DESC LIMIT $1`, [limit]);
+    res.json({ items: result.rows });
+  } catch (error) { console.error('[Admin] withdrawals failed', error); res.status(500).json({ error: 'Could not load withdrawals' }); }
+});
+app.get('/api/admin/audit', requireAdmin, async (req, res) => {
+  try {
+    if (!pgPool) { res.status(503).json({ error: 'PostgreSQL unavailable' }); return; }
+    const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 50));
+    const result = await pgPool.query(
+      `SELECT id, event_key, actor_type, actor_id, action, object_type, object_id, request_id, details, previous_hash, event_hash, created_at
+       FROM financial_audit_events ORDER BY created_at DESC LIMIT $1`, [limit]);
+    res.json({ items: result.rows });
+  } catch (error) { console.error('[Admin] audit failed', error); res.status(500).json({ error: 'Could not load audit events' }); }
+});
+app.get('/admin', (_req, res) => res.redirect('/admin/'));
 
 const server = http.createServer(app);
 const wss = new WebSocketServer({ noServer: true });
