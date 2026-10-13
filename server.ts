@@ -4,6 +4,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
+import { Pool } from 'pg';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -176,28 +177,118 @@ try {
   console.warn('[Store] Could not load backend store file:', e);
 }
 
+let pgPool: Pool | null = null;
+let postgresWriteQueue: Promise<void> = Promise.resolve();
+
+function buildStoreSnapshot() {
+  const usersArr = Array.from(registeredUsers.values());
+  const friendsObj: Record<string, string[]> = {};
+  for (const [uid, set] of friendships.entries()) {
+    friendsObj[uid] = Array.from(set);
+  }
+  return { users: usersArr, friendships: friendsObj, savedAt: Date.now() };
+}
+
 function persistStore() {
+  const snapshot = buildStoreSnapshot();
   try {
-    const usersArr = Array.from(registeredUsers.values());
-    const friendsObj: Record<string, string[]> = {};
-    for (const [uid, set] of friendships.entries()) {
-      friendsObj[uid] = Array.from(set);
-    }
-    fs.writeFileSync(
-      DB_FILE,
-      JSON.stringify(
-        {
-          users: usersArr,
-          friendships: friendsObj,
-          savedAt: Date.now(),
-        },
-        null,
-        2
-      ),
-      'utf-8'
-    );
+    fs.writeFileSync(DB_FILE, JSON.stringify(snapshot, null, 2), 'utf-8');
   } catch (e) {
-    console.error('[Store] Failed to write DB file:', e);
+    console.error('[Store] Failed to write JSON fallback store:', e);
+  }
+
+  // Serialize writes so concurrent WebSocket events cannot overwrite newer state.
+  if (pgPool) {
+    postgresWriteQueue = postgresWriteQueue
+      .then(async () => {
+        if (!pgPool) return;
+        await pgPool.query(
+          `INSERT INTO royal_backend_state (id, payload, updated_at)
+           VALUES (1, $1::jsonb, NOW())
+           ON CONFLICT (id) DO UPDATE
+           SET payload = EXCLUDED.payload, updated_at = NOW()`,
+          [JSON.stringify(snapshot)]
+        );
+      })
+      .catch((e) => {
+        console.error('[Postgres] Store write failed; JSON fallback remains available:', e);
+      });
+  }
+}
+
+async function initializePostgres() {
+  if (!process.env.DATABASE_URL) {
+    console.log('[Postgres] DATABASE_URL not set; using JSON file storage.');
+    return;
+  }
+
+  const candidate = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: { rejectUnauthorized: false },
+    connectionTimeoutMillis: 8000,
+    idleTimeoutMillis: 30000,
+    max: 5,
+  });
+
+  try {
+    await candidate.query('SELECT 1');
+    await candidate.query(`
+      CREATE TABLE IF NOT EXISTS royal_backend_state (
+        id INTEGER PRIMARY KEY CHECK (id = 1),
+        payload JSONB NOT NULL,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `);
+
+    const result = await candidate.query(
+      'SELECT payload FROM royal_backend_state WHERE id = 1'
+    );
+
+    if (result.rows.length > 0) {
+      const saved = result.rows[0].payload;
+      if (saved && Array.isArray(saved.users)) {
+        registeredUsers.clear();
+        for (const u of saved.users) {
+          if (!u || typeof u.id !== 'string') continue;
+          registeredUsers.set(u.id, {
+            ...u,
+            rating: u.rating ?? 1200,
+            xp: u.xp ?? (u.level ? u.level * 100 : 0),
+            usdtBalance: typeof u.usdtBalance === 'number' ? u.usdtBalance : 25,
+            losses: u.losses ?? 0,
+            winStreak: u.winStreak ?? 0,
+            status: 'offline',
+          });
+        }
+      }
+      if (saved && saved.friendships && typeof saved.friendships === 'object') {
+        friendships.clear();
+        for (const [uid, friendsArr] of Object.entries(saved.friendships)) {
+          friendships.set(uid, new Set(Array.isArray(friendsArr) ? friendsArr as string[] : []));
+        }
+      }
+      console.log(`[Postgres] Loaded ${registeredUsers.size} users from PostgreSQL.`);
+    } else {
+      const initialSnapshot = buildStoreSnapshot();
+      await candidate.query(
+        'INSERT INTO royal_backend_state (id, payload, updated_at) VALUES (1, $1::jsonb, NOW()) ON CONFLICT (id) DO NOTHING',
+        [JSON.stringify(initialSnapshot)]
+      );
+      console.log('[Postgres] Initialized PostgreSQL from existing JSON data.');
+    }
+
+    pgPool = candidate;
+    // Ensure the selected startup state is reflected in the JSON fallback too.
+    try {
+      fs.writeFileSync(DB_FILE, JSON.stringify(buildStoreSnapshot(), null, 2), 'utf-8');
+    } catch (e) {
+      console.warn('[Store] Could not refresh JSON fallback from PostgreSQL:', e);
+    }
+    console.log('[Postgres] Connected and persistent storage enabled.');
+  } catch (e) {
+    console.error('[Postgres] Initialization failed; continuing with JSON file storage:', e);
+    await candidate.end().catch(() => undefined);
+    pgPool = null;
   }
 }
 
@@ -981,6 +1072,8 @@ if (!isProduction) {
 const portArgIdx = process.argv.indexOf('--port');
 const portArg = portArgIdx !== -1 ? Number(process.argv[portArgIdx + 1]) : null;
 const PORT = portArg || (process.env.NODE_ENV === 'production' && process.env.PORT ? Number(process.env.PORT) : 3000);
+await initializePostgres();
+
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`[Royal Backgammon Engine] Full-stack Server listening on http://0.0.0.0:${PORT}`);
 });
