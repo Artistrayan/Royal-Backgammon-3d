@@ -87,6 +87,7 @@ interface FriendChallenge {
   };
   targetUserId: string;
   createdAt: number;
+  amountUsdt: number;
 }
 
 interface MatchQueueItem {
@@ -660,6 +661,12 @@ function handleClientMessage(ws: WebSocket, msg: any) {
         return;
       }
 
+      const requestedAmount = Number(msg.amountUsdt ?? 0);
+      if (!Number.isFinite(requestedAmount) || requestedAmount < 0) {
+        sendMsg(ws, { type: 'error', message: 'Match amount must be zero or greater.' });
+        return;
+      }
+      const amountUsdt = Math.round(requestedAmount * 100) / 100;
       const challengeId = `chal-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
       const challenge: FriendChallenge = {
         challengeId,
@@ -672,6 +679,7 @@ function handleClientMessage(ws: WebSocket, msg: any) {
         },
         targetUserId: targetId,
         createdAt: Date.now(),
+        amountUsdt,
       };
       activeChallenges.set(challengeId, challenge);
 
@@ -683,52 +691,44 @@ function handleClientMessage(ws: WebSocket, msg: any) {
     }
 
     case 'friend:challenge_respond': {
-      if (msg.accept) {
-        sendMsg(ws, { type: 'error', message: 'Online cash matches are temporarily disabled while secure wallet and server-side game validation are completed.' });
-        const challenge = activeChallenges.get(msg.challengeId);
-        if (challenge) {
-          activeChallenges.delete(msg.challengeId);
-          const challengerWs = userSockets.get(challenge.challenger.id);
-          if (challengerWs) sendMsg(challengerWs, { type: 'friend:challenge_declined', reason: 'Online cash matches are temporarily disabled.' });
-        }
-        return;
-      }
       const senderId = socketToUserId.get(ws);
       const challenge = activeChallenges.get(msg.challengeId);
       if (!senderId || !challenge || challenge.targetUserId !== senderId) return;
 
-      activeChallenges.delete(msg.challengeId);
       const challengerWs = userSockets.get(challenge.challenger.id);
-
       if (!msg.accept) {
-        if (challengerWs) {
-          sendMsg(challengerWs, {
-            type: 'friend:challenge_declined',
-            reason: 'Challenge was declined',
-          });
-        }
-        return;
-      }
-
-      if (!challengerWs) {
-        sendMsg(ws, {
-          type: 'error',
-          message: 'Challenger has gone offline',
+        activeChallenges.delete(msg.challengeId);
+        if (challengerWs) sendMsg(challengerWs, {
+          type: 'friend:challenge_declined',
+          reason: 'Challenge was declined',
         });
         return;
       }
 
-      const userTarget = registeredUsers.get(senderId)!;
-      const userChallenger = registeredUsers.get(challenge.challenger.id)!;
+      if (challenge.amountUsdt > 0) {
+        activeChallenges.delete(msg.challengeId);
+        sendMsg(ws, { type: 'error', message: 'Paid matches are not active yet. No funds were taken. Send a 0 USDT challenge for a free match.' });
+        if (challengerWs) sendMsg(challengerWs, {
+          type: 'friend:challenge_declined',
+          reason: 'Paid matches are not active yet. No funds were taken.',
+        });
+        return;
+      }
 
-      launchTwoPlayerRoom(
-        challengerWs,
-        userChallenger,
-        ws,
-        userTarget,
-        'friend_match',
-        1
-      );
+      activeChallenges.delete(msg.challengeId);
+      if (!challengerWs) {
+        sendMsg(ws, { type: 'error', message: 'Challenger has gone offline' });
+        return;
+      }
+
+      const userTarget = registeredUsers.get(senderId);
+      const userChallenger = registeredUsers.get(challenge.challenger.id);
+      if (!userTarget || !userChallenger) {
+        sendMsg(ws, { type: 'error', message: 'One of the players is no longer registered.' });
+        return;
+      }
+
+      launchTwoPlayerRoom(challengerWs, userChallenger, ws, userTarget, 'friend_match', 1);
       break;
     }
 
@@ -1017,8 +1017,8 @@ function launchTwoPlayerRoom(
   const room: ActiveGameRoom = {
     roomId,
     tierId,
-    entryFeeUsdt: tierConfig.entry,
-    prizePoolUsdt: tierConfig.prize,
+    entryFeeUsdt: mode === 'friend_match' ? 0 : tierConfig.entry,
+    prizePoolUsdt: mode === 'friend_match' ? 0 : tierConfig.prize,
     mode,
     playerLight: { socket: socketLight, user: playerLightUser },
     playerDark: { socket: socketDark, user: playerDarkUser },
@@ -1030,8 +1030,8 @@ function launchTwoPlayerRoom(
   const baseRoomState = {
     roomId,
     tierId,
-    entryFeeUsdt: tierConfig.entry,
-    prizePoolUsdt: tierConfig.prize,
+    entryFeeUsdt: mode === 'friend_match' ? 0 : tierConfig.entry,
+    prizePoolUsdt: mode === 'friend_match' ? 0 : tierConfig.prize,
     mode,
     playerLight: playerLightUser,
     playerDark: playerDarkUser,
