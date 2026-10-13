@@ -13,7 +13,7 @@ interface FriendsModalProps {
   onSendFriendRequest: (targetUserId: string) => void;
   onAcceptFriendRequest: (requestId: string) => void;
   onRejectFriendRequest: (requestId: string) => void;
-  onChallengeFriend: (targetUserId: string) => void;
+  onChallengeFriend: (targetUserId: string, amountUsdt: number) => void;
 }
 
 export function FriendsModal({
@@ -32,6 +32,9 @@ export function FriendsModal({
   const [activeTab, setActiveTab] = useState<'friends' | 'search' | 'requests'>('friends');
   const [searchQuery, setSearchQuery] = useState('');
   const [sentMap, setSentMap] = useState<Record<string, boolean>>({});
+  const [challengeAmount, setChallengeAmount] = useState('0');
+  const parsedChallengeAmount = Number(challengeAmount);
+  const validChallengeAmount = challengeAmount.trim() !== '' && Number.isFinite(parsedChallengeAmount) && parsedChallengeAmount >= 0;
 
   if (!isOpen) return null;
 
@@ -117,6 +120,13 @@ export function FriendsModal({
           {/* TAB 1: FRIENDS LIST */}
           {activeTab === 'friends' && (
             <div className="space-y-2">
+              <div className="rounded border border-[#c8a668]/35 bg-[#020b07]/80 p-2.5">
+                <label htmlFor="friend-challenge-amount" className="block font-cinzel text-[8.5px] tracking-wider text-[#f5dca8] mb-1.5">
+                  MATCH AMOUNT (USDT) • 0 = FREE
+                </label>
+                <input id="friend-challenge-amount" type="number" min="0" step="0.01" inputMode="decimal" value={challengeAmount} onChange={(e) => setChallengeAmount(e.target.value)} className="w-full rounded bg-[#061810] border border-[#c8a668]/45 px-2.5 py-2 font-cinzel text-[11px] text-[#f5dca8] focus:outline-none focus:border-[#f5dca8]" aria-describedby="friend-challenge-amount-note" />
+                <p id="friend-challenge-amount-note" className="font-cormorant text-[10px] text-[#a39e93] mt-1.5">Free matches can start now. Paid matches are not enabled until secure deposits and stake settlement are implemented.</p>
+              </div>
               {friends.length === 0 ? (
                 <div className="text-center py-8">
                   <p className="font-cinzel text-[10px] text-[#a39e93] mb-1">
@@ -174,8 +184,8 @@ export function FriendsModal({
                     {/* Challenge Button */}
                     <button
                       type="button"
-                      disabled={f.status !== 'online'}
-                      onClick={() => onChallengeFriend(f.id)}
+                      disabled={f.status !== 'online' || !validChallengeAmount}
+                      onClick={() => onChallengeFriend(f.id, Math.round(parsedChallengeAmount * 100) / 100)}
                       className={`px-2 py-1 rounded font-cinzel text-[8px] font-semibold tracking-wider transition-all ${
                         f.status === 'online'
                           ? 'brass-button-surface border border-[#ead4a4]/80 text-[#140e05] cursor-pointer active:scale-95'
