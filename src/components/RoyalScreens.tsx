@@ -32,6 +32,9 @@ export interface RealPlayerStats {
   matchesPlayed: number;
   wins: number;
   losses: number;
+  rating?: number; // Global ELO (start at 1200)
+  xp?: number;
+  winStreak?: number;
   gammonsWon?: number;
   backgammonsWon?: number;
   highestCubePlayed?: number;
@@ -49,6 +52,18 @@ export interface WalletTransaction {
   label: string;
   amount: number; // positive or negative
   timestamp: string;
+}
+
+export interface UsdtTransaction {
+  id: string;
+  type: 'deposit' | 'withdraw' | 'match_win' | 'match_entry';
+  amount: number;
+  network?: 'TRC20' | 'TON';
+  address?: string;
+  txHash?: string;
+  description: string;
+  timestamp: string;
+  status: 'confirmed' | 'pending';
 }
 
 export const STORE_ITEMS: StoreItem[] = [
@@ -355,13 +370,11 @@ export function ProfileView({
       ? `${((realStats.wins / realStats.matchesPlayed) * 100).toFixed(1)}%`
       : '0.0%';
 
-  // Real level derived from real activity
-  const realXp =
-    realStats.matchesPlayed * 100 +
-    realStats.tableSessionsOpened * 25 +
-    realStats.boardFoldCount * 10;
-  const realLevel = Math.floor(realXp / 100) + 1;
-  const xpInCurrentLevel = realXp % 100;
+  const currentXp = realStats.xp ?? (realStats.wins * 45);
+  const realLevel = Math.max(0, Math.floor(currentXp / 100));
+  const xpInCurrentLevel = currentXp % 100;
+  const currentRating = realStats.rating ?? 1200;
+  const winStreak = realStats.winStreak ?? 0;
 
   const handleSaveName = () => {
     const cleaned = draftName.trim().toUpperCase() || 'PLAYER 1';
@@ -390,11 +403,16 @@ export function ProfileView({
           </div>
 
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1.5">
               <RoyalCrownIcon className="w-3 h-2.5 text-[#d4b26f] shrink-0" />
               <span className="font-cinzel text-[6.5px] tracking-[0.16em] text-[#c8a668] uppercase">
-                REAL PLAYER PROFILE
+                GLOBAL RATING: {currentRating} ELO
               </span>
+              {winStreak >= 2 && (
+                <span className="font-cinzel text-[6px] px-1 py-0.2 rounded bg-[#381608] border border-[#f28b6c]/40 text-[#f5a890]">
+                  🔥 {winStreak}W
+                </span>
+              )}
             </div>
 
             {isEditingName ? (
@@ -425,7 +443,7 @@ export function ProfileView({
             )}
 
             <p className="font-cormorant text-[8.5px] text-[#9e988c] tracking-[0.04em] truncate">
-              Joined {joinedDate} • {ownedCount}/{STORE_ITEMS.length} Items Owned
+              {currentRating >= 1600 ? 'Grandmaster League' : currentRating >= 1400 ? 'Master Guild' : 'Novice Division'} • {ownedCount}/{STORE_ITEMS.length} Items
             </p>
           </div>
         </div>
@@ -599,182 +617,570 @@ export function ProfileView({
 
 interface WalletViewProps {
   coins: number;
+  usdtBalance: number;
   tributeClaimed: boolean;
   transactions: WalletTransaction[];
+  usdtTransactions?: UsdtTransaction[];
   onClaimTribute: () => void;
   onAcquireCoins: (amount: number, packName: string) => void;
+  onDepositUsdt: (amount: number, network: 'TRC20' | 'TON', txHash: string) => void;
+  onWithdrawUsdt: (amount: number, destinationAddress: string, network: 'TRC20' | 'TON') => void;
 }
 
 /**
- * WALLET SCREEN (Real Balance & Real Recorded Transaction Ledger)
+ * WALLET SCREEN (Real USDT Crypto Vault & Real Recorded Transaction Ledger)
  */
 export function WalletView({
   coins,
+  usdtBalance,
   tributeClaimed,
   transactions,
+  usdtTransactions = [],
   onClaimTribute,
   onAcquireCoins,
+  onDepositUsdt,
+  onWithdrawUsdt,
 }: WalletViewProps) {
-  const latestTx = transactions.length > 0 ? transactions[0] : null;
+  const [walletTab, setWalletTab] = useState<'usdt' | 'coins'>('usdt');
+  const [usdtAction, setUsdtAction] = useState<'view' | 'deposit' | 'withdraw'>('view');
+  const [depositNetwork, setDepositNetwork] = useState<'TRC20' | 'TON'>('TRC20');
+  const [depositTxHash, setDepositTxHash] = useState('');
+  const [depositAmountInput, setDepositAmountInput] = useState('25');
+  const [withdrawAddress, setWithdrawAddress] = useState('');
+  const [withdrawAmount, setWithdrawAmount] = useState('10');
+  const [withdrawNetwork, setWithdrawNetwork] = useState<'TRC20' | 'TON'>('TRC20');
+  const [copiedAddress, setCopiedAddress] = useState(false);
+
+  const PLATFORM_ADDRESSES = {
+    TRC20: 'TYD8xQv9F34mZ87LpWeQ98aC21vB67xNqR',
+    TON: 'EQB_t1r8f92jK7lWp3Qv84_USDT_TELEGRAM',
+  };
+
+  const handleCopyAddress = (addr: string) => {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(addr).catch(() => {});
+    }
+    setCopiedAddress(true);
+    royalSound.playOptionClickSound();
+    setTimeout(() => setCopiedAddress(false), 2000);
+  };
+
+  const handleConfirmDeposit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const amt = parseFloat(depositAmountInput);
+    if (!amt || amt <= 0) return;
+    const hash = depositTxHash.trim() || `tx-${Date.now().toString(36)}`;
+    onDepositUsdt(amt, depositNetwork, hash);
+    setDepositTxHash('');
+    setUsdtAction('view');
+  };
+
+  const handleConfirmWithdrawal = (e: React.FormEvent) => {
+    e.preventDefault();
+    const amt = parseFloat(withdrawAmount);
+    if (!amt || amt < 5 || !withdrawAddress.trim()) return;
+    onWithdrawUsdt(amt, withdrawAddress.trim(), withdrawNetwork);
+    setWithdrawAddress('');
+    setUsdtAction('view');
+  };
 
   return (
-    <div className="relative z-20 w-full h-full px-5 py-1.5 flex flex-row gap-3 items-stretch min-h-0">
-      {/* Left Royal Treasury Balance Vault Card */}
-      <div className="w-[38%] rounded-[4px] bg-[#05140e]/92 border border-[#c8a668]/45 p-2.5 flex flex-col justify-between shadow-[0_8px_24px_rgba(0,0,0,0.85)]">
-        <div>
-          <div className="flex items-center gap-1.5">
-            <WalletIcon className="w-3.5 h-3.5 text-[#d4b26f]" filled />
-            <span className="font-cinzel text-[7.5px] tracking-[0.18em] text-[#c8a668]">
-              ROYAL TREASURY VAULT
-            </span>
-          </div>
-
-          <div className="mt-2 p-2 rounded-[3px] bg-[#030c08] border border-[#c8a668]/35 flex items-center gap-2.5">
-            <img
-              src={checkersGoldSilverImg}
-              alt="Royal Gold Coins"
-              referrerPolicy="no-referrer"
-              className="w-11 h-11 rounded-[2px] object-cover border border-[#c8a668]/45 shrink-0"
-            />
-            <div>
-              <span className="font-cinzel text-[6.5px] tracking-[0.16em] text-[#9e988c] block">
-                CURRENT BALANCE
-              </span>
-              <span className="font-cinzel text-[15px] font-bold tracking-[0.1em] text-[#f5dca8] tabular-nums leading-tight">
-                {coins.toLocaleString()}
-              </span>
-              <span className="font-cinzel text-[7px] tracking-[0.2em] text-[#c8a668] block">
-                ROYAL COINS
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Daily Royal Tribute Box */}
-        <div className="rounded-[3px] bg-[#071c13]/90 border border-[#c8a668]/35 p-2">
-          <div className="flex items-center justify-between">
-            <span className="font-cinzel text-[7px] tracking-[0.14em] text-[#e8dfd0]">
-              DAILY CLUB TRIBUTE
-            </span>
-            <span className="font-cinzel text-[7px] font-semibold tracking-[0.12em] text-[#e3c485]">
-              +250 COINS
-            </span>
-          </div>
-          <p className="font-cormorant text-[8.5px] text-[#a39e93] mt-0.5">
-            Claim daily coins to unlock items in the Store
-          </p>
+    <div className="relative z-20 w-full h-full px-4 py-1.5 flex flex-col gap-2 min-h-0 text-[#e8dfd0]">
+      {/* Top Wallet Sub-Tabs */}
+      <div className="flex items-center justify-between border-b border-[#c8a668]/30 pb-1 shrink-0">
+        <div className="flex items-center gap-1.5">
           <button
             type="button"
-            disabled={tributeClaimed}
-            onClick={onClaimTribute}
-            className={`mt-1.5 w-full h-[22px] rounded-[2px] font-cinzel text-[7.5px] font-semibold tracking-[0.16em] transition-all cursor-pointer ${
-              tributeClaimed
-                ? 'bg-[#0b1f16] text-[#7e7c74] border border-[#c8a668]/25 cursor-default'
-                : 'brass-button-surface text-[#140e05] border border-[#ead4a4]/70'
+            onClick={() => setWalletTab('usdt')}
+            className={`px-3 py-1 rounded font-cinzel text-[8.5px] font-bold tracking-wider transition-all cursor-pointer ${
+              walletTab === 'usdt'
+                ? 'bg-[#0a281c] border border-[#52f29c]/60 text-[#52f29c] shadow-sm'
+                : 'text-[#8e8a80] hover:text-[#d0c7b6]'
             }`}
           >
-            {tributeClaimed ? 'TRIBUTE CLAIMED' : 'CLAIM +250 COINS'}
+            💵 USDT CRYPTO VAULT ({usdtBalance.toFixed(2)} USDT)
+          </button>
+          <button
+            type="button"
+            onClick={() => setWalletTab('coins')}
+            className={`px-3 py-1 rounded font-cinzel text-[8.5px] font-bold tracking-wider transition-all cursor-pointer ${
+              walletTab === 'coins'
+                ? 'bg-[#0a281c] border border-[#c8a668]/60 text-[#f5dca8] shadow-sm'
+                : 'text-[#8e8a80] hover:text-[#d0c7b6]'
+            }`}
+          >
+            🪙 ROYAL CLUB COINS ({coins.toLocaleString()})
           </button>
         </div>
+
+        <span className="font-cormorant text-[9.5px] text-[#a39e93]">
+          Official Telegram &amp; TRC20/TON Ledger
+        </span>
       </div>
 
-      {/* Right Coin Grants & Real Transaction History */}
-      <div className="flex-1 rounded-[4px] bg-[#05140e]/92 border border-[#c8a668]/45 p-2.5 flex flex-col justify-between shadow-[0_8px_24px_rgba(0,0,0,0.85)]">
-        <div className="flex items-center justify-between border-b border-[#c8a668]/25 pb-1">
-          <span className="font-cinzel text-[9px] font-semibold tracking-[0.18em] text-[#f0e6d2]">
-            TREASURY COIN GRANTS
-          </span>
-          <span className="font-cinzel text-[7px] tracking-[0.15em] text-[#b89758]">
-            {transactions.length} RECORDED TRANSACTIONS
-          </span>
-        </div>
-
-        {/* 3 Treasury Grants */}
-        <div className="grid grid-cols-3 gap-2 my-auto py-1">
-          {[
-            {
-              id: 'pouch',
-              title: 'PARLOR POUCH',
-              amount: 500,
-              tag: 'BRONZE GRANT',
-              img: checkersIvoryEbonyImg,
-            },
-            {
-              id: 'chest',
-              title: 'SOVEREIGN CHEST',
-              amount: 1000,
-              tag: 'SILVER GRANT',
-              img: checkersGoldSilverImg,
-            },
-            {
-              id: 'treasury',
-              title: 'IMPERIAL VAULT',
-              amount: 2500,
-              tag: 'GOLD GRANT',
-              img: boardCrestImg,
-            },
-          ].map((pack) => (
-            <div
-              key={pack.id}
-              className="rounded-[3px] bg-[#030d09]/95 border border-[#c8a668]/35 p-2 flex flex-col justify-between"
-            >
-              <div>
-                <div className="relative w-full h-11 rounded-[2px] overflow-hidden mb-1 border border-[#c8a668]/25">
-                  <img
-                    src={pack.img}
-                    alt={pack.title}
-                    referrerPolicy="no-referrer"
-                    className="w-full h-full object-cover"
-                  />
-                  <span className="absolute top-1 left-1 px-1 py-0.2 rounded-[2px] bg-[#04100b]/90 font-cinzel text-[5.5px] tracking-[0.12em] text-[#e3c485]">
-                    {pack.tag}
-                  </span>
-                </div>
-                <h3 className="font-cinzel text-[7.5px] tracking-[0.12em] text-[#e8dfd0] truncate">
-                  {pack.title}
-                </h3>
-                <div className="font-cinzel text-[11px] font-bold tracking-[0.08em] text-[#f5dca8] tabular-nums">
-                  +{pack.amount.toLocaleString()}
-                </div>
+      {walletTab === 'usdt' ? (
+        <div className="flex-1 flex flex-row gap-3 min-h-0 overflow-hidden">
+          {/* Left Column: USDT Balance & Actions */}
+          <div className="w-[42%] rounded-lg bg-[#05140e]/95 border border-[#c8a668]/50 p-3 flex flex-col justify-between shadow-xl overflow-y-auto">
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="font-cinzel text-[7.5px] tracking-wider text-[#c8a668]">
+                  USDT ACTIVE CRYPTO ASSETS
+                </span>
+                <span className="text-[7.5px] font-cinzel px-1.5 py-0.2 rounded bg-[#020b06] border border-[#52f29c]/40 text-[#52f29c]">
+                  CONNECTED
+                </span>
               </div>
 
+              {/* Big Balance Box */}
+              <div className="p-3 rounded-lg bg-gradient-to-r from-[#020d08] to-[#04170e] border border-[#c8a668]/40 mb-3">
+                <span className="font-cinzel text-[7px] text-[#8e8a80] block">
+                  AVAILABLE TOURNAMENT BALANCE
+                </span>
+                <div className="flex items-baseline gap-1 mt-0.5">
+                  <span className="font-cinzel text-[20px] font-extrabold text-[#52f29c] tabular-nums tracking-tight">
+                    {usdtBalance.toFixed(2)}
+                  </span>
+                  <span className="font-cinzel text-[9.5px] font-bold text-[#f5dca8]">
+                    USDT
+                  </span>
+                </div>
+                <span className="font-cormorant text-[8.5px] text-[#9e988c] block mt-0.5">
+                  Directly usable across all 5 online tournament tiers (1 to 25 USDT)
+                </span>
+              </div>
+
+              {/* Deposit / Withdraw Action Buttons */}
+              <div className="grid grid-cols-2 gap-2 mb-2">
+                <button
+                  type="button"
+                  onClick={() => setUsdtAction(usdtAction === 'deposit' ? 'view' : 'deposit')}
+                  className={`py-1.5 rounded font-cinzel text-[8.5px] font-bold tracking-wider transition-all cursor-pointer ${
+                    usdtAction === 'deposit'
+                      ? 'bg-[#52f29c] text-[#021008]'
+                      : 'brass-button-surface border border-[#ead4a4]/80 text-[#140e05]'
+                  }`}
+                >
+                  📥 DEPOSIT USDT
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setUsdtAction(usdtAction === 'withdraw' ? 'view' : 'withdraw')}
+                  className={`py-1.5 rounded font-cinzel text-[8.5px] font-bold tracking-wider transition-all cursor-pointer ${
+                    usdtAction === 'withdraw'
+                      ? 'bg-[#52f29c] text-[#021008]'
+                      : 'bg-[#0a2418] hover:bg-[#123625] border border-[#c8a668]/40 text-[#f5dca8]'
+                  }`}
+                >
+                  📤 WITHDRAW USDT
+                </button>
+              </div>
+
+              {/* Quick Demo Test Deposit */}
+              <div className="p-2 rounded bg-[#020b06] border border-[#c8a668]/20 flex items-center justify-between">
+                <span className="font-cinzel text-[7px] text-[#8e8a80]">
+                  DEMO TEST TOP-UP:
+                </span>
+                <div className="flex gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => onDepositUsdt(10, 'TRC20', `demo-${Date.now()}`)}
+                    className="px-2 py-0.5 rounded bg-[#0a281c] border border-[#52f29c]/40 hover:bg-[#143b2a] font-cinzel text-[7px] font-bold text-[#52f29c] cursor-pointer"
+                  >
+                    +10 USDT
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onDepositUsdt(50, 'TON', `demo-${Date.now()}`)}
+                    className="px-2 py-0.5 rounded bg-[#0a281c] border border-[#52f29c]/40 hover:bg-[#143b2a] font-cinzel text-[7px] font-bold text-[#52f29c] cursor-pointer"
+                  >
+                    +50 USDT
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="text-[7.5px] font-cormorant text-[#7e7a72] mt-2 border-t border-[#c8a668]/20 pt-1">
+              Supports TRC20 (Tron) &amp; TON (Telegram Official USDT). 0% Platform deposit fee.
+            </div>
+          </div>
+
+          {/* Right Column: Active Action Panel (Deposit / Withdraw / Ledger) */}
+          <div className="flex-1 rounded-lg bg-[#05140e]/95 border border-[#c8a668]/50 p-3 flex flex-col justify-between shadow-xl overflow-y-auto">
+            {usdtAction === 'deposit' ? (
+              /* DEPOSIT FORM */
+              <div className="h-full flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between border-b border-[#c8a668]/25 pb-1 mb-2">
+                    <span className="font-cinzel text-[9px] font-bold text-[#52f29c]">
+                      DEPOSIT USDT TO VAULT (واریز تتر)
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setUsdtAction('view')}
+                      className="text-xs font-bold text-[#c8a668] hover:text-white cursor-pointer"
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  {/* Network Selector */}
+                  <div className="flex gap-2 mb-2">
+                    {(['TRC20', 'TON'] as const).map((net) => (
+                      <button
+                        key={net}
+                        type="button"
+                        onClick={() => setDepositNetwork(net)}
+                        className={`flex-1 py-1 rounded font-cinzel text-[8px] font-bold border transition-all cursor-pointer ${
+                          depositNetwork === net
+                            ? 'bg-[#0a2c1e] border-[#52f29c] text-[#52f29c]'
+                            : 'bg-[#020a06] border-[#444] text-[#8e8a80]'
+                        }`}
+                      >
+                        {net === 'TRC20' ? 'TRC20 (TRON TETHER)' : 'TON (TELEGRAM TETHER)'}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Deposit Address Box */}
+                  <div className="p-2 rounded bg-[#020a06] border border-[#c8a668]/30 mb-2">
+                    <span className="font-cinzel text-[6.5px] text-[#8e8a80] block mb-0.5">
+                      OFFICIAL DEPOSIT ADDRESS ({depositNetwork})
+                    </span>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-mono text-[9px] text-[#f5dca8] truncate select-all">
+                        {PLATFORM_ADDRESSES[depositNetwork]}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleCopyAddress(PLATFORM_ADDRESSES[depositNetwork])}
+                        className="px-2 py-0.5 rounded brass-button-surface font-cinzel text-[7px] font-bold text-[#140e05] shrink-0 cursor-pointer"
+                      >
+                        {copiedAddress ? 'COPIED ✓' : 'COPY'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Deposit Amount & TXID Verification Form */}
+                  <form onSubmit={handleConfirmDeposit} className="space-y-2">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="font-cinzel text-[6.5px] text-[#8e8a80] block mb-0.5">
+                          AMOUNT (USDT)
+                        </label>
+                        <input
+                          type="number"
+                          min="1"
+                          step="1"
+                          value={depositAmountInput}
+                          onChange={(e) => setDepositAmountInput(e.target.value)}
+                          className="w-full px-2 py-1 rounded bg-[#020a06] border border-[#c8a668]/40 font-cinzel text-[9px] text-white outline-none"
+                          placeholder="Amount in USDT"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="font-cinzel text-[6.5px] text-[#8e8a80] block mb-0.5">
+                          TXID HASH (اختیاری برای تست)
+                        </label>
+                        <input
+                          type="text"
+                          value={depositTxHash}
+                          onChange={(e) => setDepositTxHash(e.target.value)}
+                          className="w-full px-2 py-1 rounded bg-[#020a06] border border-[#c8a668]/40 font-mono text-[8.5px] text-white outline-none"
+                          placeholder="Enter Transaction Hash"
+                        />
+                      </div>
+                    </div>
+
+                    <button
+                      type="submit"
+                      className="w-full py-1.5 rounded brass-button-surface border border-[#fff0c4] font-cinzel text-[8.5px] font-bold text-[#140e05] cursor-pointer mt-1"
+                    >
+                      CONFIRM DEPOSIT (+{depositAmountInput} USDT)
+                    </button>
+                  </form>
+                </div>
+              </div>
+            ) : usdtAction === 'withdraw' ? (
+              /* WITHDRAW FORM */
+              <div className="h-full flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between border-b border-[#c8a668]/25 pb-1 mb-2">
+                    <span className="font-cinzel text-[9px] font-bold text-[#f5dca8]">
+                      WITHDRAW USDT (برداشت تتر)
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setUsdtAction('view')}
+                      className="text-xs font-bold text-[#c8a668] hover:text-white cursor-pointer"
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  <form onSubmit={handleConfirmWithdrawal} className="space-y-2">
+                    {/* Network Selector */}
+                    <div className="flex gap-2 mb-1">
+                      {(['TRC20', 'TON'] as const).map((net) => (
+                        <button
+                          key={net}
+                          type="button"
+                          onClick={() => setWithdrawNetwork(net)}
+                          className={`flex-1 py-1 rounded font-cinzel text-[8px] font-bold border transition-all cursor-pointer ${
+                            withdrawNetwork === net
+                              ? 'bg-[#0a2c1e] border-[#52f29c] text-[#52f29c]'
+                              : 'bg-[#020a06] border-[#444] text-[#8e8a80]'
+                          }`}
+                        >
+                          {net}
+                        </button>
+                      ))}
+                    </div>
+
+                    <div>
+                      <label className="font-cinzel text-[6.5px] text-[#8e8a80] block mb-0.5">
+                        DESTINATION {withdrawNetwork} WALLET ADDRESS
+                      </label>
+                      <input
+                        type="text"
+                        value={withdrawAddress}
+                        onChange={(e) => setWithdrawAddress(e.target.value)}
+                        className="w-full px-2 py-1 rounded bg-[#020a06] border border-[#c8a668]/40 font-mono text-[8.5px] text-white outline-none"
+                        placeholder={`Paste your ${withdrawNetwork} address...`}
+                        required
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="font-cinzel text-[6.5px] text-[#8e8a80] block mb-0.5">
+                          AMOUNT (MIN 5 USDT)
+                        </label>
+                        <input
+                          type="number"
+                          min="5"
+                          max={usdtBalance}
+                          step="1"
+                          value={withdrawAmount}
+                          onChange={(e) => setWithdrawAmount(e.target.value)}
+                          className="w-full px-2 py-1 rounded bg-[#020a06] border border-[#c8a668]/40 font-cinzel text-[9px] text-white outline-none"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="font-cinzel text-[6.5px] text-[#8e8a80] block mb-0.5">
+                          NETWORK FEE
+                        </label>
+                        <div className="px-2 py-1 rounded bg-[#020a06] border border-[#c8a668]/20 font-cinzel text-[9px] text-[#52f29c]">
+                          0.00 USDT (FREE)
+                        </div>
+                      </div>
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={usdtBalance < parseFloat(withdrawAmount || '0')}
+                      className={`w-full py-1.5 rounded font-cinzel text-[8.5px] font-bold tracking-wider transition-all ${
+                        usdtBalance >= parseFloat(withdrawAmount || '0')
+                          ? 'brass-button-surface border border-[#fff0c4] text-[#140e05] cursor-pointer'
+                          : 'bg-[#1a0f0b] border border-[#8a4235] text-[#d67b6f] cursor-not-allowed'
+                      }`}
+                    >
+                      {usdtBalance >= parseFloat(withdrawAmount || '0')
+                        ? `REQUEST WITHDRAWAL (${withdrawAmount} USDT)`
+                        : 'INSUFFICIENT BALANCE'}
+                    </button>
+                  </form>
+                </div>
+
+                <span className="font-cormorant text-[8px] text-[#8e8a80]">
+                  Withdrawals processed to your wallet within 1–5 minutes.
+                </span>
+              </div>
+            ) : (
+              /* FINANCIAL LEDGER TABLE */
+              <div className="h-full flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between border-b border-[#c8a668]/25 pb-1 mb-2">
+                    <span className="font-cinzel text-[9px] font-bold text-[#f5dca8]">
+                      USDT FINANCIAL TRANSACTION LEDGER (دفتر کل تراکنش‌ها)
+                    </span>
+                    <span className="font-cinzel text-[7px] text-[#52f29c]">
+                      {usdtTransactions.length} ENTRIES
+                    </span>
+                  </div>
+
+                  <div className="space-y-1.5 overflow-y-auto max-h-[170px] pr-1">
+                    {usdtTransactions.length === 0 ? (
+                      <div className="text-center py-6">
+                        <span className="font-cinzel text-[8.5px] text-[#8e8a80] block">
+                          NO USDT TRANSACTIONS YET
+                        </span>
+                        <span className="font-cormorant text-[8.5px] text-[#6b6760]">
+                          Deposit USDT or enter any tournament tier to record entries.
+                        </span>
+                      </div>
+                    ) : (
+                      usdtTransactions.map((tx) => (
+                        <div
+                          key={tx.id}
+                          className="p-1.5 rounded bg-[#020b06] border border-[#c8a668]/25 flex items-center justify-between text-[7.5px]"
+                        >
+                          <div>
+                            <span className="font-cinzel text-[#f5dca8] block font-semibold">
+                              {tx.description}
+                            </span>
+                            <span className="font-cormorant text-[#8e8a80]">
+                              {tx.timestamp} • {tx.network || 'USDT'} • {tx.status.toUpperCase()}
+                            </span>
+                          </div>
+                          <span
+                            className={`font-cinzel font-bold tabular-nums ${
+                              tx.amount >= 0 ? 'text-[#52f29c]' : 'text-[#f28b6c]'
+                            }`}
+                          >
+                            {tx.amount >= 0 ? `+${tx.amount.toFixed(2)}` : `${tx.amount.toFixed(2)}`} USDT
+                          </span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between text-[7px] font-cinzel text-[#8e8a80] border-t border-[#c8a668]/20 pt-1 mt-1">
+                  <span>NETWORK: TRON &amp; TON PROTOCOL</span>
+                  <span>IMMUTABLE SETTLEMENT</span>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      ) : (
+        /* TAB 2: ROYAL CLUB COINS */
+        <div className="flex-1 flex flex-row gap-3 min-h-0">
+          {/* Left Royal Treasury Balance Vault Card */}
+          <div className="w-[38%] rounded-[4px] bg-[#05140e]/92 border border-[#c8a668]/45 p-2.5 flex flex-col justify-between shadow-xl">
+            <div>
+              <div className="flex items-center gap-1.5">
+                <WalletIcon className="w-3.5 h-3.5 text-[#d4b26f]" filled />
+                <span className="font-cinzel text-[7.5px] tracking-[0.18em] text-[#c8a668]">
+                  ROYAL TREASURY VAULT
+                </span>
+              </div>
+
+              <div className="mt-2 p-2 rounded-[3px] bg-[#030c08] border border-[#c8a668]/35 flex items-center gap-2.5">
+                <img
+                  src={checkersGoldSilverImg}
+                  alt="Royal Gold Coins"
+                  referrerPolicy="no-referrer"
+                  className="w-11 h-11 rounded-[2px] object-cover border border-[#c8a668]/45 shrink-0"
+                />
+                <div>
+                  <span className="font-cinzel text-[6.5px] tracking-[0.16em] text-[#9e988c] block">
+                    CURRENT BALANCE
+                  </span>
+                  <span className="font-cinzel text-[15px] font-bold tracking-[0.1em] text-[#f5dca8] tabular-nums leading-tight">
+                    {coins.toLocaleString()}
+                  </span>
+                  <span className="font-cinzel text-[7px] tracking-[0.2em] text-[#c8a668] block">
+                    ROYAL COINS
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Daily Royal Tribute Box */}
+            <div className="rounded-[3px] bg-[#071c13]/90 border border-[#c8a668]/35 p-2">
+              <div className="flex items-center justify-between">
+                <span className="font-cinzel text-[7px] tracking-[0.14em] text-[#e8dfd0]">
+                  DAILY CLUB TRIBUTE
+                </span>
+                <span className="font-cinzel text-[7px] font-semibold tracking-[0.12em] text-[#e3c485]">
+                  +250 COINS
+                </span>
+              </div>
+              <p className="font-cormorant text-[8.5px] text-[#a39e93] mt-0.5">
+                Claim daily coins to unlock items in the Store
+              </p>
               <button
                 type="button"
-                onClick={() => onAcquireCoins(pack.amount, pack.title)}
-                className="mt-1.5 w-full h-[20px] rounded-[2px] brass-button-surface border border-[#ead4a4]/70 font-cinzel text-[7px] font-semibold tracking-[0.14em] text-[#140e05] cursor-pointer"
-              >
-                ADD +{pack.amount.toLocaleString()}
-              </button>
-            </div>
-          ))}
-        </div>
-
-        {/* Real Transaction Ledger Footer */}
-        <div className="rounded-[3px] bg-[#030d09]/90 border border-[#c8a668]/25 px-2.5 py-1 flex items-center justify-between text-[7px] font-cinzel tracking-[0.12em]">
-          {latestTx ? (
-            <>
-              <span className="text-[#cfc6b4] truncate">
-                {latestTx.timestamp} • {latestTx.label}
-              </span>
-              <span
-                className={`tabular-nums shrink-0 ml-2 ${
-                  latestTx.amount >= 0 ? 'text-[#e3c485]' : 'text-[#d98a6c]'
+                disabled={tributeClaimed}
+                onClick={onClaimTribute}
+                className={`mt-1.5 w-full h-[22px] rounded-[2px] font-cinzel text-[7.5px] font-semibold tracking-[0.16em] transition-all cursor-pointer ${
+                  tributeClaimed
+                    ? 'bg-[#0b1f16] text-[#7e7c74] border border-[#c8a668]/25 cursor-default'
+                    : 'brass-button-surface text-[#140e05] border border-[#ead4a4]/70'
                 }`}
               >
-                {latestTx.amount >= 0 ? '+' : ''}
-                {latestTx.amount.toLocaleString()} COINS
+                {tributeClaimed ? 'TRIBUTE CLAIMED' : 'CLAIM +250 COINS'}
+              </button>
+            </div>
+          </div>
+
+          {/* Right Coin Grants */}
+          <div className="flex-1 rounded-[4px] bg-[#05140e]/92 border border-[#c8a668]/45 p-2.5 flex flex-col justify-between shadow-xl">
+            <div className="flex items-center justify-between border-b border-[#c8a668]/25 pb-1">
+              <span className="font-cinzel text-[9px] font-semibold tracking-[0.18em] text-[#f0e6d2]">
+                TREASURY COIN GRANTS
               </span>
-            </>
-          ) : (
-            <>
-              <span className="text-[#8a8478]">
-                LEDGER: NO TRANSACTIONS RECORDED YET
+              <span className="font-cinzel text-[7px] tracking-[0.15em] text-[#b89758]">
+                {transactions.length} RECORDED TRANSACTIONS
               </span>
-              <span className="text-[#b89758]">0 ENTRIES</span>
-            </>
-          )}
+            </div>
+
+            <div className="grid grid-cols-3 gap-2 my-auto py-1">
+              {[
+                { id: 'pouch', title: 'PARLOR POUCH', amount: 500, tag: 'BRONZE GRANT', img: checkersIvoryEbonyImg },
+                { id: 'chest', title: 'SOVEREIGN CHEST', amount: 1000, tag: 'SILVER GRANT', img: checkersGoldSilverImg },
+                { id: 'treasury', title: 'IMPERIAL VAULT', amount: 2500, tag: 'GOLD GRANT', img: boardCrestImg },
+              ].map((pack) => (
+                <div
+                  key={pack.id}
+                  className="rounded-[3px] bg-[#030d09]/95 border border-[#c8a668]/35 p-2 flex flex-col justify-between"
+                >
+                  <div>
+                    <div className="relative w-full h-11 rounded-[2px] overflow-hidden mb-1 border border-[#c8a668]/25">
+                      <img
+                        src={pack.img}
+                        alt={pack.title}
+                        referrerPolicy="no-referrer"
+                        className="w-full h-full object-cover"
+                      />
+                      <span className="absolute top-1 left-1 px-1 py-0.2 rounded-[2px] bg-[#04100b]/90 font-cinzel text-[5.5px] tracking-[0.12em] text-[#e3c485]">
+                        {pack.tag}
+                      </span>
+                    </div>
+                    <h3 className="font-cinzel text-[7.5px] tracking-[0.12em] text-[#e8dfd0] truncate">
+                      {pack.title}
+                    </h3>
+                    <div className="font-cinzel text-[11px] font-bold tracking-[0.08em] text-[#f5dca8] tabular-nums">
+                      +{pack.amount.toLocaleString()}
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => onAcquireCoins(pack.amount, pack.title)}
+                    className="mt-1.5 w-full h-[20px] rounded-[2px] brass-button-surface border border-[#ead4a4]/70 font-cinzel text-[7px] font-semibold tracking-[0.14em] text-[#140e05] cursor-pointer"
+                  >
+                    ADD +{pack.amount.toLocaleString()}
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <div className="rounded-[3px] bg-[#030d09]/90 border border-[#c8a668]/25 px-2.5 py-1 flex items-center justify-between text-[7px] font-cinzel tracking-[0.12em]">
+              <span className="text-[#cfc6b4] truncate">
+                {transactions.length > 0 ? `${transactions[0].timestamp} • ${transactions[0].label}` : 'LEDGER ACTIVE'}
+              </span>
+              <span className="text-[#e3c485] font-bold">
+                {coins.toLocaleString()} TOTAL COINS
+              </span>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

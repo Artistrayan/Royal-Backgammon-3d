@@ -16,7 +16,12 @@ class RealMultiplayerClient {
   private currentUser: {
     id: string;
     username: string;
+    level: number;
+    xp: number;
+    rating: number;
+    usdtBalance: number;
     wins: number;
+    losses: number;
     matchesPlayed: number;
   } | null = null;
   private listeners: Map<string, Set<Listener<any>>> = new Map();
@@ -27,12 +32,20 @@ class RealMultiplayerClient {
   public connect(user: {
     id: string;
     username: string;
+    level: number;
+    xp: number;
+    rating: number;
+    usdtBalance: number;
     wins: number;
+    losses: number;
     matchesPlayed: number;
   }) {
     this.currentUser = user;
-    if (this.socket && (this.socket.readyState === WebSocket.OPEN || this.socket.readyState === WebSocket.CONNECTING)) {
-      // Re-register if already connected
+    if (
+      this.socket &&
+      (this.socket.readyState === WebSocket.OPEN ||
+        this.socket.readyState === WebSocket.CONNECTING)
+    ) {
       this.send({ type: 'user:register', user });
       return;
     }
@@ -48,7 +61,6 @@ class RealMultiplayerClient {
         if (this.currentUser) {
           this.send({ type: 'user:register', user: this.currentUser });
         }
-        // Flush queue
         while (this.pendingQueue.length > 0) {
           const msg = this.pendingQueue.shift();
           if (msg) this.send(msg);
@@ -153,12 +165,36 @@ class RealMultiplayerClient {
     this.send({ type: 'friend:challenge_respond', challengeId, accept });
   }
 
-  public joinMatchmaking(level: number, mode: 'online_match' | 'quick_seat') {
-    this.send({ type: 'matchmaking:join', level, mode });
+  public joinMatchmaking(
+    tierId: 1 | 2 | 3 | 4 | 5,
+    mode: 'online_match' | 'quick_seat'
+  ) {
+    this.send({ type: 'matchmaking:join', tierId, mode });
   }
 
   public cancelMatchmaking() {
     this.send({ type: 'matchmaking:cancel' });
+  }
+
+  public depositUsdt(
+    amountUsdt: number,
+    txHash: string,
+    network: 'TRC20' | 'TON'
+  ) {
+    this.send({ type: 'wallet:deposit', amountUsdt, txHash, network });
+  }
+
+  public withdrawUsdt(
+    amountUsdt: number,
+    destinationAddress: string,
+    network: 'TRC20' | 'TON'
+  ) {
+    this.send({
+      type: 'wallet:withdraw',
+      amountUsdt,
+      destinationAddress,
+      network,
+    });
   }
 
   public sendDiceRoll(

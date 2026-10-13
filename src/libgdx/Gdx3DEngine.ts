@@ -893,13 +893,13 @@ export class Gdx3DEngine {
   }
 
   private updateCameraFraming(aspect: number) {
+    const isPortrait = aspect < 1.0;
     if (this.isGameStage) {
       const isMax = this.zoomLevel === 'max';
       this.boardStageGroup.scale.set(1.0, 1.0, 1.0);
 
-      // Balanced 3D framing: keeps the board large and clear while leaving comfortable velvet table margins
-      const targetBoardWidthUnits = isMax ? 12.9 : 13.85;
-      const targetBoardHeightUnits = isMax ? 8.85 : 9.5;
+      const targetBoardWidthUnits = isPortrait ? 12.2 : (isMax ? 12.9 : 13.85);
+      const targetBoardHeightUnits = isPortrait ? 8.2 : (isMax ? 8.85 : 9.5);
 
       const vFovRad = THREE.MathUtils.degToRad(this.camera.fov);
       const hFovRad =
@@ -908,7 +908,7 @@ export class Gdx3DEngine {
       const distByHeight = targetBoardHeightUnits / 2 / Math.tan(vFovRad / 2);
 
       const requiredDist = Math.max(distByWidth, distByHeight);
-      const pitchAngle = 1.12;
+      const pitchAngle = isPortrait ? 1.18 : 1.12;
       const camY = Math.sin(pitchAngle) * requiredDist;
       const camZ = Math.cos(pitchAngle) * requiredDist;
 
@@ -918,8 +918,8 @@ export class Gdx3DEngine {
     } else {
       this.boardStageGroup.scale.set(1.0, 1.0, 1.0);
 
-      const targetBoardWidthUnits = 12.5;
-      const targetBoardHeightUnits = 9.05;
+      const targetBoardWidthUnits = isPortrait ? 10.8 : 12.5;
+      const targetBoardHeightUnits = isPortrait ? 7.8 : 9.05;
 
       const vFovRad = THREE.MathUtils.degToRad(this.camera.fov);
       const hFovRad =
@@ -928,7 +928,7 @@ export class Gdx3DEngine {
       const distByHeight = targetBoardHeightUnits / 2 / Math.tan(vFovRad / 2);
 
       const requiredDist = Math.max(distByWidth, distByHeight);
-      const pitchAngle = 0.96;
+      const pitchAngle = isPortrait ? 1.04 : 0.96;
       const camY = Math.sin(pitchAngle) * requiredDist;
       const camZ = Math.cos(pitchAngle) * requiredDist;
 

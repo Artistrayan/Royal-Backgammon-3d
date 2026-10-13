@@ -12,7 +12,12 @@ interface OnlineUser {
   id: string;
   username: string;
   level: number;
+  xp: number;
+  rating: number; // Global ELO (starts at 1200)
+  usdtBalance: number;
   wins: number;
+  losses: number;
+  winStreak: number;
   matchesPlayed: number;
   status: 'online' | 'in_game' | 'offline';
   lastSeen: number;
@@ -24,6 +29,7 @@ interface FriendRequest {
     id: string;
     username: string;
     level: number;
+    rating?: number;
     wins: number;
   };
   toUserId: string;
@@ -36,6 +42,7 @@ interface FriendChallenge {
     id: string;
     username: string;
     level: number;
+    rating?: number;
     wins: number;
   };
   targetUserId: string;
@@ -46,17 +53,83 @@ interface MatchQueueItem {
   socket: WebSocket;
   userId: string;
   level: number;
+  rating: number;
+  tierId: 1 | 2 | 3 | 4 | 5;
   mode: 'online_match' | 'quick_seat';
   joinedAt: number;
 }
 
 interface ActiveGameRoom {
   roomId: string;
+  tierId: 1 | 2 | 3 | 4 | 5;
+  entryFeeUsdt: number;
+  prizePoolUsdt: number;
   mode: 'online_match' | 'friend_match' | 'quick_seat';
   playerLight: { socket: WebSocket; user: OnlineUser };
   playerDark: { socket: WebSocket; user: OnlineUser };
   createdAt: number;
 }
+
+const TIER_CONFIG: Record<
+  1 | 2 | 3 | 4 | 5,
+  {
+    entry: number;
+    prize: number;
+    minLvl: number;
+    maxLvl: number;
+    name: string;
+    targetWins: number;
+    matchFormat: string;
+    isLeague?: boolean;
+  }
+> = {
+  1: {
+    entry: 1,
+    prize: 1.9,
+    minLvl: 0,
+    maxLvl: 10,
+    name: 'Bronze Novice Saloon',
+    targetWins: 1,
+    matchFormat: 'Single Match (فقط ۱ دست)',
+  },
+  2: {
+    entry: 2,
+    prize: 3.8,
+    minLvl: 11,
+    maxLvl: 25,
+    name: 'Silver Master Guild',
+    targetWins: 2,
+    matchFormat: '2 Rounds (در صورت تساوی دست سوم)',
+  },
+  3: {
+    entry: 5,
+    prize: 9.5,
+    minLvl: 26,
+    maxLvl: 50,
+    name: 'Gold Grandmaster Arena',
+    targetWins: 3,
+    matchFormat: 'Race to 3 Wins (۳ دست بازی)',
+  },
+  4: {
+    entry: 10,
+    prize: 19.0,
+    minLvl: 51,
+    maxLvl: 80,
+    name: 'Platinum High-Roller Court',
+    targetWins: 3,
+    matchFormat: 'Race to 3 Wins (۳ دست بازی سنگین)',
+  },
+  5: {
+    entry: 25,
+    prize: 235.0,
+    minLvl: 81,
+    maxLvl: 999,
+    name: 'Royal Sovereign Champions League',
+    targetWins: 5,
+    matchFormat: '10-Player Championship League (لیگ ۱۰ نفره)',
+    isLeague: true,
+  },
+};
 
 // Ensure data storage directory exists
 const DATA_DIR = path.resolve(__dirname, 'data');
@@ -82,7 +155,15 @@ try {
     const parsed = JSON.parse(raw);
     if (parsed.users && Array.isArray(parsed.users)) {
       for (const u of parsed.users) {
-        registeredUsers.set(u.id, { ...u, status: 'offline' });
+        registeredUsers.set(u.id, {
+          ...u,
+          rating: u.rating ?? 1200,
+          xp: u.xp ?? (u.level ? u.level * 100 : 0),
+          usdtBalance: typeof u.usdtBalance === 'number' ? u.usdtBalance : 25,
+          losses: u.losses ?? 0,
+          winStreak: u.winStreak ?? 0,
+          status: 'offline',
+        });
       }
     }
     if (parsed.friendships && typeof parsed.friendships === 'object') {
@@ -104,79 +185,87 @@ function persistStore() {
     }
     fs.writeFileSync(
       DB_FILE,
-      JSON.stringify({ users: usersArr, friendships: friendsObj }, null, 2)
+      JSON.stringify(
+        {
+          users: usersArr,
+          friendships: friendsObj,
+          savedAt: Date.now(),
+        },
+        null,
+        2
+      ),
+      'utf-8'
     );
   } catch (e) {
-    console.error('[Store] Failed to write backend store file:', e);
+    console.error('[Store] Failed to write DB file:', e);
   }
 }
 
-// Compute player level from wins (Level 1 to 50+)
-function computePlayerLevel(wins: number, matches: number): number {
-  return Math.max(1, Math.floor(wins / 2) + 1);
-}
-
-const app = express();
-app.use(express.json());
-
-// API health endpoint
-app.get('/api/health', (_req, res) => {
-  res.json({
-    status: 'ok',
-    onlineUsers: userSockets.size,
-    totalRegistered: registeredUsers.size,
-    activeRooms: activeRooms.size,
-    queueSize: matchmakingQueue.length,
-  });
-});
-
-const server = http.createServer(app);
-const wss = new WebSocketServer({ noServer: true });
-
-function sendMsg(ws: WebSocket, payload: any) {
-  if (ws.readyState === WebSocket.OPEN) {
-    ws.send(JSON.stringify(payload));
-  }
+// Global Rating & Leveling system calculation based on XP
+function calculateLevelFromXp(xp: number): number {
+  return Math.max(0, Math.floor(xp / 100));
 }
 
 function getFriendsListPayload(userId: string) {
   const friendIds = friendships.get(userId) || new Set<string>();
   const friends: OnlineUser[] = [];
   for (const fId of friendIds) {
-    const u = registeredUsers.get(fId);
-    if (u) {
+    const fUser = registeredUsers.get(fId);
+    if (fUser) {
       const isOnline = userSockets.has(fId);
       friends.push({
-        ...u,
-        status: isOnline ? (u.status === 'in_game' ? 'in_game' : 'online') : 'offline',
+        ...fUser,
+        status: isOnline ? (fUser.status === 'in_game' ? 'in_game' : 'online') : 'offline',
       });
     }
   }
 
-  const incomingRequests: FriendRequest[] = [];
-  const outgoingRequests: FriendRequest[] = [];
+  const incoming: FriendRequest[] = [];
+  const outgoing: FriendRequest[] = [];
   for (const req of friendRequests.values()) {
     if (req.toUserId === userId) {
-      incomingRequests.push(req);
+      incoming.push(req);
     } else if (req.fromUser.id === userId) {
-      outgoingRequests.push(req);
+      outgoing.push(req);
     }
   }
 
-  return { friends, incomingRequests, outgoingRequests };
+  return { friends, incomingRequests: incoming, outgoingRequests: outgoing };
 }
+
+function sendMsg(ws: WebSocket, payload: any) {
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    try {
+      ws.send(JSON.stringify(payload));
+    } catch (e) {
+      console.warn('[WS] Failed to send message:', e);
+    }
+  }
+}
+
+// Express & WebSocket Server Setup
+const app = express();
+app.use(express.json());
+
+const server = http.createServer(app);
+const wss = new WebSocketServer({ noServer: true });
 
 wss.on('connection', (ws: WebSocket) => {
   ws.on('message', (raw) => {
     try {
-      const data = JSON.parse(raw.toString());
-      handleClientMessage(ws, data);
+      const msg = JSON.parse(raw.toString());
+      handleClientMessage(ws, msg);
     } catch (err) {
-      console.warn('[WS] Invalid json from client', err);
+      console.error('[WS Server] Invalid JSON received:', err);
     }
   });
 
   ws.on('close', () => {
+    handleClientDisconnect(ws);
+  });
+
+  ws.on('error', (err) => {
+    console.warn('[WS Server] Socket error:', err);
     handleClientDisconnect(ws);
   });
 });
@@ -186,9 +275,7 @@ function handleClientDisconnect(ws: WebSocket) {
   if (!userId) return;
 
   socketToUserId.delete(ws);
-  if (userSockets.get(userId) === ws) {
-    userSockets.delete(userId);
-  }
+  userSockets.delete(userId);
 
   // Remove from matchmaking queue
   const qIdx = matchmakingQueue.findIndex((item) => item.userId === userId);
@@ -196,7 +283,6 @@ function handleClientDisconnect(ws: WebSocket) {
     matchmakingQueue.splice(qIdx, 1);
   }
 
-  // Update status in registry
   const user = registeredUsers.get(userId);
   if (user) {
     user.status = 'offline';
@@ -226,17 +312,26 @@ function handleClientDisconnect(ws: WebSocket) {
 function handleClientMessage(ws: WebSocket, msg: any) {
   switch (msg.type) {
     case 'user:register': {
-      const { id, username, wins, matchesPlayed } = msg.user;
+      const { id, username, wins, losses, matchesPlayed, xp, rating, usdtBalance, level } = msg.user;
       const cleanName = (username || 'PLAYER').trim().slice(0, 18).toUpperCase();
-      const level = computePlayerLevel(wins || 0, matchesPlayed || 0);
-
       const existing = registeredUsers.get(id);
+
+      const userXp = xp ?? existing?.xp ?? (level ? level * 100 : (wins || 0) * 40);
+      const computedLvl = calculateLevelFromXp(userXp);
+      const userRating = rating ?? existing?.rating ?? 1200;
+      const userUsdt = typeof usdtBalance === 'number' ? usdtBalance : (existing?.usdtBalance ?? 25.0);
+
       const onlineUser: OnlineUser = {
         id,
         username: cleanName,
-        level,
-        wins: wins || existing?.wins || 0,
-        matchesPlayed: matchesPlayed || existing?.matchesPlayed || 0,
+        level: computedLvl,
+        xp: userXp,
+        rating: userRating,
+        usdtBalance: userUsdt,
+        wins: wins ?? existing?.wins ?? 0,
+        losses: losses ?? existing?.losses ?? 0,
+        winStreak: existing?.winStreak ?? 0,
+        matchesPlayed: matchesPlayed ?? existing?.matchesPlayed ?? 0,
         status: 'online',
         lastSeen: Date.now(),
       };
@@ -258,6 +353,63 @@ function handleClientMessage(ws: WebSocket, msg: any) {
       });
 
       persistStore();
+      break;
+    }
+
+    case 'wallet:deposit': {
+      const senderId = socketToUserId.get(ws);
+      if (!senderId) return;
+      const user = registeredUsers.get(senderId);
+      if (!user) return;
+
+      const depositAmount = Number(msg.amountUsdt);
+      if (isNaN(depositAmount) || depositAmount <= 0) {
+        sendMsg(ws, { type: 'error', message: 'Invalid deposit amount' });
+        return;
+      }
+
+      user.usdtBalance = Math.round((user.usdtBalance + depositAmount) * 100) / 100;
+      persistStore();
+
+      sendMsg(ws, {
+        type: 'wallet:updated',
+        newUsdtBalance: user.usdtBalance,
+        txId: msg.txHash || `dep-${Date.now()}`,
+        actionType: 'deposit',
+        amount: depositAmount,
+        description: `Deposit ${depositAmount} USDT (${msg.network || 'TRC20'}) confirmed`,
+      });
+      break;
+    }
+
+    case 'wallet:withdraw': {
+      const senderId = socketToUserId.get(ws);
+      if (!senderId) return;
+      const user = registeredUsers.get(senderId);
+      if (!user) return;
+
+      const withdrawAmount = Number(msg.amountUsdt);
+      if (isNaN(withdrawAmount) || withdrawAmount < 5) {
+        sendMsg(ws, { type: 'error', message: 'Minimum withdrawal is 5 USDT' });
+        return;
+      }
+
+      if (user.usdtBalance < withdrawAmount) {
+        sendMsg(ws, { type: 'error', message: 'Insufficient USDT balance' });
+        return;
+      }
+
+      user.usdtBalance = Math.round((user.usdtBalance - withdrawAmount) * 100) / 100;
+      persistStore();
+
+      sendMsg(ws, {
+        type: 'wallet:updated',
+        newUsdtBalance: user.usdtBalance,
+        txId: `wd-${Date.now()}`,
+        actionType: 'withdraw',
+        amount: withdrawAmount,
+        description: `Withdrawal of ${withdrawAmount} USDT to ${msg.destinationAddress?.slice(0, 8)}... queued`,
+      });
       break;
     }
 
@@ -307,11 +459,9 @@ function handleClientMessage(ws: WebSocket, msg: any) {
       const target = registeredUsers.get(targetId);
       if (!sender || !target) return;
 
-      // Check if already friends
       const userFriends = friendships.get(senderId);
       if (userFriends && userFriends.has(targetId)) return;
 
-      // Check existing pending request
       const reqId = `freq-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
       const req: FriendRequest = {
         id: reqId,
@@ -319,31 +469,29 @@ function handleClientMessage(ws: WebSocket, msg: any) {
           id: sender.id,
           username: sender.username,
           level: sender.level,
+          rating: sender.rating,
           wins: sender.wins,
         },
         toUserId: targetId,
         createdAt: Date.now(),
       };
+
       friendRequests.set(reqId, req);
 
-      // Notify target if online
       const targetWs = userSockets.get(targetId);
       if (targetWs) {
         sendMsg(targetWs, {
           type: 'friend:request_received',
           request: req,
         });
-        sendMsg(targetWs, {
-          type: 'friends:list',
-          ...getFriendsListPayload(targetId),
-        });
       }
 
-      // Notify sender with updated list
       sendMsg(ws, {
         type: 'friends:list',
         ...getFriendsListPayload(senderId),
       });
+
+      persistStore();
       break;
     }
 
@@ -352,30 +500,30 @@ function handleClientMessage(ws: WebSocket, msg: any) {
       const req = friendRequests.get(msg.requestId);
       if (!senderId || !req || req.toUserId !== senderId) return;
 
+      const friendId = req.fromUser.id;
+
+      if (!friendships.has(senderId)) friendships.set(senderId, new Set());
+      if (!friendships.has(friendId)) friendships.set(friendId, new Set());
+
+      friendships.get(senderId)!.add(friendId);
+      friendships.get(friendId)!.add(senderId);
+
       friendRequests.delete(msg.requestId);
 
-      // Add bidirectional friendship
-      if (!friendships.has(senderId)) friendships.set(senderId, new Set());
-      friendships.get(senderId)!.add(req.fromUser.id);
-
-      if (!friendships.has(req.fromUser.id)) friendships.set(req.fromUser.id, new Set());
-      friendships.get(req.fromUser.id)!.add(senderId);
-
-      persistStore();
-
-      // Notify both parties
       sendMsg(ws, {
         type: 'friends:list',
         ...getFriendsListPayload(senderId),
       });
 
-      const otherWs = userSockets.get(req.fromUser.id);
-      if (otherWs) {
-        sendMsg(otherWs, {
+      const friendWs = userSockets.get(friendId);
+      if (friendWs) {
+        sendMsg(friendWs, {
           type: 'friends:list',
-          ...getFriendsListPayload(req.fromUser.id),
+          ...getFriendsListPayload(friendId),
         });
       }
+
+      persistStore();
       break;
     }
 
@@ -418,6 +566,7 @@ function handleClientMessage(ws: WebSocket, msg: any) {
           id: sender.id,
           username: sender.username,
           level: sender.level,
+          rating: sender.rating,
           wins: sender.wins,
         },
         targetUserId: targetId,
@@ -461,13 +610,13 @@ function handleClientMessage(ws: WebSocket, msg: any) {
       const userTarget = registeredUsers.get(senderId)!;
       const userChallenger = registeredUsers.get(challenge.challenger.id)!;
 
-      // Start match between friends!
       launchTwoPlayerRoom(
         challengerWs,
         userChallenger,
         ws,
         userTarget,
-        'friend_match'
+        'friend_match',
+        1
       );
       break;
     }
@@ -478,52 +627,65 @@ function handleClientMessage(ws: WebSocket, msg: any) {
       const sender = registeredUsers.get(senderId);
       if (!sender) return;
 
+      const requestedTier: 1 | 2 | 3 | 4 | 5 = msg.tierId && TIER_CONFIG[msg.tierId as 1 | 2 | 3 | 4 | 5] ? msg.tierId : 1;
+      const tierConfig = TIER_CONFIG[requestedTier];
+
+      // Check balance
+      if (sender.usdtBalance < tierConfig.entry) {
+        sendMsg(ws, {
+          type: 'error',
+          message: `Insufficient balance for ${tierConfig.name}. Requires ${tierConfig.entry} USDT.`,
+        });
+        return;
+      }
+
       // Remove from any previous queue entry
       const existingIdx = matchmakingQueue.findIndex((q) => q.userId === senderId);
       if (existingIdx !== -1) matchmakingQueue.splice(existingIdx, 1);
 
-      // Search for suitable opponent in queue based on player level
-      const playerLevel = sender.level;
+      // Search for opponent in queue in the same tier
       let matchedIdx = -1;
-      let minLevelDiff = Infinity;
-
       for (let i = 0; i < matchmakingQueue.length; i++) {
         const item = matchmakingQueue[i];
         if (item.userId === senderId) continue;
-        const diff = Math.abs(item.level - playerLevel);
-        if (diff < minLevelDiff) {
-          minLevelDiff = diff;
+        if (item.tierId === requestedTier || msg.mode === 'quick_seat') {
           matchedIdx = i;
+          break;
         }
       }
 
       if (matchedIdx !== -1) {
-        // Match found!
         const opponentItem = matchmakingQueue.splice(matchedIdx, 1)[0];
         const opponentUser = registeredUsers.get(opponentItem.userId)!;
+
+        // Deduct entry fee from both
+        sender.usdtBalance = Math.round((sender.usdtBalance - tierConfig.entry) * 100) / 100;
+        opponentUser.usdtBalance = Math.round((opponentUser.usdtBalance - tierConfig.entry) * 100) / 100;
 
         launchTwoPlayerRoom(
           ws,
           sender,
           opponentItem.socket,
           opponentUser,
-          msg.mode || 'online_match'
+          msg.mode || 'online_match',
+          requestedTier
         );
       } else {
-        // Enqueue
         matchmakingQueue.push({
           socket: ws,
           userId: senderId,
-          level: playerLevel,
+          level: sender.level,
+          rating: sender.rating,
+          tierId: requestedTier,
           mode: msg.mode || 'online_match',
           joinedAt: Date.now(),
         });
 
         sendMsg(ws, {
           type: 'matchmaking:waiting',
-          level: playerLevel,
-          queueCount: matchmakingQueue.length,
-          message: `Searching for Level ${playerLevel} real opponent...`,
+          tierId: requestedTier,
+          queueCount: matchmakingQueue.filter((q) => q.tierId === requestedTier).length,
+          message: `Searching for real opponent in ${tierConfig.name} (${tierConfig.entry} USDT)...`,
         });
       }
       break;
@@ -548,6 +710,7 @@ function handleClientMessage(ws: WebSocket, msg: any) {
 
       const rollPayload = {
         type: 'game:dice_rolled',
+        roomId: msg.roomId,
         byColor: color,
         dice: msg.dice,
         remainingDice:
@@ -571,6 +734,7 @@ function handleClientMessage(ws: WebSocket, msg: any) {
 
       sendMsg(recipientWs, {
         type: 'game:opponent_moved',
+        roomId: msg.roomId,
         fromLoc: msg.fromLoc,
         toLoc: msg.toLoc,
         dieUsed: msg.dieUsed,
@@ -583,16 +747,39 @@ function handleClientMessage(ws: WebSocket, msg: any) {
       });
 
       if (msg.winner) {
-        // Record win in stats
+        // Record win/loss in stats & ELO & USDT Prize
         const winnerUser = msg.winner === 'light' ? room.playerLight.user : room.playerDark.user;
         const loserUser = msg.winner === 'light' ? room.playerDark.user : room.playerLight.user;
+        const winnerSocket = msg.winner === 'light' ? room.playerLight.socket : room.playerDark.socket;
+
         winnerUser.wins += 1;
         winnerUser.matchesPlayed += 1;
-        loserUser.matchesPlayed += 1;
-        winnerUser.level = computePlayerLevel(winnerUser.wins, winnerUser.matchesPlayed);
-        loserUser.level = computePlayerLevel(loserUser.wins, loserUser.matchesPlayed);
+        winnerUser.winStreak = (winnerUser.winStreak || 0) + 1;
+        winnerUser.xp = (winnerUser.xp || 0) + 50;
+        winnerUser.rating = (winnerUser.rating || 1200) + 24;
+        winnerUser.level = calculateLevelFromXp(winnerUser.xp);
+        winnerUser.usdtBalance = Math.round((winnerUser.usdtBalance + room.prizePoolUsdt) * 100) / 100;
         winnerUser.status = 'online';
+
+        loserUser.losses = (loserUser.losses || 0) + 1;
+        loserUser.matchesPlayed += 1;
+        loserUser.winStreak = 0;
+        loserUser.xp = Math.max(0, (loserUser.xp || 0) - 25);
+        loserUser.rating = Math.max(800, (loserUser.rating || 1200) - 18);
+        loserUser.level = calculateLevelFromXp(loserUser.xp);
         loserUser.status = 'online';
+
+        // Notify winner of USDT Prize
+        sendMsg(winnerSocket, {
+          type: 'wallet:updated',
+          newUsdtBalance: winnerUser.usdtBalance,
+          txId: `win-${Date.now()}`,
+          actionType: 'match_win',
+          amount: room.prizePoolUsdt,
+          description: `Victory prize +${room.prizePoolUsdt} USDT awarded!`,
+        });
+
+        activeRooms.delete(msg.roomId);
         persistStore();
       }
       break;
@@ -607,6 +794,7 @@ function handleClientMessage(ws: WebSocket, msg: any) {
 
       sendMsg(recipientWs, {
         type: 'game:cube_offered',
+        roomId: msg.roomId,
         offeredBy: isLight ? 'light' : 'dark',
         proposedValue: msg.proposedValue,
       });
@@ -622,6 +810,7 @@ function handleClientMessage(ws: WebSocket, msg: any) {
 
       sendMsg(room.playerLight.socket, {
         type: 'game:cube_responded',
+        roomId: msg.roomId,
         take: msg.take,
         cubeValue: msg.take ? msg.proposedValue : 1,
         cubeOwner: responderColor,
@@ -630,12 +819,47 @@ function handleClientMessage(ws: WebSocket, msg: any) {
       });
       sendMsg(room.playerDark.socket, {
         type: 'game:cube_responded',
+        roomId: msg.roomId,
         take: msg.take,
         cubeValue: msg.take ? msg.proposedValue : 1,
         cubeOwner: responderColor,
         winner: !msg.take ? (responderColor === 'light' ? 'dark' : 'light') : null,
         victoryBanner: !msg.take ? `CUBE DROPPED • FORFEIT` : null,
       });
+
+      if (!msg.take) {
+        // Cube dropped -> forfeiting party loses
+        const winnerUser = responderColor === 'light' ? room.playerDark.user : room.playerLight.user;
+        const loserUser = responderColor === 'light' ? room.playerLight.user : room.playerDark.user;
+        const winnerSocket = responderColor === 'light' ? room.playerDark.socket : room.playerLight.socket;
+
+        winnerUser.wins += 1;
+        winnerUser.matchesPlayed += 1;
+        winnerUser.xp = (winnerUser.xp || 0) + 40;
+        winnerUser.rating = (winnerUser.rating || 1200) + 20;
+        winnerUser.level = calculateLevelFromXp(winnerUser.xp);
+        winnerUser.usdtBalance = Math.round((winnerUser.usdtBalance + room.prizePoolUsdt) * 100) / 100;
+        winnerUser.status = 'online';
+
+        loserUser.losses = (loserUser.losses || 0) + 1;
+        loserUser.matchesPlayed += 1;
+        loserUser.xp = Math.max(0, (loserUser.xp || 0) - 20);
+        loserUser.rating = Math.max(800, (loserUser.rating || 1200) - 15);
+        loserUser.level = calculateLevelFromXp(loserUser.xp);
+        loserUser.status = 'online';
+
+        sendMsg(winnerSocket, {
+          type: 'wallet:updated',
+          newUsdtBalance: winnerUser.usdtBalance,
+          txId: `win-cube-${Date.now()}`,
+          actionType: 'match_win',
+          amount: room.prizePoolUsdt,
+          description: `Cube drop forfeit prize +${room.prizePoolUsdt} USDT!`,
+        });
+
+        activeRooms.delete(msg.roomId);
+        persistStore();
+      }
       break;
     }
 
@@ -646,6 +870,7 @@ function handleClientMessage(ws: WebSocket, msg: any) {
         const recipientWs = room.playerLight.user.id === senderId ? room.playerDark.socket : room.playerLight.socket;
         sendMsg(recipientWs, {
           type: 'game:opponent_left',
+          roomId: msg.roomId,
           message: 'Opponent resigned the match',
         });
         activeRooms.delete(msg.roomId);
@@ -660,9 +885,11 @@ function launchTwoPlayerRoom(
   user1: OnlineUser,
   ws2: WebSocket,
   user2: OnlineUser,
-  mode: 'online_match' | 'friend_match' | 'quick_seat'
+  mode: 'online_match' | 'friend_match' | 'quick_seat',
+  tierId: 1 | 2 | 3 | 4 | 5 = 1
 ) {
   const roomId = `room-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+  const tierConfig = TIER_CONFIG[tierId];
 
   // Fair color coin-flip
   const flip = Math.random() < 0.5;
@@ -676,6 +903,9 @@ function launchTwoPlayerRoom(
 
   const room: ActiveGameRoom = {
     roomId,
+    tierId,
+    entryFeeUsdt: tierConfig.entry,
+    prizePoolUsdt: tierConfig.prize,
     mode,
     playerLight: { socket: socketLight, user: playerLightUser },
     playerDark: { socket: socketDark, user: playerDarkUser },
@@ -684,25 +914,30 @@ function launchTwoPlayerRoom(
 
   activeRooms.set(roomId, room);
 
+  const baseRoomState = {
+    roomId,
+    tierId,
+    entryFeeUsdt: tierConfig.entry,
+    prizePoolUsdt: tierConfig.prize,
+    mode,
+    playerLight: playerLightUser,
+    playerDark: playerDarkUser,
+    currentTurn: 'light',
+    turnTimeLeft: 25,
+    diceValues: [6, 6] as [number, number],
+    remainingDice: [],
+    hasRolled: false,
+    doublingCubeValue: 1,
+    doublingCubeOwner: 'center' as const,
+    pendingDoubleOffer: null,
+    winner: null,
+    victoryBanner: null,
+  };
+
   // Send match found to Player Light
   sendMsg(socketLight, {
     type: 'game:match_found',
-    room: {
-      roomId,
-      mode,
-      playerLight: playerLightUser,
-      playerDark: playerDarkUser,
-      currentTurn: 'light',
-      turnTimeLeft: 25,
-      diceValues: [6, 6],
-      remainingDice: [],
-      hasRolled: false,
-      doublingCubeValue: 1,
-      doublingCubeOwner: 'center',
-      pendingDoubleOffer: null,
-      winner: null,
-      victoryBanner: null,
-    },
+    room: baseRoomState,
     assignedColor: 'light',
     opponent: playerDarkUser,
   });
@@ -710,22 +945,7 @@ function launchTwoPlayerRoom(
   // Send match found to Player Dark
   sendMsg(socketDark, {
     type: 'game:match_found',
-    room: {
-      roomId,
-      mode,
-      playerLight: playerLightUser,
-      playerDark: playerDarkUser,
-      currentTurn: 'light',
-      turnTimeLeft: 25,
-      diceValues: [6, 6],
-      remainingDice: [],
-      hasRolled: false,
-      doublingCubeValue: 1,
-      doublingCubeOwner: 'center',
-      pendingDoubleOffer: null,
-      winner: null,
-      victoryBanner: null,
-    },
+    room: baseRoomState,
     assignedColor: 'dark',
     opponent: playerLightUser,
   });
@@ -758,7 +978,9 @@ if (!isProduction) {
   });
 }
 
-const PORT = Number(process.env.PORT) || 3000;
+const portArgIdx = process.argv.indexOf('--port');
+const portArg = portArgIdx !== -1 ? Number(process.argv[portArgIdx + 1]) : null;
+const PORT = portArg || (process.env.NODE_ENV === 'production' && process.env.PORT ? Number(process.env.PORT) : 3000);
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`[Royal Backgammon Engine] Full-stack Server listening on http://0.0.0.0:${PORT}`);
 });

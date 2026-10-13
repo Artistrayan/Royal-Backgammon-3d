@@ -39,6 +39,7 @@ import {
   StoreItem,
   RealPlayerStats,
   WalletTransaction,
+  UsdtTransaction,
 } from './components/RoyalScreens';
 import {
   initTelegramMiniApp,
@@ -70,8 +71,11 @@ import {
   OnlineUser,
   FriendRequest,
   FriendChallenge,
+  OnlineTier,
+  ONLINE_TIERS,
 } from './network/multiplayerTypes';
 import { OnlineMatchmakingModal } from './components/OnlineMatchmakingModal';
+import { OnlineTiersModal } from './components/OnlineTiersModal';
 import { FriendsModal } from './components/FriendsModal';
 import { IncomingChallengeModal } from './components/IncomingChallengeModal';
 
@@ -92,15 +96,27 @@ interface PersistedRealState {
   playerName: string;
   joinedDate: string;
   coins: number;
+  usdtBalance?: number;
+  rating?: number;
+  xp?: number;
   lastTributeDate: string | null;
   ownedIds: string[];
   equipped: Record<StoreCategory, string>;
   realStats: RealPlayerStats;
   transactions: WalletTransaction[];
+  usdtTransactions?: UsdtTransaction[];
   sfxEnabled: boolean;
   boardZoom: BoardZoomLevel;
   autoRoll: boolean;
   autoBearOff: boolean;
+}
+
+export function getTierForPlayerLevel(level: number): 1 | 2 | 3 | 4 | 5 {
+  if (level <= 10) return 1;
+  if (level <= 25) return 2;
+  if (level <= 50) return 3;
+  if (level <= 80) return 4;
+  return 5;
 }
 
 interface MoveHistoryStep {
@@ -204,6 +220,10 @@ function parsePersistedState(raw: string): PersistedRealState | null {
         transactions: Array.isArray(parsed.transactions)
           ? parsed.transactions
           : [],
+        usdtBalance: typeof parsed.usdtBalance === 'number' ? parsed.usdtBalance : 25,
+        rating: typeof parsed.rating === 'number' ? parsed.rating : 1200,
+        xp: typeof parsed.xp === 'number' ? parsed.xp : 0,
+        usdtTransactions: Array.isArray(parsed.usdtTransactions) ? parsed.usdtTransactions : [],
         sfxEnabled: parsed.sfxEnabled ?? true,
         boardZoom: parsed.boardZoom === 'max' ? 'max' : 'xl',
         autoRoll: parsed.autoRoll ?? false,
@@ -233,6 +253,9 @@ function getInitialRealState(): PersistedRealState {
     playerName: 'PLAYER 1',
     joinedDate: getFormattedToday(),
     coins: 0,
+    usdtBalance: 25,
+    rating: 1200,
+    xp: 0,
     lastTributeDate: null,
     ownedIds: [
       'board-imperial-walnut',
@@ -260,6 +283,17 @@ function getInitialRealState(): PersistedRealState {
       boardFoldCount: 0,
     },
     transactions: [],
+    usdtTransactions: [
+      {
+        id: 'tx-welcome-usdt',
+        type: 'deposit',
+        amount: 25,
+        network: 'TRC20',
+        description: 'Welcome Tournament Bonus',
+        timestamp: getFormattedToday(),
+        status: 'confirmed',
+      },
+    ],
     sfxEnabled: true,
     boardZoom: 'xl',
     autoRoll: false,
@@ -379,6 +413,26 @@ export default function App() {
   const [searchResults, setSearchResults] = useState<OnlineUser[]>([]);
   const [incomingChallenge, setIncomingChallenge] =
     useState<FriendChallenge | null>(null);
+
+  // 5 Online Tournament Tiers & USDT Crypto Vault State
+  const [usdtBalance, setUsdtBalance] = useState<number>(
+    () => realState.usdtBalance ?? 25
+  );
+  const [playerRating, setPlayerRating] = useState<number>(
+    () => realState.rating ?? 1200
+  );
+  const [usdtTransactions, setUsdtTransactions] = useState<UsdtTransaction[]>(
+    () => realState.usdtTransactions ?? []
+  );
+  const [isTiersModalOpen, setIsTiersModalOpen] = useState(false);
+  const [selectedTierId, setSelectedTierId] = useState<1 | 2 | 3 | 4 | 5>(1);
+  const [isPortrait, setIsPortrait] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerHeight > window.innerWidth;
+    }
+    return false;
+  });
+  const [isRotatedView, setIsRotatedView] = useState<boolean>(false);
 
   // Refs for latest match state inside 3D raycast callbacks
   const checkersRef = useRef(checkers);
@@ -526,13 +580,15 @@ export default function App() {
   }, [isWaitingForPlayerDiceRoll, realState.boardZoom]);
 
   const handleStartOnlineMatch = useCallback(
-    (mode: 'online_match' | 'quick_seat') => {
+    (mode: 'online_match' | 'quick_seat', tierId?: 1 | 2 | 3 | 4 | 5) => {
       royalSound.playOptionClickSound();
       triggerTelegramHaptic('medium');
+      const resolvedTier = tierId || getTierForPlayerLevel(playerLevel);
+      setSelectedTierId(resolvedTier);
       setMatchmakingMode(mode);
       setMatchedOpponent(null);
       setIsMatchmakingOpen(true);
-      multiplayerClient.joinMatchmaking(playerLevel, mode);
+      multiplayerClient.joinMatchmaking(resolvedTier, mode);
     },
     [playerLevel]
   );
@@ -586,26 +642,114 @@ export default function App() {
   } | null>(null);
   const toastTimerRef = useRef<number | null>(null);
 
-  // Scale the landscape app shell with balanced margins
+  // Scale the app shell with balanced margins, adaptive to portrait & landscape
   useEffect(() => {
     const updateScale = () => {
       const vw = window.innerWidth;
       const vh = window.innerHeight;
-      const availW = Math.max(280, vw - 28);
-      const availH = Math.max(200, vh - 24);
+      const portrait = vh > vw;
+      setIsPortrait(portrait);
 
-      const scale = Math.min(
-        1.24,
-        availW / ANDROID_LANDSCAPE_W,
-        availH / ANDROID_LANDSCAPE_H
-      );
-      setFitScale(scale);
+      if (portrait && isRotatedView) {
+        // Rotated 90 degrees on mobile: height becomes available width and width becomes available height
+        const availW = Math.max(280, vh - 20);
+        const availH = Math.max(200, vw - 20);
+        const scale = Math.min(
+          1.35,
+          availW / ANDROID_LANDSCAPE_W,
+          availH / ANDROID_LANDSCAPE_H
+        );
+        setFitScale(scale);
+      } else {
+        const availW = Math.max(280, vw - (portrait ? 8 : 28));
+        const availH = Math.max(200, vh - (portrait ? 8 : 24));
+        const scale = Math.min(
+          portrait ? 1.05 : 1.24,
+          availW / ANDROID_LANDSCAPE_W,
+          availH / ANDROID_LANDSCAPE_H
+        );
+        setFitScale(scale);
+      }
     };
 
     updateScale();
     window.addEventListener('resize', updateScale);
     return () => window.removeEventListener('resize', updateScale);
-  }, []);
+  }, [isRotatedView]);
+
+  const handleDepositUsdt = useCallback(
+    (amount: number, network: 'TRC20' | 'TON', txHash: string) => {
+      royalSound.playOptionClickSound();
+      multiplayerClient.depositUsdt(amount, txHash, network);
+      const newBal = Math.round((usdtBalance + amount) * 100) / 100;
+      setUsdtBalance(newBal);
+      const newTx: UsdtTransaction = {
+        id: `dep-${Date.now()}`,
+        type: 'deposit',
+        amount,
+        network,
+        txHash,
+        description: `Deposit ${amount} USDT (${network})`,
+        timestamp: getFormattedToday(),
+        status: 'confirmed',
+      };
+      setUsdtTransactions((prev) => [newTx, ...prev]);
+      setRealState((prev) => ({
+        ...prev,
+        usdtBalance: newBal,
+        usdtTransactions: [newTx, ...(prev.usdtTransactions || [])],
+      }));
+      showToastNotification(
+        'deposit',
+        'DEPOSIT RECORDED',
+        `+${amount} USDT credited to crypto vault`
+      );
+    },
+    [usdtBalance]
+  );
+
+  const handleWithdrawUsdt = useCallback(
+    (
+      amount: number,
+      destinationAddress: string,
+      network: 'TRC20' | 'TON'
+    ) => {
+      royalSound.playOptionClickSound();
+      if (usdtBalance < amount) {
+        showToastNotification(
+          'error',
+          'INSUFFICIENT BALANCE',
+          'Not enough USDT in vault'
+        );
+        return;
+      }
+      multiplayerClient.withdrawUsdt(amount, destinationAddress, network);
+      const newBal = Math.max(0, Math.round((usdtBalance - amount) * 100) / 100);
+      setUsdtBalance(newBal);
+      const newTx: UsdtTransaction = {
+        id: `wd-${Date.now()}`,
+        type: 'withdraw',
+        amount: -amount,
+        network,
+        address: destinationAddress,
+        description: `Withdrawal to ${destinationAddress.slice(0, 8)}... (${network})`,
+        timestamp: getFormattedToday(),
+        status: 'pending',
+      };
+      setUsdtTransactions((prev) => [newTx, ...prev]);
+      setRealState((prev) => ({
+        ...prev,
+        usdtBalance: newBal,
+        usdtTransactions: [newTx, ...(prev.usdtTransactions || [])],
+      }));
+      showToastNotification(
+        'withdraw',
+        'WITHDRAWAL QUEUED',
+        `${amount} USDT queued for payout`
+      );
+    },
+    [usdtBalance]
+  );
 
   const showToastNotification = useCallback(
     (id: string, title: string, subtitle: string) => {
@@ -1685,7 +1829,12 @@ export default function App() {
     multiplayerClient.connect({
       id: playerId,
       username: realState.playerName,
+      level: playerLevel,
+      xp: realState.realStats.xp ?? playerLevel * 100,
+      rating: playerRating,
+      usdtBalance: usdtBalance,
       wins: realState.realStats.wins,
+      losses: realState.realStats.losses ?? 0,
       matchesPlayed: realState.realStats.matchesPlayed,
     });
 
@@ -1847,6 +1996,20 @@ export default function App() {
       }
     });
 
+    const unsubWallet = multiplayerClient.on('wallet:updated', (data) => {
+      if (typeof data.newUsdtBalance === 'number') {
+        setUsdtBalance(data.newUsdtBalance);
+        setRealState((prev) => ({ ...prev, usdtBalance: data.newUsdtBalance }));
+      }
+      if (data.description) {
+        showToastNotification(
+          'wallet-update',
+          'CRYPTO VAULT UPDATED',
+          data.description
+        );
+      }
+    });
+
     return () => {
       unsubReg();
       unsubFriends();
@@ -1861,11 +2024,17 @@ export default function App() {
       unsubCubeOff();
       unsubCubeResp();
       unsubOppLeft();
+      unsubWallet();
     };
   }, [
     playerId,
     realState.playerName,
+    playerLevel,
+    playerRating,
+    usdtBalance,
+    realState.realStats.xp,
     realState.realStats.wins,
+    realState.realStats.losses,
     realState.realStats.matchesPlayed,
     enterGameTable,
     showToastNotification,
@@ -2281,12 +2450,35 @@ export default function App() {
   const darkPipCount = calculatePipCount(checkers, false);
 
   return (
-    <div className="w-screen h-[100dvh] bg-[#020705] flex items-center justify-center overflow-hidden select-none p-0.5">
-      {/* Scaled Wrapper filling the landscape viewport with balanced margins */}
+    <div className="w-screen h-[100dvh] bg-[#020705] flex items-center justify-center overflow-hidden select-none p-0.5 relative">
+      {/* Mobile Orientation Quick Switch for Telegram / Phone in Vertical Mode */}
+      {isPortrait && (
+        <div className="fixed top-2 z-50 flex items-center gap-2 pointer-events-auto">
+          <button
+            type="button"
+            onClick={() => {
+              royalSound.playOptionClickSound();
+              setIsRotatedView((prev) => !prev);
+            }}
+            className="px-3 py-1 rounded-full bg-[#071d13]/95 border border-[#c8a668] text-[#f5dca8] text-[9.5px] font-cinzel font-bold shadow-[0_4px_16px_rgba(0,0,0,0.85)] backdrop-blur flex items-center gap-1.5 cursor-pointer hover:bg-[#0c2f20] transition-all active:scale-95"
+          >
+            <span>📱</span>
+            <span>{isRotatedView ? 'چرخش افقی فعال است' : 'چرخش تمام‌صفحه عمودی'}</span>
+          </button>
+        </div>
+      )}
+
+      {/* Scaled Wrapper filling the viewport */}
       <div
         style={{
-          width: `${Math.round(ANDROID_LANDSCAPE_W * fitScale)}px`,
-          height: `${Math.round(ANDROID_LANDSCAPE_H * fitScale)}px`,
+          width:
+            isPortrait && isRotatedView
+              ? `${Math.round(ANDROID_LANDSCAPE_H * fitScale)}px`
+              : `${Math.round(ANDROID_LANDSCAPE_W * fitScale)}px`,
+          height:
+            isPortrait && isRotatedView
+              ? `${Math.round(ANDROID_LANDSCAPE_W * fitScale)}px`
+              : `${Math.round(ANDROID_LANDSCAPE_H * fitScale)}px`,
         }}
         className="relative flex items-center justify-center shrink-0"
       >
@@ -2295,7 +2487,10 @@ export default function App() {
           style={{
             width: `${ANDROID_LANDSCAPE_W}px`,
             height: `${ANDROID_LANDSCAPE_H}px`,
-            transform: `scale(${fitScale})`,
+            transform:
+              isPortrait && isRotatedView
+                ? `rotate(90deg) scale(${fitScale})`
+                : `scale(${fitScale})`,
             transformOrigin: 'center center',
           }}
           className="relative bg-[#05110c] rounded-[20px] border-[2.5px] border-[#222825] ring-1 ring-[#c8a668]/45 shadow-[0_20px_60px_rgba(0,0,0,0.95)] overflow-hidden flex flex-col justify-between shrink-0"
@@ -2630,7 +2825,10 @@ export default function App() {
                     >
                       <button
                         type="button"
-                        onClick={() => handleStartOnlineMatch('online_match')}
+                        onClick={() => {
+                          royalSound.playOptionClickSound();
+                          setIsTiersModalOpen(true);
+                        }}
                         className="w-full py-1.5 flex items-center justify-between gap-2 text-left group border-b border-[#c8a668]/20 hover:border-[#c8a668]/50 transition-colors cursor-pointer"
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
@@ -2859,10 +3057,14 @@ export default function App() {
             {activeScreen === 'wallet' && (
               <WalletView
                 coins={realState.coins}
+                usdtBalance={usdtBalance}
                 tributeClaimed={isTributeClaimedToday}
                 transactions={realState.transactions}
+                usdtTransactions={usdtTransactions}
                 onClaimTribute={handleClaimDailyTribute}
                 onAcquireCoins={handleAcquireCoins}
+                onDepositUsdt={handleDepositUsdt}
+                onWithdrawUsdt={handleWithdrawUsdt}
               />
             )}
 
@@ -3071,6 +3273,23 @@ export default function App() {
               </div>
             </div>
           )}
+
+          {/* 5 Online Tournament Tiers Modal (1 to 25 USDT, Levels 0 to 81+) */}
+          <OnlineTiersModal
+            isOpen={isTiersModalOpen}
+            onClose={() => setIsTiersModalOpen(false)}
+            playerLevel={playerLevel}
+            playerRating={playerRating}
+            usdtBalance={usdtBalance}
+            onSelectTier={(tier) => {
+              setIsTiersModalOpen(false);
+              handleStartOnlineMatch('online_match', tier.id);
+            }}
+            onOpenWallet={() => {
+              setIsTiersModalOpen(false);
+              navigateToScreen('wallet');
+            }}
+          />
 
           {/* Real Online Matchmaking Modal */}
           <OnlineMatchmakingModal
