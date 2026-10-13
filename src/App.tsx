@@ -242,7 +242,7 @@ function getInitialRealState(): PersistedRealState {
       const raw = window.localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const parsed = parsePersistedState(raw);
-        if (parsed) return { ...parsed, boardZoom: 'xl' };
+        if (parsed) return { ...parsed, usdtBalance: 0, usdtTransactions: [], boardZoom: 'xl' };
       }
     } catch {
       // Ignore storage access errors
@@ -676,7 +676,7 @@ export default function App() {
         'Balance is credited only after verified on-chain payment.'
       );
     },
-    [showToastNotification]
+    []
   );
 
   const handleWithdrawUsdt = useCallback(
@@ -688,7 +688,7 @@ export default function App() {
         'Payouts will reopen after secure withdrawal processing is enabled.'
       );
     },
-    [showToastNotification]
+    []
   );
 
   const showToastNotification = useCallback(
