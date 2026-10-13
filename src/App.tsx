@@ -220,7 +220,7 @@ function parsePersistedState(raw: string): PersistedRealState | null {
         transactions: Array.isArray(parsed.transactions)
           ? parsed.transactions
           : [],
-        usdtBalance: typeof parsed.usdtBalance === 'number' ? parsed.usdtBalance : 25,
+        usdtBalance: 0,
         rating: typeof parsed.rating === 'number' ? parsed.rating : 1200,
         xp: typeof parsed.xp === 'number' ? parsed.xp : 0,
         usdtTransactions: Array.isArray(parsed.usdtTransactions) ? parsed.usdtTransactions : [],
@@ -253,7 +253,7 @@ function getInitialRealState(): PersistedRealState {
     playerName: 'PLAYER 1',
     joinedDate: getFormattedToday(),
     coins: 0,
-    usdtBalance: 25,
+    usdtBalance: 0,
     rating: 1200,
     xp: 0,
     lastTributeDate: null,
@@ -283,17 +283,7 @@ function getInitialRealState(): PersistedRealState {
       boardFoldCount: 0,
     },
     transactions: [],
-    usdtTransactions: [
-      {
-        id: 'tx-welcome-usdt',
-        type: 'deposit',
-        amount: 25,
-        network: 'TRC20',
-        description: 'Welcome Tournament Bonus',
-        timestamp: getFormattedToday(),
-        status: 'confirmed',
-      },
-    ],
+    usdtTransactions: [],
     sfxEnabled: true,
     boardZoom: 'xl',
     autoRoll: false,
@@ -678,77 +668,27 @@ export default function App() {
   }, [isRotatedView]);
 
   const handleDepositUsdt = useCallback(
-    (amount: number, network: 'TRC20' | 'TON', txHash: string) => {
+    (_amount: number, _network: 'TRC20' | 'TON', _txHash: string) => {
       royalSound.playOptionClickSound();
-      multiplayerClient.depositUsdt(amount, txHash, network);
-      const newBal = Math.round((usdtBalance + amount) * 100) / 100;
-      setUsdtBalance(newBal);
-      const newTx: UsdtTransaction = {
-        id: `dep-${Date.now()}`,
-        type: 'deposit',
-        amount,
-        network,
-        txHash,
-        description: `Deposit ${amount} USDT (${network})`,
-        timestamp: getFormattedToday(),
-        status: 'confirmed',
-      };
-      setUsdtTransactions((prev) => [newTx, ...prev]);
-      setRealState((prev) => ({
-        ...prev,
-        usdtBalance: newBal,
-        usdtTransactions: [newTx, ...(prev.usdtTransactions || [])],
-      }));
       showToastNotification(
-        'deposit',
-        'DEPOSIT RECORDED',
-        `+${amount} USDT credited to crypto vault`
+        'deposit-disabled',
+        'DEPOSITS DISABLED',
+        'Balance is credited only after verified on-chain payment.'
       );
     },
-    [usdtBalance]
+    [showToastNotification]
   );
 
   const handleWithdrawUsdt = useCallback(
-    (
-      amount: number,
-      destinationAddress: string,
-      network: 'TRC20' | 'TON'
-    ) => {
+    (_amount: number, _destinationAddress: string, _network: 'TRC20' | 'TON') => {
       royalSound.playOptionClickSound();
-      if (usdtBalance < amount) {
-        showToastNotification(
-          'error',
-          'INSUFFICIENT BALANCE',
-          'Not enough USDT in vault'
-        );
-        return;
-      }
-      multiplayerClient.withdrawUsdt(amount, destinationAddress, network);
-      const newBal = Math.max(0, Math.round((usdtBalance - amount) * 100) / 100);
-      setUsdtBalance(newBal);
-      const newTx: UsdtTransaction = {
-        id: `wd-${Date.now()}`,
-        type: 'withdraw',
-        amount: -amount,
-        network,
-        address: destinationAddress,
-        description: `Withdrawal to ${destinationAddress.slice(0, 8)}... (${network})`,
-        timestamp: getFormattedToday(),
-        status: 'pending',
-      };
-      setUsdtTransactions((prev) => [newTx, ...prev]);
-      setRealState((prev) => ({
-        ...prev,
-        usdtBalance: newBal,
-        usdtTransactions: [newTx, ...(prev.usdtTransactions || [])],
-      }));
       showToastNotification(
-        'withdraw',
-        'WITHDRAWAL QUEUED',
-        `${amount} USDT queued for payout`
+        'withdraw-disabled',
+        'WITHDRAWALS DISABLED',
+        'Payouts will reopen after secure withdrawal processing is enabled.'
       );
     },
-    [usdtBalance]
+    [showToastNotification]
   );
 
   const showToastNotification = useCallback(
