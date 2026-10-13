@@ -5,9 +5,48 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { Pool } from 'pg';
+import { createHmac, timingSafeEqual } from 'node:crypto';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+interface VerifiedTelegramUser {
+  id: string;
+  username: string;
+  firstName: string;
+}
+
+const verifiedTelegramUsers = new WeakMap<WebSocket, VerifiedTelegramUser>();
+
+function verifyTelegramInitData(initData: unknown): VerifiedTelegramUser | null {
+  const botToken = process.env.BOT_TOKEN;
+  if (!botToken || typeof initData !== 'string' || initData.length < 10 || initData.length > 8192) return null;
+  try {
+    const params = new URLSearchParams(initData);
+    const receivedHash = params.get('hash');
+    const authDate = Number(params.get('auth_date'));
+    const userRaw = params.get('user');
+    if (!receivedHash || !/^[a-f0-9]{64}$/i.test(receivedHash) || !userRaw || !Number.isFinite(authDate)) return null;
+    const ageSeconds = Math.floor(Date.now() / 1000) - authDate;
+    if (ageSeconds < -60 || ageSeconds > 86400) return null;
+    params.delete('hash');
+    const dataCheckString = Array.from(params.entries())
+      .sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)
+      .map(([key, value]) => `${key}=${value}`)
+      .join('\\n');
+    const secretKey = createHmac('sha256', 'WebAppData').update(botToken).digest();
+    const expectedHash = createHmac('sha256', secretKey).update(dataCheckString).digest();
+    const actualHash = Buffer.from(receivedHash, 'hex');
+    if (actualHash.length !== expectedHash.length || !timingSafeEqual(actualHash, expectedHash)) return null;
+    const tgUser = JSON.parse(userRaw);
+    if (!tgUser || !Number.isSafeInteger(tgUser.id) || tgUser.id <= 0 || tgUser.is_bot) return null;
+    const firstName = String(tgUser.first_name || 'PLAYER').trim().slice(0, 18);
+    const username = String(tgUser.username || firstName || 'PLAYER').trim().slice(0, 18).toUpperCase();
+    return { id: String(tgUser.id), username, firstName };
+  } catch {
+    return null;
+  }
+}
 
 interface OnlineUser {
   id: string;
@@ -160,7 +199,7 @@ try {
           ...u,
           rating: u.rating ?? 1200,
           xp: u.xp ?? (u.level ? u.level * 100 : 0),
-          usdtBalance: typeof u.usdtBalance === 'number' ? u.usdtBalance : 25,
+          usdtBalance: 0,
           losses: u.losses ?? 0,
           winStreak: u.winStreak ?? 0,
           status: 'offline',
@@ -255,7 +294,7 @@ async function initializePostgres() {
             ...u,
             rating: u.rating ?? 1200,
             xp: u.xp ?? (u.level ? u.level * 100 : 0),
-            usdtBalance: typeof u.usdtBalance === 'number' ? u.usdtBalance : 25,
+            usdtBalance: 0,
             losses: u.losses ?? 0,
             winStreak: u.winStreak ?? 0,
             status: 'offline',
@@ -403,15 +442,32 @@ function handleClientDisconnect(ws: WebSocket) {
 
 function handleClientMessage(ws: WebSocket, msg: any) {
   switch (msg.type) {
-    case 'user:register': {
-      const { id, username, wins, losses, matchesPlayed, xp, rating, usdtBalance, level } = msg.user;
-      const cleanName = (username || 'PLAYER').trim().slice(0, 18).toUpperCase();
-      const existing = registeredUsers.get(id);
+    case 'auth:telegram': {
+      const identity = verifyTelegramInitData(msg.initData);
+      if (!identity) {
+        sendMsg(ws, { type: 'error', message: 'Telegram authentication failed. Open the game from the official Telegram bot and try again.' });
+        ws.close(1008, 'Telegram authentication failed');
+        return;
+      }
+      verifiedTelegramUsers.set(ws, identity);
+      sendMsg(ws, { type: 'auth:success', telegramUserId: identity.id });
+      break;
+    }
 
-      const userXp = xp ?? existing?.xp ?? (level ? level * 100 : (wins || 0) * 40);
+    case 'user:register': {
+      const identity = verifiedTelegramUsers.get(ws);
+      if (!identity) {
+        sendMsg(ws, { type: 'error', message: 'Telegram authentication is required.' });
+        ws.close(1008, 'Authentication required');
+        return;
+      }
+      const id = identity.id;
+      const cleanName = identity.username;
+      const existing = registeredUsers.get(id);
+      const userXp = existing?.xp ?? 0;
       const computedLvl = calculateLevelFromXp(userXp);
-      const userRating = rating ?? existing?.rating ?? 1200;
-      const userUsdt = typeof usdtBalance === 'number' ? usdtBalance : (existing?.usdtBalance ?? 25.0);
+      const userRating = existing?.rating ?? 1200;
+      const userUsdt = existing?.usdtBalance ?? 0;
 
       const onlineUser: OnlineUser = {
         id,
@@ -420,10 +476,10 @@ function handleClientMessage(ws: WebSocket, msg: any) {
         xp: userXp,
         rating: userRating,
         usdtBalance: userUsdt,
-        wins: wins ?? existing?.wins ?? 0,
-        losses: losses ?? existing?.losses ?? 0,
+        wins: existing?.wins ?? 0,
+        losses: existing?.losses ?? 0,
         winStreak: existing?.winStreak ?? 0,
-        matchesPlayed: matchesPlayed ?? existing?.matchesPlayed ?? 0,
+        matchesPlayed: existing?.matchesPlayed ?? 0,
         status: 'online',
         lastSeen: Date.now(),
       };
@@ -449,59 +505,12 @@ function handleClientMessage(ws: WebSocket, msg: any) {
     }
 
     case 'wallet:deposit': {
-      const senderId = socketToUserId.get(ws);
-      if (!senderId) return;
-      const user = registeredUsers.get(senderId);
-      if (!user) return;
-
-      const depositAmount = Number(msg.amountUsdt);
-      if (isNaN(depositAmount) || depositAmount <= 0) {
-        sendMsg(ws, { type: 'error', message: 'Invalid deposit amount' });
-        return;
-      }
-
-      user.usdtBalance = Math.round((user.usdtBalance + depositAmount) * 100) / 100;
-      persistStore();
-
-      sendMsg(ws, {
-        type: 'wallet:updated',
-        newUsdtBalance: user.usdtBalance,
-        txId: msg.txHash || `dep-${Date.now()}`,
-        actionType: 'deposit',
-        amount: depositAmount,
-        description: `Deposit ${depositAmount} USDT (${msg.network || 'TRC20'}) confirmed`,
-      });
+      sendMsg(ws, { type: 'error', message: 'Deposits are disabled until on-chain payment verification is enabled.' });
       break;
     }
 
     case 'wallet:withdraw': {
-      const senderId = socketToUserId.get(ws);
-      if (!senderId) return;
-      const user = registeredUsers.get(senderId);
-      if (!user) return;
-
-      const withdrawAmount = Number(msg.amountUsdt);
-      if (isNaN(withdrawAmount) || withdrawAmount < 5) {
-        sendMsg(ws, { type: 'error', message: 'Minimum withdrawal is 5 USDT' });
-        return;
-      }
-
-      if (user.usdtBalance < withdrawAmount) {
-        sendMsg(ws, { type: 'error', message: 'Insufficient USDT balance' });
-        return;
-      }
-
-      user.usdtBalance = Math.round((user.usdtBalance - withdrawAmount) * 100) / 100;
-      persistStore();
-
-      sendMsg(ws, {
-        type: 'wallet:updated',
-        newUsdtBalance: user.usdtBalance,
-        txId: `wd-${Date.now()}`,
-        actionType: 'withdraw',
-        amount: withdrawAmount,
-        description: `Withdrawal of ${withdrawAmount} USDT to ${msg.destinationAddress?.slice(0, 8)}... queued`,
-      });
+      sendMsg(ws, { type: 'error', message: 'Withdrawals are disabled until secure payout processing is enabled.' });
       break;
     }
 
@@ -674,6 +683,16 @@ function handleClientMessage(ws: WebSocket, msg: any) {
     }
 
     case 'friend:challenge_respond': {
+      if (msg.accept) {
+        sendMsg(ws, { type: 'error', message: 'Online cash matches are temporarily disabled while secure wallet and server-side game validation are completed.' });
+        const challenge = activeChallenges.get(msg.challengeId);
+        if (challenge) {
+          activeChallenges.delete(msg.challengeId);
+          const challengerWs = userSockets.get(challenge.challenger.id);
+          if (challengerWs) sendMsg(challengerWs, { type: 'friend:challenge_declined', reason: 'Online cash matches are temporarily disabled.' });
+        }
+        return;
+      }
       const senderId = socketToUserId.get(ws);
       const challenge = activeChallenges.get(msg.challengeId);
       if (!senderId || !challenge || challenge.targetUserId !== senderId) return;
@@ -714,6 +733,8 @@ function handleClientMessage(ws: WebSocket, msg: any) {
     }
 
     case 'matchmaking:join': {
+      sendMsg(ws, { type: 'error', message: 'Paid online matches are temporarily disabled while secure wallet and server-side game validation are completed.' });
+      return;
       const senderId = socketToUserId.get(ws);
       if (!senderId) return;
       const sender = registeredUsers.get(senderId);
