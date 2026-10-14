@@ -78,6 +78,11 @@ import { OnlineMatchmakingModal } from './components/OnlineMatchmakingModal';
 import { OnlineTiersModal } from './components/OnlineTiersModal';
 import { FriendsModal } from './components/FriendsModal';
 import { IncomingChallengeModal } from './components/IncomingChallengeModal';
+import { CustomerSupportModal } from './components/CustomerSupportModal';
+import { AdminPanelModal } from './components/AdminPanelModal';
+import { HomeMessagesModal, GlobalChatMessage, PrivateChatMessage } from './components/HomeMessagesModal';
+import { TelegramLoginScreen } from './components/TelegramLoginScreen';
+import { HomeClosedBoardShowcase } from './components/HomeClosedBoardShowcase';
 
 export type ActiveScreen =
   | 'home'
@@ -415,7 +420,52 @@ export default function App() {
     () => realState.usdtTransactions ?? []
   );
   const [isTiersModalOpen, setIsTiersModalOpen] = useState(false);
+  const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
+  const [isSupportModalOpen, setIsSupportModalOpen] = useState(false);
   const [selectedTierId, setSelectedTierId] = useState<1 | 2 | 3 | 4 | 5>(1);
+
+  // Telegram Authentication & Mandatory Verification State (ورود اختصاصی با تلگرام بدون تایید وارد نشود)
+  const [isTelegramVerified, setIsTelegramVerified] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return window.localStorage.getItem('royal_tg_verified') === 'true';
+  });
+
+  // Home Screen 3-Part Messages System State (پیام‌های خصوصی، سیستم، همگانی)
+  const [isMessagesModalOpen, setIsMessagesModalOpen] = useState(false);
+  const [globalChatMessages, setGlobalChatMessages] = useState<GlobalChatMessage[]>([]);
+  const [privateChatMessages, setPrivateChatMessages] = useState<PrivateChatMessage[]>([]);
+  const [unreadMessagesCount, setUnreadMessagesCount] = useState<number>(2);
+
+  useEffect(() => {
+    const unsubGlobal = multiplayerClient.on('chat:global_message', (data: any) => {
+      if (data && data.message) {
+        setGlobalChatMessages((prev) => [...prev, data.message]);
+        setUnreadMessagesCount((c) => c + 1);
+      }
+    });
+
+    const unsubGlobalHist = multiplayerClient.on('chat:global_history', (data: any) => {
+      if (data && Array.isArray(data.messages)) {
+        setGlobalChatMessages(data.messages);
+      }
+    });
+
+    const unsubPrivate = multiplayerClient.on('chat:private_message', (data: any) => {
+      if (data && data.message) {
+        setPrivateChatMessages((prev) => [...prev, data.message]);
+        setUnreadMessagesCount((c) => c + 1);
+      }
+    });
+
+    multiplayerClient.requestGlobalChatHistory();
+
+    return () => {
+      unsubGlobal();
+      unsubGlobalHist();
+      unsubPrivate();
+    };
+  }, []);
+
   const [isPortrait, setIsPortrait] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
       return window.innerHeight > window.innerWidth;
@@ -2389,6 +2439,36 @@ export default function App() {
   const lightPipCount = calculatePipCount(checkers, true);
   const darkPipCount = calculatePipCount(checkers, false);
 
+  // Mandatory Telegram Authentication Gate (ورود منحصراً با تایید هویت تلگرام — بدون تایید وارد نشود)
+  if (!isTelegramVerified) {
+    return (
+      <TelegramLoginScreen
+        onLoginSuccess={(user) => {
+          setIsTelegramVerified(true);
+          const cleanName = (user.firstName || user.username.replace('@', '') || 'PLAYER')
+            .trim()
+            .toUpperCase()
+            .slice(0, 18);
+          setRealState((prev) => ({
+            ...prev,
+            playerName: cleanName,
+          }));
+          multiplayerClient.connect({
+            id: user.id,
+            username: user.username,
+            level: playerLevel,
+            xp: realState.xp || 100,
+            rating: playerRating,
+            usdtBalance: usdtBalance,
+            wins: realState.realStats.wins || 0,
+            losses: realState.realStats.losses || 0,
+            matchesPlayed: realState.realStats.matchesPlayed || 0,
+          });
+        }}
+      />
+    );
+  }
+
   return (
     <div className="w-screen h-[100dvh] bg-[#020705] flex items-center justify-center overflow-hidden select-none p-0.5 relative">
       {/* Mobile Orientation Quick Switch for Telegram / Phone in Vertical Mode */}
@@ -2682,6 +2762,20 @@ export default function App() {
                   <button
                     type="button"
                     onClick={() => navigateToScreen('wallet')}
+                    className={`flex items-center gap-1 transition-colors cursor-pointer whitespace-nowrap px-1.5 py-0.5 rounded-[2px] ${
+                      activeScreen === 'wallet'
+                        ? 'bg-[#0a281c] text-[#52f29c] border border-[#52f29c]/50'
+                        : 'text-[#52f29c] bg-[#020d07] border border-[#52f29c]/30 hover:brightness-110'
+                    }`}
+                  >
+                    <span className="font-cinzel text-[7.5px] font-bold tracking-wider tabular-nums">
+                      💵 {usdtBalance.toFixed(2)} USDT
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => navigateToScreen('wallet')}
                     className={`flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap px-1.5 py-0.5 rounded-[2px] ${
                       activeScreen === 'wallet'
                         ? 'bg-[#c8a668]/20 text-[#f5dca8] border border-[#c8a668]/50'
@@ -2692,12 +2786,62 @@ export default function App() {
                       className="w-3 h-3 text-[#b89352] shrink-0"
                       filled={true}
                     />
-                    <span className="font-cinzel text-[8px] tracking-[0.16em] tabular-nums">
+                    <span className="font-cinzel text-[7.5px] tracking-[0.14em] tabular-nums">
                       {activeLineKey === 'coins'
                         ? typedMap.coins
-                        : `${realState.coins.toLocaleString()} COINS`}
+                        : `${realState.coins.toLocaleString()} C`}
                       {renderCursor('coins')}
                     </span>
+                  </button>
+
+                  <div className="h-3 w-[1px] bg-[#c8a668]/30" />
+
+                  {/* Messages Button (بخش پیام‌های ۳ گانه: خصوصی، سیستم، همگانی) */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      royalSound.playOptionClickSound();
+                      setIsMessagesModalOpen(true);
+                      setUnreadMessagesCount(0);
+                    }}
+                    title="پیام‌ها (خصوصی، سیستم، همگانی)"
+                    className="relative px-1.5 py-0.5 rounded-[2px] bg-[#140e06] border border-[#e0be6c]/50 hover:bg-[#26180a] text-[#f7e09e] font-cinzel text-[7px] font-bold tracking-wider cursor-pointer transition-colors flex items-center gap-1"
+                  >
+                    <span>💬 MESSAGES</span>
+                    {unreadMessagesCount > 0 && (
+                      <span className="w-3.5 h-3.5 -mr-0.5 rounded-full bg-[#e53e3e] text-white text-[6.5px] font-bold flex items-center justify-center animate-pulse">
+                        {unreadMessagesCount}
+                      </span>
+                    )}
+                  </button>
+
+                  <div className="h-3 w-[1px] bg-[#c8a668]/30" />
+
+                  {/* Customer Support Button */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      royalSound.playOptionClickSound();
+                      setIsSupportModalOpen(true);
+                    }}
+                    title="پشتیبانی ۲۴ ساعته"
+                    className="px-1.5 py-0.5 rounded-[2px] bg-[#061810] border border-[#52f29c]/40 hover:bg-[#0c2b1e] text-[#52f29c] font-cinzel text-[7px] font-bold tracking-wider cursor-pointer transition-colors flex items-center gap-1"
+                  >
+                    <span>🎧 SUPPORT</span>
+                  </button>
+
+                  {/* Admin Panel Button */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      royalSound.playOptionClickSound();
+                      setIsAdminModalOpen(true);
+                    }}
+                    title="پنل مدیریت مستقل"
+                    className="px-1.5 py-0.5 rounded-[2px] bg-[#1a1205] border border-[#c8a668]/50 hover:bg-[#2b1e09] text-[#f5dca8] font-cinzel text-[7px] font-bold tracking-wider cursor-pointer transition-colors flex items-center gap-1"
+                  >
+                    <RoyalCrownIcon className="w-2.5 h-2.5 text-[#f5dca8]" />
+                    <span>ADMIN</span>
                   </button>
 
                   <div className="h-3 w-[1px] bg-[#c8a668]/30" />
@@ -2847,6 +2991,38 @@ export default function App() {
                         <ChevronRightIcon className="w-2.5 h-2.5 text-[#b99656] group-hover:translate-x-0.5 transition-all shrink-0" />
                       </button>
                     </div>
+
+                    {/* Option 4: MESSAGES & INBOX (پیام‌های خصوصی، سیستم، همگانی) */}
+                    <div className="transition-opacity duration-200 mt-0.5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          royalSound.playOptionClickSound();
+                          setIsMessagesModalOpen(true);
+                          setUnreadMessagesCount(0);
+                        }}
+                        className="w-full py-1 flex items-center justify-between gap-2 text-left group border-t border-[#c8a668]/20 hover:border-[#c8a668]/50 transition-colors cursor-pointer"
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="text-[#e2c285] text-xs shrink-0">💬</span>
+                          <div className="min-w-0">
+                            <span className="font-cinzel text-[8.5px] tracking-[0.12em] text-[#ebe3d2] group-hover:text-white transition-colors whitespace-nowrap block">
+                              MESSAGES (صندوق پیام‌ها)
+                            </span>
+                            <p className="font-cormorant text-[9px] text-[#a39e93] truncate leading-tight">
+                              پیام‌های خصوصی، سیستم، همگانی
+                            </p>
+                          </div>
+                        </div>
+                        {unreadMessagesCount > 0 ? (
+                          <span className="px-1.5 py-0.2 rounded-full bg-[#e53e3e] text-white text-[6.5px] font-bold">
+                            {unreadMessagesCount} NEW
+                          </span>
+                        ) : (
+                          <ChevronRightIcon className="w-2.5 h-2.5 text-[#b99656] group-hover:translate-x-0.5 transition-all shrink-0" />
+                        )}
+                      </button>
+                    </div>
                   </div>
 
                   {/* Primary Brushed Brass Button: TAKE YOUR SEAT */}
@@ -2872,10 +3048,23 @@ export default function App() {
                 </main>
               )}
 
-              {/* 3D GLB BACKGAMMON BOARD STAGE */}
+              {/* DEDICATED HOME SCREEN CLOSED BOARD SHOWCASE (تفکیک کامل تخته صفحه خانه از سیستم بازی با ابعاد بزرگتر) */}
+              {isHomeScreen && (
+                <div className="relative h-full w-[66%] shrink-0 flex items-center justify-center">
+                  <HomeClosedBoardShowcase
+                    onOpenBoard={() => {
+                      royalSound.playOptionClickSound();
+                      setIsTiersModalOpen(true);
+                    }}
+                    onOpenCollection={() => navigateToScreen('collection')}
+                  />
+                </div>
+              )}
+
+              {/* 3D GLB BACKGAMMON BOARD STAGE (مخصوص صفحه بازی و مسابقات) */}
               <div
                 className={`relative h-full shrink-0 flex items-center justify-center ${
-                  isGameScreen ? 'w-full' : 'w-[66%]'
+                  isGameScreen ? 'w-full' : 'hidden'
                 }`}
               >
                 <div
@@ -2935,29 +3124,6 @@ export default function App() {
                     </div>
                   </div>
                 )}
-
-                {/* Touch Prompt while 3D Board is Closed on Home */}
-                {isHomeScreen && boardState === 'closed' && (
-                  <div className="absolute inset-x-0 bottom-2 z-20 flex justify-center pointer-events-none px-3">
-                    <button
-                      type="button"
-                      onClick={handleTouchClosedBoard}
-                      className="pointer-events-auto flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-sm bg-[#071710]/92 border border-[#c8a668]/55 backdrop-blur-md shadow-[0_8px_22px_rgba(0,0,0,0.85)] active:scale-95 transition-all cursor-pointer"
-                    >
-                      <div className="flex items-center gap-1.5 text-[#e5d6b8]">
-                        <RoyalCrownIcon className="w-3.5 h-3 text-[#c8a668]" />
-                        <span className="font-cinzel text-[8.5px] font-semibold tracking-[0.18em] text-[#f0e5ce] uppercase">
-                          {glbReady
-                            ? 'TOUCH BOARD TO OPEN'
-                            : 'LOADING 3D GLB MODEL...'}
-                        </span>
-                      </div>
-                      <span className="font-cormorant text-[8.5px] tracking-[0.08em] text-[#b89758]">
-                        Tap the Royal Lion &amp; Sun case to unfold
-                      </span>
-                    </button>
-                  </div>
-                )}
               </div>
             </div>
 
@@ -3005,6 +3171,7 @@ export default function App() {
                 onAcquireCoins={handleAcquireCoins}
                 onDepositUsdt={handleDepositUsdt}
                 onWithdrawUsdt={handleWithdrawUsdt}
+                onOpenSupport={() => setIsSupportModalOpen(true)}
               />
             )}
 
@@ -3030,6 +3197,8 @@ export default function App() {
                 onShareOnTelegram={handleShareOnTelegram}
                 onResetAllData={handleResetAllData}
                 onBackHome={() => setActiveScreen('home')}
+                onOpenAdmin={() => setIsAdminModalOpen(true)}
+                onOpenSupport={() => setIsSupportModalOpen(true)}
               />
             )}
           </div>
@@ -3290,6 +3459,37 @@ export default function App() {
             onDecline={(chalId) => {
               multiplayerClient.respondFriendChallenge(chalId, false);
               setIncomingChallenge(null);
+            }}
+          />
+
+          {/* 24/7 Customer Support & Ticket System (پشتیبانی فعال) */}
+          <CustomerSupportModal
+            isOpen={isSupportModalOpen}
+            onClose={() => setIsSupportModalOpen(false)}
+            userId={multiplayerClient.getCurrentUser()?.id || `user-${realState.playerName}`}
+            username={realState.playerName}
+          />
+
+          {/* Independent Admin Command & Financial Ledger Modal (پنل مدیریت مستقل با کنترل کامل) */}
+          <AdminPanelModal
+            isOpen={isAdminModalOpen}
+            onClose={() => setIsAdminModalOpen(false)}
+          />
+
+          {/* Home Messages Modal (بخش پیام‌های ۳ گانه: خصوصی، سیستم، همگانی با متن مختصر) */}
+          <HomeMessagesModal
+            isOpen={isMessagesModalOpen}
+            onClose={() => setIsMessagesModalOpen(false)}
+            currentUserId={multiplayerClient.getCurrentUser()?.id || playerId}
+            currentUsername={realState.playerName}
+            playerLevel={playerLevel}
+            globalMessages={globalChatMessages}
+            privateMessages={privateChatMessages}
+            onSendGlobalMessage={(text) => {
+              multiplayerClient.sendGlobalChat(text);
+            }}
+            onSendPrivateMessage={(targetUserId, text) => {
+              multiplayerClient.sendPrivateChat(targetUserId, text);
             }}
           />
         </div>

@@ -5,17 +5,17 @@ import {defineConfig} from 'vite';
 
 export default defineConfig(() => {
   return {
-    base: process.env.RENDER
-  ? '/'
-  : '/Royal-Backgammon-3d/',
+    base: process.env.GITHUB_ACTIONS ? '/Royal-Backgammon-3d/' : './',
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {
-        '@': path.resolve(__dirname, '.'),
+        '@': path.resolve('.'),
       },
     },
+    build: {
+      chunkSizeWarningLimit: 2000,
+    },
     server: {
-allowedHosts: ['royal-backgammon-3d.onrender.com'],
       // HMR is disabled in AI Studio via DISABLE_HMR env var.
       // Do not modify—file watching is disabled to prevent flickering during agent edits.
       hmr: process.env.DISABLE_HMR !== 'true',

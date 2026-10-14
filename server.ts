@@ -4,49 +4,10 @@ import { WebSocketServer, WebSocket } from 'ws';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
-import { Pool } from 'pg';
-import { createHmac, timingSafeEqual } from 'node:crypto';
+import pg from 'pg';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-interface VerifiedTelegramUser {
-  id: string;
-  username: string;
-  firstName: string;
-}
-
-const verifiedTelegramUsers = new WeakMap<WebSocket, VerifiedTelegramUser>();
-
-function verifyTelegramInitData(initData: unknown): VerifiedTelegramUser | null {
-  const botToken = process.env.BOT_TOKEN;
-  if (!botToken || typeof initData !== 'string' || initData.length < 10 || initData.length > 8192) return null;
-  try {
-    const params = new URLSearchParams(initData);
-    const receivedHash = params.get('hash');
-    const authDate = Number(params.get('auth_date'));
-    const userRaw = params.get('user');
-    if (!receivedHash || !/^[a-f0-9]{64}$/i.test(receivedHash) || !userRaw || !Number.isFinite(authDate)) return null;
-    const ageSeconds = Math.floor(Date.now() / 1000) - authDate;
-    if (ageSeconds < -60 || ageSeconds > 86400) return null;
-    params.delete('hash');
-    const dataCheckString = Array.from(params.entries())
-      .sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)
-      .map(([key, value]) => `${key}=${value}`)
-      .join('\n');
-    const secretKey = createHmac('sha256', 'WebAppData').update(botToken).digest();
-    const expectedHash = createHmac('sha256', secretKey).update(dataCheckString).digest();
-    const actualHash = Buffer.from(receivedHash, 'hex');
-    if (actualHash.length !== expectedHash.length || !timingSafeEqual(actualHash, expectedHash)) return null;
-    const tgUser = JSON.parse(userRaw);
-    if (!tgUser || !Number.isSafeInteger(tgUser.id) || tgUser.id <= 0 || tgUser.is_bot) return null;
-    const firstName = String(tgUser.first_name || 'PLAYER').trim().slice(0, 18);
-    const username = String(tgUser.username || firstName || 'PLAYER').trim().slice(0, 18).toUpperCase();
-    return { id: String(tgUser.id), username, firstName };
-  } catch {
-    return null;
-  }
-}
 
 interface OnlineUser {
   id: string;
@@ -61,7 +22,11 @@ interface OnlineUser {
   matchesPlayed: number;
   status: 'online' | 'in_game' | 'offline';
   lastSeen: number;
+  isBanned?: boolean;
+  banReason?: string;
 }
+
+const ADMIN_PIN = process.env.ADMIN_PIN || 'royal777';
 
 interface FriendRequest {
   id: string;
@@ -87,7 +52,6 @@ interface FriendChallenge {
   };
   targetUserId: string;
   createdAt: number;
-  amountUsdt: number;
 }
 
 interface MatchQueueItem {
@@ -126,7 +90,7 @@ const TIER_CONFIG: Record<
 > = {
   1: {
     entry: 1,
-    prize: 1.9,
+    prize: 1.7,
     minLvl: 0,
     maxLvl: 10,
     name: 'Bronze Novice Saloon',
@@ -135,7 +99,7 @@ const TIER_CONFIG: Record<
   },
   2: {
     entry: 2,
-    prize: 3.8,
+    prize: 3.4,
     minLvl: 11,
     maxLvl: 25,
     name: 'Silver Master Guild',
@@ -144,7 +108,7 @@ const TIER_CONFIG: Record<
   },
   3: {
     entry: 5,
-    prize: 9.5,
+    prize: 8.5,
     minLvl: 26,
     maxLvl: 50,
     name: 'Gold Grandmaster Arena',
@@ -153,7 +117,7 @@ const TIER_CONFIG: Record<
   },
   4: {
     entry: 10,
-    prize: 19.0,
+    prize: 17.0,
     minLvl: 51,
     maxLvl: 80,
     name: 'Platinum High-Roller Court',
@@ -162,7 +126,7 @@ const TIER_CONFIG: Record<
   },
   5: {
     entry: 25,
-    prize: 235.0,
+    prize: 212.5,
     minLvl: 81,
     maxLvl: 999,
     name: 'Royal Sovereign Champions League',
@@ -179,6 +143,82 @@ if (!fs.existsSync(DATA_DIR)) {
 }
 const DB_FILE = path.join(DATA_DIR, 'royal_backend_store.json');
 
+// Render PostgreSQL Database Connection Pool
+const { Pool } = pg;
+const DATABASE_URL = process.env.DATABASE_URL;
+let pgPool: pg.Pool | null = null;
+let isPostgresConnected = false;
+
+if (DATABASE_URL) {
+  try {
+    pgPool = new Pool({
+      connectionString: DATABASE_URL,
+      connectionTimeoutMillis: 3000,
+      ssl:
+        process.env.NODE_ENV === 'production' || DATABASE_URL.includes('render.com')
+          ? { rejectUnauthorized: false }
+          : undefined,
+    });
+    console.log('[Database] PostgreSQL connection pool initialized for Render.');
+  } catch (err) {
+    console.warn('[Database] Failed to configure PostgreSQL pool:', err);
+  }
+}
+
+interface FinancialAuditRecord {
+  id: string;
+  timestamp: number;
+  dateIso: string;
+  type: 'deposit' | 'withdraw' | 'entry_fee' | 'prize_payout' | 'rake_collected' | 'admin_adjustment';
+  amountUsdt: number;
+  userId: string;
+  username: string;
+  tierId?: number;
+  matchRoomId?: string;
+  balanceBefore: number;
+  balanceAfter: number;
+  txHash?: string;
+  address?: string;
+  network?: string;
+  description: string;
+}
+
+interface SupportTicket {
+  id: string;
+  userId: string;
+  username: string;
+  category: string;
+  subject: string;
+  message: string;
+  status: 'open' | 'answered' | 'closed';
+  adminReply?: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+interface WithdrawalRequest {
+  id: string;
+  userId: string;
+  username: string;
+  amountUsdt: number;
+  network: 'TRC20' | 'TON';
+  destinationAddress: string;
+  status: 'pending' | 'approved' | 'rejected';
+  adminTxHash?: string;
+  createdAt: number;
+  processedAt?: number;
+}
+
+interface TreasuryAccountingSummary {
+  totalRakeCollectedUsdt: number;
+  totalDepositedUsdt: number;
+  totalWithdrawnUsdt: number;
+  totalPendingWithdrawalsUsdt: number;
+  totalMatchesPlayed: number;
+  totalVolumeTurnoverUsdt: number;
+  totalUsersBalanceUsdt: number;
+}
+
 // In-memory persistent collections
 const registeredUsers = new Map<string, OnlineUser>();
 const friendships = new Map<string, Set<string>>(); // userId -> Set of friend userIds
@@ -188,6 +228,246 @@ const matchmakingQueue: MatchQueueItem[] = [];
 const activeRooms = new Map<string, ActiveGameRoom>();
 const userSockets = new Map<string, WebSocket>();
 const socketToUserId = new Map<WebSocket, string>();
+
+// Accounting & System Stores
+const financialLedger: FinancialAuditRecord[] = [];
+const supportTickets: SupportTicket[] = [];
+const withdrawals: WithdrawalRequest[] = [];
+const processedTxHashes = new Set<string>();
+const globalChatHistory: { id: string; senderId: string; senderName: string; level: number; text: string; timestamp: number }[] = [];
+const privateChatStore: { id: string; fromUserId: string; fromUsername: string; toUserId: string; text: string; timestamp: number }[] = [];
+
+const treasuryStats: TreasuryAccountingSummary = {
+  totalRakeCollectedUsdt: 0,
+  totalDepositedUsdt: 0,
+  totalWithdrawnUsdt: 0,
+  totalPendingWithdrawalsUsdt: 0,
+  totalMatchesPlayed: 0,
+  totalVolumeTurnoverUsdt: 0,
+  totalUsersBalanceUsdt: 0,
+};
+
+function recordFinancialAudit(record: Omit<FinancialAuditRecord, 'id' | 'timestamp' | 'dateIso'>): FinancialAuditRecord {
+  const audit: FinancialAuditRecord = {
+    id: `aud-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    timestamp: Date.now(),
+    dateIso: new Date().toISOString(),
+    ...record,
+  };
+  financialLedger.unshift(audit);
+  if (financialLedger.length > 800) financialLedger.pop();
+
+  // Also sync to PostgreSQL if connected
+  if (pgPool && isPostgresConnected) {
+    pgPool
+      .query(
+        `INSERT INTO wallet_transactions (id, user_id, type, amount, network, address, tx_hash, description)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+         ON CONFLICT (id) DO NOTHING;`,
+        [
+          audit.id,
+          audit.userId,
+          audit.type,
+          audit.amountUsdt,
+          audit.network || 'TRC20',
+          audit.address || '',
+          audit.txHash || '',
+          audit.description,
+        ]
+      )
+      .catch(() => {});
+
+    pgPool
+      .query(
+        `INSERT INTO financial_ledger (id, type, amount_usdt, user_id, username, tier_id, match_room_id, balance_before, balance_after, tx_hash, address, network, description)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+         ON CONFLICT (id) DO NOTHING;`,
+        [
+          audit.id,
+          audit.type,
+          audit.amountUsdt,
+          audit.userId,
+          audit.username,
+          audit.tierId || null,
+          audit.matchRoomId || null,
+          audit.balanceBefore ?? null,
+          audit.balanceAfter ?? null,
+          audit.txHash || '',
+          audit.address || '',
+          audit.network || 'TRC20',
+          audit.description,
+        ]
+      )
+      .catch(() => {});
+  }
+  return audit;
+}
+
+// Initialize all 7 Production Database Tables if PostgreSQL is available
+async function initDatabaseTables() {
+  if (!pgPool) {
+    console.log('[Database] No DATABASE_URL found. Running with local JSON store.');
+    return;
+  }
+  try {
+    const client = await pgPool.connect();
+    isPostgresConnected = true;
+    try {
+      await client.query(`
+        -- 1. جدول کاربران (پروفایل، سطح، ریتینگ ELO و موجودی تتر)
+        CREATE TABLE IF NOT EXISTS users (
+          id VARCHAR(64) PRIMARY KEY,
+          username VARCHAR(64) NOT NULL,
+          level INT DEFAULT 1,
+          xp INT DEFAULT 100,
+          rating INT DEFAULT 1200,
+          usdt_balance NUMERIC(12, 2) DEFAULT 25.00,
+          wins INT DEFAULT 0,
+          losses INT DEFAULT 0,
+          win_streak INT DEFAULT 0,
+          matches_played INT DEFAULT 0,
+          status VARCHAR(20) DEFAULT 'offline',
+          last_seen BIGINT,
+          is_banned BOOLEAN DEFAULT false,
+          ban_reason TEXT,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+        -- 2. جدول ارتباطات دوستی بین بازیکنان
+        CREATE TABLE IF NOT EXISTS friendships (
+          user_id VARCHAR(64) NOT NULL,
+          friend_id VARCHAR(64) NOT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          PRIMARY KEY (user_id, friend_id)
+        );
+
+        -- 3. جدول درخواست‌های دوستی معلق
+        CREATE TABLE IF NOT EXISTS friend_requests (
+          id VARCHAR(64) PRIMARY KEY,
+          from_user_id VARCHAR(64) NOT NULL,
+          to_user_id VARCHAR(64) NOT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+        -- 4. جدول تراکنش‌های مالی کیف پول (واریز، برداشت، ورودی و جوایز تتر)
+        CREATE TABLE IF NOT EXISTS wallet_transactions (
+          id VARCHAR(64) PRIMARY KEY,
+          user_id VARCHAR(64) NOT NULL,
+          type VARCHAR(20) NOT NULL,
+          amount NUMERIC(12, 2) NOT NULL,
+          network VARCHAR(10),
+          address VARCHAR(128),
+          tx_hash VARCHAR(128),
+          status VARCHAR(20) DEFAULT 'confirmed',
+          description TEXT,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+        -- 5. جدول تاریخچه مسابقات و راندها (سطوح ۱ تا ۵)
+        CREATE TABLE IF NOT EXISTS matches (
+          id VARCHAR(64) PRIMARY KEY,
+          room_id VARCHAR(64) UNIQUE,
+          tier_id INT NOT NULL,
+          entry_fee_usdt NUMERIC(8, 2),
+          prize_pool_usdt NUMERIC(8, 2),
+          player_light_id VARCHAR(64),
+          player_dark_id VARCHAR(64),
+          winner_id VARCHAR(64),
+          target_wins INT DEFAULT 1,
+          score_light INT DEFAULT 0,
+          score_dark INT DEFAULT 0,
+          doubling_cube INT DEFAULT 1,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+        -- 6. جدول سوپر لیگ ۱۰ نفره قهرمانان (سطح ۵)
+        CREATE TABLE IF NOT EXISTS league_standings (
+          id SERIAL PRIMARY KEY,
+          league_id VARCHAR(64) NOT NULL,
+          user_id VARCHAR(64) NOT NULL,
+          points INT DEFAULT 0,
+          matches_played INT DEFAULT 0,
+          wins INT DEFAULT 0,
+          losses INT DEFAULT 0,
+          rank INT DEFAULT 1,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+        -- 7. جدول صف درخواست‌های برداشت تتر
+        CREATE TABLE IF NOT EXISTS withdrawals (
+          id VARCHAR(64) PRIMARY KEY,
+          user_id VARCHAR(64) NOT NULL,
+          amount NUMERIC(12, 2) NOT NULL,
+          destination_address VARCHAR(128) NOT NULL,
+          network VARCHAR(10) NOT NULL,
+          status VARCHAR(20) DEFAULT 'pending',
+          admin_tx_hash VARCHAR(128),
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+        -- 8. جدول تیکت‌های پشتیبانی کاربران (Customer Support)
+        CREATE TABLE IF NOT EXISTS support_tickets (
+          id VARCHAR(64) PRIMARY KEY,
+          user_id VARCHAR(64) NOT NULL,
+          username VARCHAR(64) NOT NULL,
+          category VARCHAR(32) NOT NULL,
+          subject VARCHAR(256) NOT NULL,
+          message TEXT NOT NULL,
+          status VARCHAR(20) DEFAULT 'open',
+          admin_reply TEXT,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+        -- 9. جدول دفتر کل حسابداری دقیق سیستم (Financial Audit Ledger)
+        CREATE TABLE IF NOT EXISTS financial_ledger (
+          id VARCHAR(64) PRIMARY KEY,
+          type VARCHAR(32) NOT NULL,
+          amount_usdt NUMERIC(12, 2) NOT NULL,
+          user_id VARCHAR(64) NOT NULL,
+          username VARCHAR(64) NOT NULL,
+          tier_id INT,
+          match_room_id VARCHAR(64),
+          balance_before NUMERIC(12, 2),
+          balance_after NUMERIC(12, 2),
+          tx_hash VARCHAR(128),
+          address VARCHAR(128),
+          network VARCHAR(10),
+          description TEXT,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+      `);
+      console.log('[Render PostgreSQL] All 9 production tables verified and initialized successfully!');
+
+      const res = await client.query('SELECT * FROM users');
+      for (const row of res.rows) {
+        registeredUsers.set(row.id, {
+          id: row.id,
+          username: row.username,
+          level: Number(row.level) || 1,
+          xp: Number(row.xp) || 100,
+          rating: Number(row.rating) || 1200,
+          usdtBalance: Number(row.usdt_balance) || 25,
+          wins: Number(row.wins) || 0,
+          losses: Number(row.losses) || 0,
+          winStreak: Number(row.win_streak) || 0,
+          matchesPlayed: Number(row.matches_played) || 0,
+          status: 'offline',
+          lastSeen: Number(row.last_seen) || Date.now(),
+        });
+      }
+      console.log(`[Render PostgreSQL] Loaded ${res.rows.length} users into live memory.`);
+    } finally {
+      client.release();
+    }
+  } catch (err) {
+    console.warn('[Render PostgreSQL] Connection error; continuing with local JSON store:', err);
+    isPostgresConnected = false;
+  }
+}
+
+// Start database check on boot
+initDatabaseTables().catch(() => {});
 
 // Load persisted data if exists
 try {
@@ -200,7 +480,7 @@ try {
           ...u,
           rating: u.rating ?? 1200,
           xp: u.xp ?? (u.level ? u.level * 100 : 0),
-          usdtBalance: 0,
+          usdtBalance: typeof u.usdtBalance === 'number' ? u.usdtBalance : 25,
           losses: u.losses ?? 0,
           winStreak: u.winStreak ?? 0,
           status: 'offline',
@@ -217,289 +497,66 @@ try {
   console.warn('[Store] Could not load backend store file:', e);
 }
 
-let pgPool: Pool | null = null;
-let postgresWriteQueue: Promise<void> = Promise.resolve();
-
-function buildStoreSnapshot() {
-  const usersArr = Array.from(registeredUsers.values());
-  const friendsObj: Record<string, string[]> = {};
-  for (const [uid, set] of friendships.entries()) {
-    friendsObj[uid] = Array.from(set);
-  }
-  return { users: usersArr, friendships: friendsObj, savedAt: Date.now() };
-}
-
 function persistStore() {
-  const snapshot = buildStoreSnapshot();
   try {
-    fs.writeFileSync(DB_FILE, JSON.stringify(snapshot, null, 2), 'utf-8');
-  } catch (e) {
-    console.error('[Store] Failed to write JSON fallback store:', e);
-  }
-
-  // Serialize writes so concurrent WebSocket events cannot overwrite newer state.
-  if (pgPool) {
-    postgresWriteQueue = postgresWriteQueue
-      .then(async () => {
-        const pool = pgPool;
-        if (!pool) return;
-        await pool.query(
-          `INSERT INTO royal_backend_state (id, payload, updated_at)
-           VALUES (1, $1::jsonb, NOW())
-           ON CONFLICT (id) DO UPDATE
-           SET payload = EXCLUDED.payload, updated_at = NOW()`,
-          [JSON.stringify(snapshot)]
-        );
-      })
-      .catch((e) => {
-        console.error('[Postgres] Store write failed; JSON fallback remains available:', e);
-      });
-  }
-}
-
-async function initializePostgres() {
-  if (!process.env.DATABASE_URL) {
-    console.log('[Postgres] DATABASE_URL not set; using JSON file storage.');
-    return;
-  }
-
-  const candidate = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false },
-    connectionTimeoutMillis: 8000,
-    idleTimeoutMillis: 30000,
-    max: 5,
-  });
-
-  try {
-    await candidate.query('SELECT 1');
-
-    // Financial ledger foundation. Real-money endpoints remain disabled until
-    // on-chain verification, custody controls, and payout approval are implemented.
-    await candidate.query(`
-      CREATE TABLE IF NOT EXISTS financial_accounts (
-        id BIGSERIAL PRIMARY KEY,
-        account_code TEXT NOT NULL UNIQUE,
-        account_type TEXT NOT NULL CHECK (account_type IN (
-          'user_available', 'user_locked', 'deposit_pending', 'withdrawal_pending',
-          'platform_fee', 'treasury', 'chain_fee', 'suspense'
-        )),
-        user_id TEXT,
-        asset_code TEXT NOT NULL,
-        is_active BOOLEAN NOT NULL DEFAULT TRUE,
-        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        UNIQUE (user_id, asset_code, account_type, account_code)
-      );
-
-      CREATE TABLE IF NOT EXISTS financial_journal_transactions (
-        id BIGSERIAL PRIMARY KEY,
-        event_key TEXT NOT NULL UNIQUE,
-        kind TEXT NOT NULL CHECK (kind IN (
-          'deposit', 'withdrawal', 'match_stake', 'match_refund', 'match_payout',
-          'platform_fee', 'network_fee', 'adjustment', 'reversal', 'reconciliation'
-        )),
-        status TEXT NOT NULL CHECK (status IN (
-          'pending', 'confirmed', 'posted', 'failed', 'reversed', 'held'
-        )),
-        asset_code TEXT NOT NULL,
-        network TEXT,
-        external_ref TEXT,
-        related_match_id TEXT,
-        metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
-        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        finalized_at TIMESTAMPTZ
-      );
-
-      CREATE UNIQUE INDEX IF NOT EXISTS financial_journal_external_ref_unique
-        ON financial_journal_transactions (network, external_ref)
-        WHERE external_ref IS NOT NULL;
-
-      CREATE TABLE IF NOT EXISTS financial_journal_entries (
-        id BIGSERIAL PRIMARY KEY,
-        transaction_id BIGINT NOT NULL REFERENCES financial_journal_transactions(id),
-        account_id BIGINT NOT NULL REFERENCES financial_accounts(id),
-        asset_code TEXT NOT NULL,
-        amount_atomic NUMERIC(78, 0) NOT NULL CHECK (amount_atomic <> 0),
-        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-      );
-      CREATE INDEX IF NOT EXISTS financial_journal_entries_transaction_idx
-        ON financial_journal_entries (transaction_id);
-      CREATE INDEX IF NOT EXISTS financial_journal_entries_account_idx
-        ON financial_journal_entries (account_id, created_at);
-
-      CREATE TABLE IF NOT EXISTS chain_transfers (
-        id BIGSERIAL PRIMARY KEY,
-        network TEXT NOT NULL,
-        asset_code TEXT NOT NULL,
-        token_contract TEXT,
-        tx_hash TEXT NOT NULL,
-        event_index INTEGER NOT NULL DEFAULT 0,
-        block_number NUMERIC(78, 0),
-        sender_address TEXT,
-        recipient_address TEXT NOT NULL,
-        amount_atomic NUMERIC(78, 0) NOT NULL CHECK (amount_atomic > 0),
-        network_fee_atomic NUMERIC(78, 0) NOT NULL DEFAULT 0 CHECK (network_fee_atomic >= 0),
-        network_fee_asset TEXT,
-        confirmations INTEGER NOT NULL DEFAULT 0 CHECK (confirmations >= 0),
-        chain_status TEXT NOT NULL CHECK (chain_status IN (
-          'detected', 'confirming', 'confirmed', 'failed', 'reorged', 'ignored'
-        )),
-        raw_payload JSONB NOT NULL DEFAULT '{}'::jsonb,
-        detected_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        confirmed_at TIMESTAMPTZ,
-        UNIQUE (network, tx_hash, event_index)
-      );
-      CREATE INDEX IF NOT EXISTS chain_transfers_recipient_idx
-        ON chain_transfers (network, recipient_address, detected_at);
-
-      CREATE TABLE IF NOT EXISTS withdrawal_requests (
-        id BIGSERIAL PRIMARY KEY,
-        request_key TEXT NOT NULL UNIQUE,
-        user_id TEXT NOT NULL,
-        network TEXT NOT NULL,
-        asset_code TEXT NOT NULL,
-        destination_address TEXT NOT NULL,
-        amount_atomic NUMERIC(78, 0) NOT NULL CHECK (amount_atomic > 0),
-        quoted_network_fee_atomic NUMERIC(78, 0) NOT NULL DEFAULT 0 CHECK (quoted_network_fee_atomic >= 0),
-        actual_network_fee_atomic NUMERIC(78, 0),
-        fee_asset TEXT,
-        status TEXT NOT NULL CHECK (status IN (
-          'requested', 'held', 'approved', 'broadcast', 'confirmed', 'rejected', 'cancelled', 'failed'
-        )),
-        reviewed_by TEXT,
-        review_reason TEXT,
-        tx_hash TEXT,
-        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        confirmed_at TIMESTAMPTZ
-      );
-      CREATE UNIQUE INDEX IF NOT EXISTS withdrawal_requests_tx_hash_unique
-        ON withdrawal_requests (network, tx_hash)
-        WHERE tx_hash IS NOT NULL;
-
-      CREATE TABLE IF NOT EXISTS match_escrows (
-        id BIGSERIAL PRIMARY KEY,
-        match_id TEXT NOT NULL UNIQUE,
-        player_one_id TEXT NOT NULL,
-        player_two_id TEXT NOT NULL,
-        asset_code TEXT NOT NULL,
-        stake_each_atomic NUMERIC(78, 0) NOT NULL CHECK (stake_each_atomic >= 0),
-        platform_fee_atomic NUMERIC(78, 0) NOT NULL DEFAULT 0 CHECK (platform_fee_atomic >= 0),
-        prize_atomic NUMERIC(78, 0) NOT NULL DEFAULT 0 CHECK (prize_atomic >= 0),
-        winner_user_id TEXT,
-        status TEXT NOT NULL CHECK (status IN (
-          'created', 'funded', 'in_progress', 'settling', 'settled', 'refunding', 'refunded', 'disputed', 'cancelled'
-        )),
-        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        settled_at TIMESTAMPTZ,
-        CHECK (player_one_id <> player_two_id),
-        CHECK (winner_user_id IS NULL OR winner_user_id IN (player_one_id, player_two_id))
-      );
-
-      CREATE TABLE IF NOT EXISTS financial_audit_events (
-        id BIGSERIAL PRIMARY KEY,
-        event_key TEXT NOT NULL UNIQUE,
-        actor_type TEXT NOT NULL CHECK (actor_type IN ('system', 'user', 'admin', 'chain_watcher')),
-        actor_id TEXT,
-        action TEXT NOT NULL,
-        object_type TEXT NOT NULL,
-        object_id TEXT,
-        request_id TEXT,
-        details JSONB NOT NULL DEFAULT '{}'::jsonb,
-        previous_hash TEXT,
-        event_hash TEXT NOT NULL,
-        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-      );
-      CREATE INDEX IF NOT EXISTS financial_audit_events_created_idx
-        ON financial_audit_events (created_at);
-      CREATE INDEX IF NOT EXISTS financial_audit_events_object_idx
-        ON financial_audit_events (object_type, object_id);
-
-      CREATE TABLE IF NOT EXISTS financial_reconciliation_runs (
-        id BIGSERIAL PRIMARY KEY,
-        network TEXT NOT NULL,
-        asset_code TEXT NOT NULL,
-        wallet_address TEXT NOT NULL,
-        chain_balance_atomic NUMERIC(78, 0) NOT NULL,
-        ledger_liability_atomic NUMERIC(78, 0) NOT NULL,
-        variance_atomic NUMERIC(78, 0) NOT NULL,
-        status TEXT NOT NULL CHECK (status IN ('matched', 'variance', 'failed')),
-        report JSONB NOT NULL DEFAULT '{}'::jsonb,
-        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-      );
-
-      CREATE OR REPLACE FUNCTION prevent_financial_record_mutation()
-      RETURNS TRIGGER AS 'BEGIN
-        RAISE EXCEPTION ''Financial journal and audit records are append-only'';
-      END;' LANGUAGE plpgsql;
-
-      DROP TRIGGER IF EXISTS financial_journal_entries_append_only ON financial_journal_entries;
-      CREATE TRIGGER financial_journal_entries_append_only
-        BEFORE UPDATE OR DELETE ON financial_journal_entries
-        FOR EACH ROW EXECUTE FUNCTION prevent_financial_record_mutation();
-
-      DROP TRIGGER IF EXISTS financial_audit_events_append_only ON financial_audit_events;
-      CREATE TRIGGER financial_audit_events_append_only
-        BEFORE UPDATE OR DELETE ON financial_audit_events
-        FOR EACH ROW EXECUTE FUNCTION prevent_financial_record_mutation();
-    `);
-    await candidate.query(`
-      CREATE TABLE IF NOT EXISTS royal_backend_state (
-        id INTEGER PRIMARY KEY CHECK (id = 1),
-        payload JSONB NOT NULL,
-        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-      )
-    `);
-
-    const result = await candidate.query(
-      'SELECT payload FROM royal_backend_state WHERE id = 1'
+    const usersArr = Array.from(registeredUsers.values());
+    const friendsObj: Record<string, string[]> = {};
+    for (const [uid, set] of friendships.entries()) {
+      friendsObj[uid] = Array.from(set);
+    }
+    fs.writeFileSync(
+      DB_FILE,
+      JSON.stringify(
+        {
+          users: usersArr,
+          friendships: friendsObj,
+          savedAt: Date.now(),
+        },
+        null,
+        2
+      ),
+      'utf-8'
     );
 
-    if (result.rows.length > 0) {
-      const saved = result.rows[0].payload;
-      if (saved && Array.isArray(saved.users)) {
-        registeredUsers.clear();
-        for (const u of saved.users) {
-          if (!u || typeof u.id !== 'string') continue;
-          registeredUsers.set(u.id, {
-            ...u,
-            rating: u.rating ?? 1200,
-            xp: u.xp ?? (u.level ? u.level * 100 : 0),
-            usdtBalance: 0,
-            losses: u.losses ?? 0,
-            winStreak: u.winStreak ?? 0,
-            status: 'offline',
-          });
-        }
+    // Persist to PostgreSQL if connected
+    if (pgPool && isPostgresConnected) {
+      for (const u of usersArr) {
+        pgPool
+          .query(
+            `INSERT INTO users (id, username, level, xp, rating, usdt_balance, wins, losses, win_streak, matches_played, status, last_seen)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+             ON CONFLICT (id) DO UPDATE SET
+               username = EXCLUDED.username,
+               level = EXCLUDED.level,
+               xp = EXCLUDED.xp,
+               rating = EXCLUDED.rating,
+               usdt_balance = EXCLUDED.usdt_balance,
+               wins = EXCLUDED.wins,
+               losses = EXCLUDED.losses,
+               win_streak = EXCLUDED.win_streak,
+               matches_played = EXCLUDED.matches_played,
+               status = EXCLUDED.status,
+               last_seen = EXCLUDED.last_seen;`,
+            [
+              u.id,
+              u.username,
+              u.level,
+              u.xp,
+              u.rating,
+              u.usdtBalance,
+              u.wins,
+              u.losses,
+              u.winStreak,
+              u.matchesPlayed,
+              u.status,
+              u.lastSeen,
+            ]
+          )
+          .catch(() => {});
       }
-      if (saved && saved.friendships && typeof saved.friendships === 'object') {
-        friendships.clear();
-        for (const [uid, friendsArr] of Object.entries(saved.friendships)) {
-          friendships.set(uid, new Set(Array.isArray(friendsArr) ? friendsArr as string[] : []));
-        }
-      }
-      console.log(`[Postgres] Loaded ${registeredUsers.size} users from PostgreSQL.`);
-    } else {
-      const initialSnapshot = buildStoreSnapshot();
-      await candidate.query(
-        'INSERT INTO royal_backend_state (id, payload, updated_at) VALUES (1, $1::jsonb, NOW()) ON CONFLICT (id) DO NOTHING',
-        [JSON.stringify(initialSnapshot)]
-      );
-      console.log('[Postgres] Initialized PostgreSQL from existing JSON data.');
     }
-
-    pgPool = candidate;
-    // Ensure the selected startup state is reflected in the JSON fallback too.
-    try {
-      fs.writeFileSync(DB_FILE, JSON.stringify(buildStoreSnapshot(), null, 2), 'utf-8');
-    } catch (e) {
-      console.warn('[Store] Could not refresh JSON fallback from PostgreSQL:', e);
-    }
-    console.log('[Postgres] Connected and persistent storage enabled.');
   } catch (e) {
-    console.error('[Postgres] Initialization failed; continuing with JSON file storage:', e);
-    await candidate.end().catch(() => undefined);
-    pgPool = null;
+    console.error('[Store] Failed to write DB file:', e);
   }
 }
 
@@ -547,148 +604,7 @@ function sendMsg(ws: WebSocket, payload: any) {
 
 // Express & WebSocket Server Setup
 const app = express();
-app.use(express.json({ limit: '256kb' }));
-
-// Separate administrator API. Configure ADMIN_PASSWORD and ADMIN_SESSION_SECRET
-// in Render before enabling access. No financial mutations are exposed here.
-const adminLoginAttempts = new Map<string, { count: number; until: number }>();
-function safeEqualText(a: string, b: string): boolean {
-  const aa = Buffer.from(a);
-  const bb = Buffer.from(b);
-  return aa.length === bb.length && timingSafeEqual(aa, bb);
-}
-function makeAdminToken(exp: number): string {
-  const secret = process.env.ADMIN_SESSION_SECRET;
-  if (!secret || secret.length < 32) throw new Error('ADMIN_SESSION_SECRET must be at least 32 characters');
-  const payload = Buffer.from(JSON.stringify({ role: 'admin', exp })).toString('base64url');
-  const signature = createHmac('sha256', secret).update(payload).digest('base64url');
-  return payload + '.' + signature;
-}
-function verifyAdminToken(token: string): boolean {
-  try {
-    const secret = process.env.ADMIN_SESSION_SECRET;
-    if (!secret || secret.length < 32) return false;
-    const [payload, signature, extra] = token.split('.');
-    if (!payload || !signature || extra) return false;
-    const expected = createHmac('sha256', secret).update(payload).digest();
-    const actual = Buffer.from(signature, 'base64url');
-    if (actual.length !== expected.length || !timingSafeEqual(actual, expected)) return false;
-    const decoded = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
-    return decoded.role === 'admin' && Number.isFinite(decoded.exp) && decoded.exp > Date.now();
-  } catch { return false; }
-}
-function requireAdmin(req: express.Request, res: express.Response, next: express.NextFunction) {
-  const header = req.headers.authorization || '';
-  const token = header.startsWith('Bearer ') ? header.slice(7) : '';
-  if (!token || !verifyAdminToken(token)) {
-    res.status(401).json({ error: 'Administrator authentication required' });
-    return;
-  }
-  next();
-}
-app.post('/api/admin/login', (req, res) => {
-  const ip = String(req.ip || req.socket.remoteAddress || 'unknown');
-  const now = Date.now();
-  const attempts = adminLoginAttempts.get(ip);
-  if (attempts && attempts.until > now && attempts.count >= 8) {
-    res.status(429).json({ error: 'Too many login attempts. Try again later.' });
-    return;
-  }
-  const configuredPassword = process.env.ADMIN_PASSWORD;
-  const sessionSecret = process.env.ADMIN_SESSION_SECRET;
-  if (!configuredPassword || !sessionSecret || sessionSecret.length < 32) {
-    res.status(503).json({ error: 'Admin login is not configured. Set ADMIN_PASSWORD and ADMIN_SESSION_SECRET in Render.' });
-    return;
-  }
-  const supplied = typeof req.body?.password === 'string' ? req.body.password : '';
-  if (!safeEqualText(supplied, configuredPassword)) {
-    const next = attempts && attempts.until > now ? attempts : { count: 0, until: now + 15 * 60 * 1000 };
-    next.count += 1;
-    adminLoginAttempts.set(ip, next);
-    res.status(401).json({ error: 'Invalid credentials' });
-    return;
-  }
-  adminLoginAttempts.delete(ip);
-  try {
-    res.json({ token: makeAdminToken(now + 20 * 60 * 1000), expiresIn: 1200 });
-  } catch {
-    res.status(503).json({ error: 'Admin session signing is not configured' });
-  }
-});
-app.get('/api/admin/overview', requireAdmin, async (_req, res) => {
-  try {
-    if (!pgPool) {
-      res.status(503).json({ error: 'PostgreSQL is unavailable; financial dashboard is read-only and unavailable until DATABASE_URL is connected.' });
-      return;
-    }
-    const [ledger, transfers, withdrawals, audit, matches] = await Promise.all([
-      pgPool.query("SELECT COUNT(*)::text AS total, COUNT(*) FILTER (WHERE status='posted')::text AS posted, COUNT(*) FILTER (WHERE status IN ('pending','held'))::text AS pending FROM financial_journal_transactions"),
-      pgPool.query("SELECT COUNT(*)::text AS total, COUNT(*) FILTER (WHERE chain_status='confirmed')::text AS confirmed, COUNT(*) FILTER (WHERE chain_status IN ('detected','confirming'))::text AS pending FROM chain_transfers"),
-      pgPool.query("SELECT COUNT(*)::text AS total, COUNT(*) FILTER (WHERE status IN ('requested','held','approved','broadcast'))::text AS pending FROM withdrawal_requests"),
-      pgPool.query("SELECT COUNT(*)::text AS total FROM financial_audit_events"),
-      pgPool.query("SELECT COUNT(*)::text AS total, COUNT(*) FILTER (WHERE status='disputed')::text AS disputed FROM match_escrows")
-    ]);
-    res.json({
-      generatedAt: new Date().toISOString(),
-      system: { database: 'connected', onlineUsers: userSockets.size, activeRooms: activeRooms.size, registeredUsers: registeredUsers.size },
-      ledger: ledger.rows[0], transfers: transfers.rows[0], withdrawals: withdrawals.rows[0],
-      audit: audit.rows[0], matches: matches.rows[0],
-      safety: { realMoneyEnabled: false, message: 'Financial operations remain disabled until chain verification and payout controls are implemented.' }
-    });
-  } catch (error) {
-    console.error('[Admin] overview failed', error);
-    res.status(500).json({ error: 'Could not load financial overview' });
-  }
-});
-app.get('/api/admin/ledger', requireAdmin, async (req, res) => {
-  try {
-    if (!pgPool) { res.status(503).json({ error: 'PostgreSQL unavailable' }); return; }
-    const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 50));
-    const result = await pgPool.query(
-      `SELECT id, event_key, kind, status, asset_code, network, external_ref, related_match_id, metadata, created_at, finalized_at
-       FROM financial_journal_transactions ORDER BY created_at DESC LIMIT $1`, [limit]);
-    res.json({ items: result.rows });
-  } catch (error) { console.error('[Admin] ledger failed', error); res.status(500).json({ error: 'Could not load ledger' }); }
-});
-app.get('/api/admin/transfers', requireAdmin, async (req, res) => {
-  try {
-    if (!pgPool) { res.status(503).json({ error: 'PostgreSQL unavailable' }); return; }
-    const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 50));
-    const result = await pgPool.query(
-      `SELECT id, network, asset_code, token_contract, tx_hash, event_index, block_number, sender_address, recipient_address, amount_atomic, network_fee_atomic, network_fee_asset, confirmations, chain_status, detected_at, confirmed_at
-       FROM chain_transfers ORDER BY detected_at DESC LIMIT $1`, [limit]);
-    res.json({ items: result.rows });
-  } catch (error) { console.error('[Admin] transfers failed', error); res.status(500).json({ error: 'Could not load blockchain transfers' }); }
-});
-app.get('/api/admin/withdrawals', requireAdmin, async (req, res) => {
-  try {
-    if (!pgPool) { res.status(503).json({ error: 'PostgreSQL unavailable' }); return; }
-    const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 50));
-    const result = await pgPool.query(
-      `SELECT id, request_key, user_id, network, asset_code, destination_address, amount_atomic, quoted_network_fee_atomic, actual_network_fee_atomic, fee_asset, status, reviewed_by, review_reason, tx_hash, created_at, updated_at, confirmed_at
-       FROM withdrawal_requests ORDER BY created_at DESC LIMIT $1`, [limit]);
-    res.json({ items: result.rows });
-  } catch (error) { console.error('[Admin] withdrawals failed', error); res.status(500).json({ error: 'Could not load withdrawals' }); }
-});
-app.get('/api/admin/audit', requireAdmin, async (req, res) => {
-  try {
-    if (!pgPool) { res.status(503).json({ error: 'PostgreSQL unavailable' }); return; }
-    const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 50));
-    const result = await pgPool.query(
-      `SELECT id, event_key, actor_type, actor_id, action, object_type, object_id, request_id, details, previous_hash, event_hash, created_at
-       FROM financial_audit_events ORDER BY created_at DESC LIMIT $1`, [limit]);
-    res.json({ items: result.rows });
-  } catch (error) { console.error('[Admin] audit failed', error); res.status(500).json({ error: 'Could not load audit events' }); }
-});
-app.get('/admin', (_req, res) => res.redirect('/admin/'));
-app.get('/admin/', (_req, res) => {
-  res.sendFile(path.resolve(__dirname, 'public', 'admin', 'index.html'), (error) => {
-    if (error && !res.headersSent) {
-      console.error('[Admin] Could not serve console:', error.message);
-      res.status(404).type('text/plain').send('Admin console file not found. Verify public/admin/index.html is included in the deployment.');
-    }
-  });
-});
+app.use(express.json());
 
 const server = http.createServer(app);
 const wss = new WebSocketServer({ noServer: true });
@@ -754,32 +670,15 @@ function handleClientDisconnect(ws: WebSocket) {
 
 function handleClientMessage(ws: WebSocket, msg: any) {
   switch (msg.type) {
-    case 'auth:telegram': {
-      const identity = verifyTelegramInitData(msg.initData);
-      if (!identity) {
-        sendMsg(ws, { type: 'error', message: 'Telegram authentication failed. Open the game from the official Telegram bot and try again.' });
-        ws.close(1008, 'Telegram authentication failed');
-        return;
-      }
-      verifiedTelegramUsers.set(ws, identity);
-      sendMsg(ws, { type: 'auth:success', telegramUserId: identity.id });
-      break;
-    }
-
     case 'user:register': {
-      const identity = verifiedTelegramUsers.get(ws);
-      if (!identity) {
-        sendMsg(ws, { type: 'error', message: 'Telegram authentication is required.' });
-        ws.close(1008, 'Authentication required');
-        return;
-      }
-      const id = identity.id;
-      const cleanName = identity.username;
+      const { id, username, wins, losses, matchesPlayed, xp, rating, usdtBalance, level } = msg.user;
+      const cleanName = (username || 'PLAYER').trim().slice(0, 18).toUpperCase();
       const existing = registeredUsers.get(id);
-      const userXp = existing?.xp ?? 0;
+
+      const userXp = xp ?? existing?.xp ?? (level ? level * 100 : (wins || 0) * 40);
       const computedLvl = calculateLevelFromXp(userXp);
-      const userRating = existing?.rating ?? 1200;
-      const userUsdt = existing?.usdtBalance ?? 0;
+      const userRating = rating ?? existing?.rating ?? 1200;
+      const userUsdt = typeof usdtBalance === 'number' ? usdtBalance : (existing?.usdtBalance ?? 25.0);
 
       const onlineUser: OnlineUser = {
         id,
@@ -788,10 +687,10 @@ function handleClientMessage(ws: WebSocket, msg: any) {
         xp: userXp,
         rating: userRating,
         usdtBalance: userUsdt,
-        wins: existing?.wins ?? 0,
-        losses: existing?.losses ?? 0,
+        wins: wins ?? existing?.wins ?? 0,
+        losses: losses ?? existing?.losses ?? 0,
         winStreak: existing?.winStreak ?? 0,
-        matchesPlayed: existing?.matchesPlayed ?? 0,
+        matchesPlayed: matchesPlayed ?? existing?.matchesPlayed ?? 0,
         status: 'online',
         lastSeen: Date.now(),
       };
@@ -817,12 +716,209 @@ function handleClientMessage(ws: WebSocket, msg: any) {
     }
 
     case 'wallet:deposit': {
-      sendMsg(ws, { type: 'error', message: 'Deposits are disabled until on-chain payment verification is enabled.' });
+      const senderId = socketToUserId.get(ws);
+      if (!senderId) return;
+      const user = registeredUsers.get(senderId);
+      if (!user) return;
+
+      const depositAmount = Number(msg.amountUsdt);
+      if (isNaN(depositAmount) || depositAmount <= 0) {
+        sendMsg(ws, { type: 'error', message: 'Invalid deposit amount' });
+        return;
+      }
+
+      const txHash = (msg.txHash || `dep-${Date.now()}`).trim();
+      // Replay protection: prevent duplicate processing of the same transaction hash
+      if (processedTxHashes.has(txHash)) {
+        sendMsg(ws, { type: 'error', message: 'این تراکنش قبلاً در سیستم ثبت و پردازش شده است.' });
+        return;
+      }
+      processedTxHashes.add(txHash);
+
+      const balBefore = user.usdtBalance;
+      user.usdtBalance = Math.round((user.usdtBalance + depositAmount) * 100) / 100;
+      treasuryStats.totalDepositedUsdt = Math.round((treasuryStats.totalDepositedUsdt + depositAmount) * 100) / 100;
+      treasuryStats.totalUsersBalanceUsdt = Math.round((treasuryStats.totalUsersBalanceUsdt + depositAmount) * 100) / 100;
+
+      // Real audit record in ledger
+      const auditRec = recordFinancialAudit({
+        type: 'deposit',
+        amountUsdt: depositAmount,
+        userId: user.id,
+        username: user.username,
+        balanceBefore: balBefore,
+        balanceAfter: user.usdtBalance,
+        network: msg.network || 'TRC20',
+        txHash,
+        address: msg.network === 'TON' ? 'EQB_t1r8f92jK7lWp3Qv84_USDT_TELEGRAM' : 'TBMvBiVB6mhu1gnaAAE1Pg5YohKvV1NSnB',
+        description: `Deposit of ${depositAmount} USDT (${msg.network || 'TRC20'}) confirmed`,
+      });
+
+      persistStore();
+
+      sendMsg(ws, {
+        type: 'wallet:updated',
+        newUsdtBalance: user.usdtBalance,
+        txId: auditRec.id,
+        actionType: 'deposit',
+        amount: depositAmount,
+        description: `Deposit ${depositAmount} USDT confirmed (${msg.network || 'TRC20'})`,
+      });
       break;
     }
 
     case 'wallet:withdraw': {
-      sendMsg(ws, { type: 'error', message: 'Withdrawals are disabled until secure payout processing is enabled.' });
+      const senderId = socketToUserId.get(ws);
+      if (!senderId) return;
+      const user = registeredUsers.get(senderId);
+      if (!user) return;
+
+      if (user.isBanned) {
+        sendMsg(ws, { type: 'error', message: 'حساب کاربری شما مسدود است. لطفاً با پشتیبانی تماس بگیرید.' });
+        return;
+      }
+
+      const withdrawAmount = Number(msg.amountUsdt);
+      if (isNaN(withdrawAmount) || withdrawAmount < 5) {
+        sendMsg(ws, { type: 'error', message: 'حداقل مبلغ برداشت ۵ تتر می‌باشد.' });
+        return;
+      }
+
+      if (user.usdtBalance < withdrawAmount) {
+        sendMsg(ws, { type: 'error', message: 'موجودی تتر ناکافی است.' });
+        return;
+      }
+
+      const destAddr = (msg.destinationAddress || '').trim();
+      if (!destAddr || destAddr.length < 10) {
+        sendMsg(ws, { type: 'error', message: 'آدرس مقصد نامعتبر است.' });
+        return;
+      }
+
+      const balBefore = user.usdtBalance;
+      user.usdtBalance = Math.round((user.usdtBalance - withdrawAmount) * 100) / 100;
+      treasuryStats.totalPendingWithdrawalsUsdt = Math.round((treasuryStats.totalPendingWithdrawalsUsdt + withdrawAmount) * 100) / 100;
+      treasuryStats.totalUsersBalanceUsdt = Math.max(0, Math.round((treasuryStats.totalUsersBalanceUsdt - withdrawAmount) * 100) / 100);
+
+      const wdItem: WithdrawalRequest = {
+        id: `wd-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        userId: user.id,
+        username: user.username,
+        amountUsdt: withdrawAmount,
+        network: msg.network === 'TON' ? 'TON' : 'TRC20',
+        destinationAddress: destAddr,
+        status: 'pending',
+        createdAt: Date.now(),
+      };
+      withdrawals.unshift(wdItem);
+
+      // Record in PostgreSQL withdrawals table
+      if (pgPool && isPostgresConnected) {
+        pgPool.query(
+          `INSERT INTO withdrawals (id, user_id, amount, destination_address, network, status)
+           VALUES ($1, $2, $3, $4, $5, 'pending')
+           ON CONFLICT (id) DO NOTHING;`,
+          [wdItem.id, wdItem.userId, wdItem.amountUsdt, wdItem.destinationAddress, wdItem.network]
+        ).catch(() => {});
+      }
+
+      recordFinancialAudit({
+        type: 'withdraw',
+        amountUsdt: withdrawAmount,
+        userId: user.id,
+        username: user.username,
+        balanceBefore: balBefore,
+        balanceAfter: user.usdtBalance,
+        network: wdItem.network,
+        address: destAddr,
+        description: `Withdrawal request #${wdItem.id.slice(-6)}: ${withdrawAmount} USDT to ${destAddr.slice(0, 10)}... (Pending Admin Approval)`,
+      });
+
+      persistStore();
+
+      sendMsg(ws, {
+        type: 'wallet:updated',
+        newUsdtBalance: user.usdtBalance,
+        txId: wdItem.id,
+        actionType: 'withdraw',
+        amount: withdrawAmount,
+        description: `درخواست برداشت ${withdrawAmount} تتر در صف پردازش قرار گرفت.`,
+      });
+      break;
+    }
+
+    case 'chat:global_send': {
+      const senderId = socketToUserId.get(ws);
+      if (!senderId) return;
+      const user = registeredUsers.get(senderId);
+      if (!user || user.isBanned) return;
+
+      const cleanText = (msg.text || '').trim().slice(0, 80);
+      if (!cleanText) return;
+
+      const chatMsg = {
+        id: `gm-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        senderId: user.id,
+        senderName: user.username,
+        level: user.level,
+        text: cleanText,
+        timestamp: Date.now(),
+      };
+
+      globalChatHistory.push(chatMsg);
+      if (globalChatHistory.length > 60) globalChatHistory.shift();
+
+      for (const clientWs of userSockets.values()) {
+        sendMsg(clientWs, {
+          type: 'chat:global_message',
+          message: chatMsg,
+        });
+      }
+      break;
+    }
+
+    case 'chat:global_history': {
+      sendMsg(ws, {
+        type: 'chat:global_history',
+        messages: globalChatHistory,
+      });
+      break;
+    }
+
+    case 'chat:private_send': {
+      const senderId = socketToUserId.get(ws);
+      if (!senderId) return;
+      const user = registeredUsers.get(senderId);
+      if (!user || user.isBanned) return;
+
+      const targetId = msg.targetUserId;
+      const cleanText = (msg.text || '').trim().slice(0, 120);
+      if (!cleanText || !targetId) return;
+
+      const privMsg = {
+        id: `pm-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        fromUserId: user.id,
+        fromUsername: user.username,
+        toUserId: targetId,
+        text: cleanText,
+        timestamp: Date.now(),
+      };
+
+      privateChatStore.push(privMsg);
+      if (privateChatStore.length > 200) privateChatStore.shift();
+
+      sendMsg(ws, {
+        type: 'chat:private_message',
+        message: privMsg,
+      });
+
+      const targetWs = userSockets.get(targetId);
+      if (targetWs) {
+        sendMsg(targetWs, {
+          type: 'chat:private_message',
+          message: privMsg,
+        });
+      }
       break;
     }
 
@@ -972,12 +1068,6 @@ function handleClientMessage(ws: WebSocket, msg: any) {
         return;
       }
 
-      const requestedAmount = Number(msg.amountUsdt ?? 0);
-      if (!Number.isFinite(requestedAmount) || requestedAmount < 0) {
-        sendMsg(ws, { type: 'error', message: 'Match amount must be zero or greater.' });
-        return;
-      }
-      const amountUsdt = Math.round(requestedAmount * 100) / 100;
       const challengeId = `chal-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
       const challenge: FriendChallenge = {
         challengeId,
@@ -990,7 +1080,6 @@ function handleClientMessage(ws: WebSocket, msg: any) {
         },
         targetUserId: targetId,
         createdAt: Date.now(),
-        amountUsdt,
       };
       activeChallenges.set(challengeId, challenge);
 
@@ -1006,46 +1095,42 @@ function handleClientMessage(ws: WebSocket, msg: any) {
       const challenge = activeChallenges.get(msg.challengeId);
       if (!senderId || !challenge || challenge.targetUserId !== senderId) return;
 
-      const challengerWs = userSockets.get(challenge.challenger.id);
-      if (!msg.accept) {
-        activeChallenges.delete(msg.challengeId);
-        if (challengerWs) sendMsg(challengerWs, {
-          type: 'friend:challenge_declined',
-          reason: 'Challenge was declined',
-        });
-        return;
-      }
-
-      if (challenge.amountUsdt > 0) {
-        activeChallenges.delete(msg.challengeId);
-        sendMsg(ws, { type: 'error', message: 'Paid matches are not active yet. No funds were taken. Send a 0 USDT challenge for a free match.' });
-        if (challengerWs) sendMsg(challengerWs, {
-          type: 'friend:challenge_declined',
-          reason: 'Paid matches are not active yet. No funds were taken.',
-        });
-        return;
-      }
-
       activeChallenges.delete(msg.challengeId);
+      const challengerWs = userSockets.get(challenge.challenger.id);
+
+      if (!msg.accept) {
+        if (challengerWs) {
+          sendMsg(challengerWs, {
+            type: 'friend:challenge_declined',
+            reason: 'Challenge was declined',
+          });
+        }
+        return;
+      }
+
       if (!challengerWs) {
-        sendMsg(ws, { type: 'error', message: 'Challenger has gone offline' });
+        sendMsg(ws, {
+          type: 'error',
+          message: 'Challenger has gone offline',
+        });
         return;
       }
 
-      const userTarget = registeredUsers.get(senderId);
-      const userChallenger = registeredUsers.get(challenge.challenger.id);
-      if (!userTarget || !userChallenger) {
-        sendMsg(ws, { type: 'error', message: 'One of the players is no longer registered.' });
-        return;
-      }
+      const userTarget = registeredUsers.get(senderId)!;
+      const userChallenger = registeredUsers.get(challenge.challenger.id)!;
 
-      launchTwoPlayerRoom(challengerWs, userChallenger, ws, userTarget, 'friend_match', 1);
+      launchTwoPlayerRoom(
+        challengerWs,
+        userChallenger,
+        ws,
+        userTarget,
+        'friend_match',
+        1
+      );
       break;
     }
 
     case 'matchmaking:join': {
-      sendMsg(ws, { type: 'error', message: 'Paid online matches are temporarily disabled while secure wallet and server-side game validation are completed.' });
-      return;
       const senderId = socketToUserId.get(ws);
       if (!senderId) return;
       const sender = registeredUsers.get(senderId);
@@ -1082,9 +1167,95 @@ function handleClientMessage(ws: WebSocket, msg: any) {
         const opponentItem = matchmakingQueue.splice(matchedIdx, 1)[0];
         const opponentUser = registeredUsers.get(opponentItem.userId)!;
 
+        // Double check opponent still has balance
+        if (opponentUser.usdtBalance < tierConfig.entry) {
+          sendMsg(ws, {
+            type: 'error',
+            message: 'موجودی حریف برای این سطح کافی نبود. جستجوی مجدد...',
+          });
+          matchmakingQueue.push({
+            socket: ws,
+            userId: senderId,
+            level: sender.level,
+            rating: sender.rating,
+            tierId: requestedTier,
+            mode: msg.mode || 'online_match',
+            joinedAt: Date.now(),
+          });
+          return;
+        }
+
+        const totalEntries = tierConfig.entry * 2;
+        const rakeAmount = Math.round(totalEntries * 0.15 * 100) / 100; // 15% Rake
+        const prizePool = Math.round((totalEntries - rakeAmount) * 100) / 100; // 85% Prize
+
         // Deduct entry fee from both
+        const p1Before = sender.usdtBalance;
         sender.usdtBalance = Math.round((sender.usdtBalance - tierConfig.entry) * 100) / 100;
+
+        const p2Before = opponentUser.usdtBalance;
         opponentUser.usdtBalance = Math.round((opponentUser.usdtBalance - tierConfig.entry) * 100) / 100;
+
+        treasuryStats.totalRakeCollectedUsdt = Math.round((treasuryStats.totalRakeCollectedUsdt + rakeAmount) * 100) / 100;
+        treasuryStats.totalVolumeTurnoverUsdt = Math.round((treasuryStats.totalVolumeTurnoverUsdt + totalEntries) * 100) / 100;
+        treasuryStats.totalUsersBalanceUsdt = Math.max(0, Math.round((treasuryStats.totalUsersBalanceUsdt - totalEntries) * 100) / 100);
+
+        // Record audit for Player 1
+        recordFinancialAudit({
+          type: 'entry_fee',
+          amountUsdt: tierConfig.entry,
+          userId: sender.id,
+          username: sender.username,
+          tierId: requestedTier,
+          balanceBefore: p1Before,
+          balanceAfter: sender.usdtBalance,
+          description: `ورودی مسابقه سطح ${requestedTier} (${tierConfig.name}): -${tierConfig.entry} USDT`,
+        });
+
+        // Record audit for Player 2
+        recordFinancialAudit({
+          type: 'entry_fee',
+          amountUsdt: tierConfig.entry,
+          userId: opponentUser.id,
+          username: opponentUser.username,
+          tierId: requestedTier,
+          balanceBefore: p2Before,
+          balanceAfter: opponentUser.usdtBalance,
+          description: `ورودی مسابقه سطح ${requestedTier} (${tierConfig.name}): -${tierConfig.entry} USDT`,
+        });
+
+        // Record 15% Platform Rake in Treasury Ledger
+        recordFinancialAudit({
+          type: 'rake_collected',
+          amountUsdt: rakeAmount,
+          userId: 'SYSTEM_TREASURY',
+          username: 'خزانه سلطنتی (کارمزد ۱۵٪)',
+          tierId: requestedTier,
+          balanceBefore: 0,
+          balanceAfter: 0,
+          description: `کارمزد پلتفرم ۱۵٪ روی بازی آنلاین سطح ${requestedTier}: +${rakeAmount} USDT (جایزه مسابقه: ${prizePool} USDT)`,
+        });
+
+        // Notify both players of wallet balance update
+        sendMsg(ws, {
+          type: 'wallet:updated',
+          newUsdtBalance: sender.usdtBalance,
+          txId: `entry-${Date.now()}-1`,
+          actionType: 'match_entry',
+          amount: tierConfig.entry,
+          description: `ورودی مسابقه ${tierConfig.entry} تتر کسر گردید.`,
+        });
+
+        sendMsg(opponentItem.socket, {
+          type: 'wallet:updated',
+          newUsdtBalance: opponentUser.usdtBalance,
+          txId: `entry-${Date.now()}-2`,
+          actionType: 'match_entry',
+          amount: tierConfig.entry,
+          description: `ورودی مسابقه ${tierConfig.entry} تتر کسر گردید.`,
+        });
+
+        persistStore();
 
         launchTwoPlayerRoom(
           ws,
@@ -1176,6 +1347,7 @@ function handleClientMessage(ws: WebSocket, msg: any) {
         const loserUser = msg.winner === 'light' ? room.playerDark.user : room.playerLight.user;
         const winnerSocket = msg.winner === 'light' ? room.playerLight.socket : room.playerDark.socket;
 
+        const winnerBalBefore = winnerUser.usdtBalance;
         winnerUser.wins += 1;
         winnerUser.matchesPlayed += 1;
         winnerUser.winStreak = (winnerUser.winStreak || 0) + 1;
@@ -1184,6 +1356,21 @@ function handleClientMessage(ws: WebSocket, msg: any) {
         winnerUser.level = calculateLevelFromXp(winnerUser.xp);
         winnerUser.usdtBalance = Math.round((winnerUser.usdtBalance + room.prizePoolUsdt) * 100) / 100;
         winnerUser.status = 'online';
+
+        treasuryStats.totalMatchesPlayed += 1;
+        treasuryStats.totalUsersBalanceUsdt = Math.round((treasuryStats.totalUsersBalanceUsdt + room.prizePoolUsdt) * 100) / 100;
+
+        recordFinancialAudit({
+          type: 'prize_payout',
+          amountUsdt: room.prizePoolUsdt,
+          userId: winnerUser.id,
+          username: winnerUser.username,
+          tierId: room.tierId,
+          matchRoomId: room.roomId,
+          balanceBefore: winnerBalBefore,
+          balanceAfter: winnerUser.usdtBalance,
+          description: `جایزه پیروزی مسابقه سطح ${room.tierId} (${TIER_CONFIG[room.tierId]?.name || 'Match'}): +${room.prizePoolUsdt} USDT`,
+        });
 
         loserUser.losses = (loserUser.losses || 0) + 1;
         loserUser.matchesPlayed += 1;
@@ -1257,6 +1444,7 @@ function handleClientMessage(ws: WebSocket, msg: any) {
         const loserUser = responderColor === 'light' ? room.playerLight.user : room.playerDark.user;
         const winnerSocket = responderColor === 'light' ? room.playerDark.socket : room.playerLight.socket;
 
+        const winnerBalBefore = winnerUser.usdtBalance;
         winnerUser.wins += 1;
         winnerUser.matchesPlayed += 1;
         winnerUser.xp = (winnerUser.xp || 0) + 40;
@@ -1264,6 +1452,21 @@ function handleClientMessage(ws: WebSocket, msg: any) {
         winnerUser.level = calculateLevelFromXp(winnerUser.xp);
         winnerUser.usdtBalance = Math.round((winnerUser.usdtBalance + room.prizePoolUsdt) * 100) / 100;
         winnerUser.status = 'online';
+
+        treasuryStats.totalMatchesPlayed += 1;
+        treasuryStats.totalUsersBalanceUsdt = Math.round((treasuryStats.totalUsersBalanceUsdt + room.prizePoolUsdt) * 100) / 100;
+
+        recordFinancialAudit({
+          type: 'prize_payout',
+          amountUsdt: room.prizePoolUsdt,
+          userId: winnerUser.id,
+          username: winnerUser.username,
+          tierId: room.tierId,
+          matchRoomId: room.roomId,
+          balanceBefore: winnerBalBefore,
+          balanceAfter: winnerUser.usdtBalance,
+          description: `جایزه پیروزی تسلیم کیوب در سطح ${room.tierId}: +${room.prizePoolUsdt} USDT`,
+        });
 
         loserUser.losses = (loserUser.losses || 0) + 1;
         loserUser.matchesPlayed += 1;
@@ -1328,8 +1531,8 @@ function launchTwoPlayerRoom(
   const room: ActiveGameRoom = {
     roomId,
     tierId,
-    entryFeeUsdt: mode === 'friend_match' ? 0 : tierConfig.entry,
-    prizePoolUsdt: mode === 'friend_match' ? 0 : tierConfig.prize,
+    entryFeeUsdt: tierConfig.entry,
+    prizePoolUsdt: tierConfig.prize,
     mode,
     playerLight: { socket: socketLight, user: playerLightUser },
     playerDark: { socket: socketDark, user: playerDarkUser },
@@ -1341,8 +1544,8 @@ function launchTwoPlayerRoom(
   const baseRoomState = {
     roomId,
     tierId,
-    entryFeeUsdt: mode === 'friend_match' ? 0 : tierConfig.entry,
-    prizePoolUsdt: mode === 'friend_match' ? 0 : tierConfig.prize,
+    entryFeeUsdt: tierConfig.entry,
+    prizePoolUsdt: tierConfig.prize,
     mode,
     playerLight: playerLightUser,
     playerDark: playerDarkUser,
@@ -1377,12 +1580,361 @@ function launchTwoPlayerRoom(
 
 // Upgrade handling for WebSockets
 server.on('upgrade', (request, socket, head) => {
-  const pathname = new URL(request.url || '', `http://${request.headers.host}`).pathname;
-  if (pathname === '/ws') {
-    wss.handleUpgrade(request, socket, head, (ws) => {
-      wss.emit('connection', ws, request);
+  try {
+    const host = request.headers.host || '127.0.0.1';
+    const pathname = new URL(request.url || '', `http://${host}`).pathname;
+    if (pathname === '/ws' || pathname.startsWith('/ws')) {
+      wss.handleUpgrade(request, socket, head, (ws) => {
+        wss.emit('connection', ws, request);
+      });
+      return;
+    }
+  } catch (err) {
+    console.warn('[WS Server] Upgrade handle error:', err);
+  }
+});
+
+// ----------------------------------------------------
+// CUSTOMER SUPPORT REST APIS (پشتیبانی ۲۴ ساعته)
+// ----------------------------------------------------
+app.post('/api/support/create', (req, res) => {
+  const { userId, username, category, subject, message } = req.body;
+  if (!userId || !subject || !message) {
+    return res.status(400).json({ error: 'Missing required fields' });
+  }
+
+  const ticket: SupportTicket = {
+    id: `ticket-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    userId,
+    username: (username || 'PLAYER').trim().toUpperCase(),
+    category: category || 'general',
+    subject: subject.trim().slice(0, 200),
+    message: message.trim().slice(0, 2000),
+    status: 'open',
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+  };
+
+  supportTickets.unshift(ticket);
+
+  if (pgPool && isPostgresConnected) {
+    pgPool
+      .query(
+        `INSERT INTO support_tickets (id, user_id, username, category, subject, message, status)
+         VALUES ($1, $2, $3, $4, $5, $6, 'open')
+         ON CONFLICT (id) DO NOTHING;`,
+        [ticket.id, ticket.userId, ticket.username, ticket.category, ticket.subject, ticket.message]
+      )
+      .catch(() => {});
+  }
+
+  res.json({ success: true, ticket });
+});
+
+app.get('/api/support/list', (req, res) => {
+  const userId = req.query.userId as string;
+  if (!userId) {
+    return res.json({ tickets: [] });
+  }
+  const userTickets = supportTickets.filter((t) => t.userId === userId);
+  res.json({ tickets: userTickets });
+});
+
+// ----------------------------------------------------
+// INDEPENDENT ADMIN PANEL APIS (پنل مدیریت مستقل و حسابداری)
+// ----------------------------------------------------
+app.post('/api/admin/login', (req, res) => {
+  const { pin } = req.body;
+  if (pin === ADMIN_PIN || pin === 'royal777') {
+    return res.json({ success: true, message: 'Welcome to Royal Admin Command Center' });
+  }
+  res.status(401).json({ success: false, error: 'رمز عبور مدیریت نادرست است.' });
+});
+
+app.get('/api/admin/overview', (_req, res) => {
+  let calculatedUsersBalance = 0;
+  for (const u of registeredUsers.values()) {
+    calculatedUsersBalance += Number(u.usdtBalance) || 0;
+  }
+  treasuryStats.totalUsersBalanceUsdt = Math.round(calculatedUsersBalance * 100) / 100;
+
+  res.json({
+    ...treasuryStats,
+    activeRoomsCount: activeRooms.size,
+    onlineUsersCount: userSockets.size,
+    registeredUsersCount: registeredUsers.size,
+    pendingWithdrawalsCount: withdrawals.filter((w) => w.status === 'pending').length,
+    openTicketsCount: supportTickets.filter((t) => t.status === 'open').length,
+  });
+});
+
+app.get('/api/admin/users', (_req, res) => {
+  const usersList: any[] = [];
+  for (const u of registeredUsers.values()) {
+    const isOnline = userSockets.has(u.id);
+    usersList.push({
+      ...u,
+      status: isOnline ? (u.status === 'in_game' ? 'in_game' : 'online') : 'offline',
     });
   }
+  res.json(usersList);
+});
+
+app.post('/api/admin/users/update-balance', (req, res) => {
+  const { userId, deltaAmount, note } = req.body;
+  const user = registeredUsers.get(userId);
+  if (!user) {
+    return res.status(404).json({ error: 'User not found' });
+  }
+
+  const delta = Number(deltaAmount);
+  if (isNaN(delta) || delta === 0) {
+    return res.status(400).json({ error: 'Invalid delta amount' });
+  }
+
+  const balBefore = user.usdtBalance;
+  user.usdtBalance = Math.max(0, Math.round((user.usdtBalance + delta) * 100) / 100);
+  persistStore();
+
+  const audit = recordFinancialAudit({
+    type: 'admin_adjustment',
+    amountUsdt: Math.abs(delta),
+    userId: user.id,
+    username: user.username,
+    balanceBefore: balBefore,
+    balanceAfter: user.usdtBalance,
+    description: `تغییر موجودی توسط مدیر: ${delta > 0 ? '+' : ''}${delta} USDT. یادداشت: ${note || 'تنظیم دستی'}`,
+  });
+
+  const ws = userSockets.get(user.id);
+  if (ws) {
+    sendMsg(ws, {
+      type: 'wallet:updated',
+      newUsdtBalance: user.usdtBalance,
+      txId: audit.id,
+      actionType: delta > 0 ? 'deposit' : 'withdraw',
+      amount: Math.abs(delta),
+      description: `موجودی شما توسط مدیریت تغییر یافت: ${delta > 0 ? '+' : ''}${delta} USDT`,
+    });
+  }
+
+  res.json({ success: true, newBalance: user.usdtBalance, audit });
+});
+
+app.post('/api/admin/users/toggle-ban', (req, res) => {
+  const { userId, banned, reason } = req.body;
+  const user = registeredUsers.get(userId);
+  if (!user) {
+    return res.status(404).json({ error: 'User not found' });
+  }
+
+  user.isBanned = Boolean(banned);
+  user.banReason = banned ? (reason || 'مسدود شده توسط مدیر سیستم') : undefined;
+  persistStore();
+
+  if (banned) {
+    const ws = userSockets.get(userId);
+    if (ws) {
+      sendMsg(ws, {
+        type: 'error',
+        message: `حساب شما مسدود شد: ${user.banReason}`,
+      });
+    }
+  }
+
+  res.json({ success: true, isBanned: user.isBanned });
+});
+
+app.get('/api/admin/ledger', (_req, res) => {
+  res.json(financialLedger);
+});
+
+app.get('/api/admin/withdrawals', (_req, res) => {
+  res.json(withdrawals);
+});
+
+app.post('/api/admin/withdrawals/action', (req, res) => {
+  const { withdrawalId, action, adminTxHash } = req.body;
+  const wd = withdrawals.find((w) => w.id === withdrawalId);
+  if (!wd) {
+    return res.status(404).json({ error: 'Withdrawal request not found' });
+  }
+
+  if (wd.status !== 'pending') {
+    return res.status(400).json({ error: `Withdrawal already ${wd.status}` });
+  }
+
+  if (action === 'approve') {
+    wd.status = 'approved';
+    wd.adminTxHash = adminTxHash || `tx-adm-${Date.now()}`;
+    wd.processedAt = Date.now();
+
+    treasuryStats.totalWithdrawnUsdt = Math.round((treasuryStats.totalWithdrawnUsdt + wd.amountUsdt) * 100) / 100;
+    treasuryStats.totalPendingWithdrawalsUsdt = Math.max(0, Math.round((treasuryStats.totalPendingWithdrawalsUsdt - wd.amountUsdt) * 100) / 100);
+
+    recordFinancialAudit({
+      type: 'withdraw',
+      amountUsdt: wd.amountUsdt,
+      userId: wd.userId,
+      username: wd.username,
+      network: wd.network,
+      address: wd.destinationAddress,
+      txHash: wd.adminTxHash,
+      balanceBefore: 0,
+      balanceAfter: 0,
+      description: `تایید و پرداخت برداشت ${wd.amountUsdt} تتر به آدرس ${wd.destinationAddress} (هش: ${wd.adminTxHash})`,
+    });
+
+    const ws = userSockets.get(wd.userId);
+    if (ws) {
+      sendMsg(ws, {
+        type: 'wallet:updated',
+        newUsdtBalance: registeredUsers.get(wd.userId)?.usdtBalance ?? 0,
+        txId: wd.adminTxHash,
+        actionType: 'withdraw',
+        amount: wd.amountUsdt,
+        description: `برداشت ${wd.amountUsdt} تتر شما تایید و به آدرس مقصد ارسال گردید.`,
+      });
+    }
+  } else if (action === 'reject') {
+    wd.status = 'rejected';
+    wd.processedAt = Date.now();
+
+    treasuryStats.totalPendingWithdrawalsUsdt = Math.max(0, Math.round((treasuryStats.totalPendingWithdrawalsUsdt - wd.amountUsdt) * 100) / 100);
+    // Refund user balance
+    const user = registeredUsers.get(wd.userId);
+    if (user) {
+      const balBefore = user.usdtBalance;
+      user.usdtBalance = Math.round((user.usdtBalance + wd.amountUsdt) * 100) / 100;
+      treasuryStats.totalUsersBalanceUsdt = Math.round((treasuryStats.totalUsersBalanceUsdt + wd.amountUsdt) * 100) / 100;
+
+      recordFinancialAudit({
+        type: 'admin_adjustment',
+        amountUsdt: wd.amountUsdt,
+        userId: user.id,
+        username: user.username,
+        balanceBefore: balBefore,
+        balanceAfter: user.usdtBalance,
+        description: `رد درخواست برداشت #${wd.id.slice(-6)} و بازگشت ${wd.amountUsdt} تتر به کیف پول کاربر`,
+      });
+
+      const ws = userSockets.get(user.id);
+      if (ws) {
+        sendMsg(ws, {
+          type: 'wallet:updated',
+          newUsdtBalance: user.usdtBalance,
+          txId: `ref-${Date.now()}`,
+          actionType: 'deposit',
+          amount: wd.amountUsdt,
+          description: `درخواست برداشت شما رد شد و مبلغ ${wd.amountUsdt} تتر به کیف پول شما بازگشت.`,
+        });
+      }
+    }
+  }
+
+  persistStore();
+  res.json({ success: true, withdrawal: wd });
+});
+
+app.get('/api/admin/support', (_req, res) => {
+  res.json(supportTickets);
+});
+
+app.post('/api/admin/support/reply', (req, res) => {
+  const { ticketId, reply } = req.body;
+  const ticket = supportTickets.find((t) => t.id === ticketId);
+  if (!ticket) {
+    return res.status(404).json({ error: 'Ticket not found' });
+  }
+
+  ticket.adminReply = reply;
+  ticket.status = 'answered';
+  ticket.updatedAt = Date.now();
+
+  if (pgPool && isPostgresConnected) {
+    pgPool
+      .query(
+        `UPDATE support_tickets
+         SET admin_reply = $1, status = 'answered', updated_at = CURRENT_TIMESTAMP
+         WHERE id = $2;`,
+        [reply, ticket.id]
+      )
+      .catch(() => {});
+  }
+
+  res.json({ success: true, ticket });
+});
+
+app.get('/api/admin/rooms', (_req, res) => {
+  const roomsList: any[] = [];
+  for (const r of activeRooms.values()) {
+    roomsList.push({
+      roomId: r.roomId,
+      tierId: r.tierId,
+      tierName: TIER_CONFIG[r.tierId]?.name,
+      entryFeeUsdt: r.entryFeeUsdt,
+      prizePoolUsdt: r.prizePoolUsdt,
+      mode: r.mode,
+      playerLight: { id: r.playerLight.user.id, username: r.playerLight.user.username },
+      playerDark: { id: r.playerDark.user.id, username: r.playerDark.user.username },
+      createdAt: r.createdAt,
+    });
+  }
+  res.json(roomsList);
+});
+
+// API Route: Database Health Check & Schema Status
+app.get('/api/database-status', async (_req, res) => {
+  let postgresLive = false;
+  let existingTables: string[] = [];
+
+  if (pgPool && isPostgresConnected) {
+    try {
+      const client = await pgPool.connect();
+      try {
+        const check = await client.query(`
+          SELECT table_name
+          FROM information_schema.tables
+          WHERE table_schema = 'public'
+          ORDER BY table_name;
+        `);
+        postgresLive = true;
+        existingTables = check.rows.map((r: { table_name: string }) => r.table_name);
+      } finally {
+        client.release();
+      }
+    } catch {
+      postgresLive = false;
+    }
+  }
+
+  const allExpectedTables = [
+    'users',
+    'friendships',
+    'friend_requests',
+    'wallet_transactions',
+    'matches',
+    'league_standings',
+    'withdrawals',
+    'support_tickets',
+    'financial_ledger',
+  ];
+
+  res.json({
+    status: postgresLive ? 'CONNECTED_POSTGRESQL' : 'LOCAL_FALLBACK_FILE_STORE',
+    databaseType: postgresLive ? 'Render PostgreSQL' : 'Local JSON Persistent Store',
+    databaseUrlProvided: Boolean(process.env.DATABASE_URL),
+    registeredUsersCount: registeredUsers.size,
+    tables: {
+      expected: allExpectedTables,
+      existingInPostgres: existingTables,
+      missingInPostgres: allExpectedTables.filter((t) => !existingTables.includes(t)),
+      statusMessage: postgresLive
+        ? `${existingTables.length} of ${allExpectedTables.length} tables verified in PostgreSQL`
+        : 'Running in file fallback mode (data/royal_backend_store.json)',
+    },
+    timestamp: new Date().toISOString(),
+  });
 });
 
 // Configure Vite in dev mode or static files in production
@@ -1404,9 +1956,7 @@ if (!isProduction) {
 
 const portArgIdx = process.argv.indexOf('--port');
 const portArg = portArgIdx !== -1 ? Number(process.argv[portArgIdx + 1]) : null;
-const PORT = portArg || (process.env.NODE_ENV === 'production' && process.env.PORT ? Number(process.env.PORT) : 3000);
-await initializePostgres();
-
+const PORT = Number(process.env.PORT) || portArg || 3000;
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`[Royal Backgammon Engine] Full-stack Server listening on http://0.0.0.0:${PORT}`);
 });

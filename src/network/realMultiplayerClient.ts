@@ -7,7 +7,6 @@ import {
   OnlineGameRoomState,
 } from './multiplayerTypes';
 import { BoardLocation, CheckerState3D } from '../libgdx/Gdx3DEngine';
-import { getTelegramWebApp } from '../telegram/telegramMiniApp';
 
 type Listener<T> = (data: T) => void;
 
@@ -29,7 +28,10 @@ class RealMultiplayerClient {
   private pendingQueue: ClientToServerMessage[] = [];
 
   public isConnected = false;
-  private telegramAuthenticated = false;
+
+  public getCurrentUser() {
+    return this.currentUser;
+  }
 
   public connect(user: {
     id: string;
@@ -48,57 +50,62 @@ class RealMultiplayerClient {
       (this.socket.readyState === WebSocket.OPEN ||
         this.socket.readyState === WebSocket.CONNECTING)
     ) {
-      if (this.telegramAuthenticated && this.socket?.readyState === WebSocket.OPEN) {
-        this.send({ type: 'user:register', user });
-      }
+      this.send({ type: 'user:register', user });
       return;
     }
 
-    const wsUrl = 'wss://royal-backgammon-3d.onrender.com/ws';
-    
+    // Select WebSocket host:
+    // If hosted on GitHub Pages static host, connect to public Render relay.
+    // In all other environments (local dev, AI Studio Build preview, custom full-stack domain),
+    // connect directly to the current origin's /ws endpoint.
+    let wsUrl = '';
+    if (typeof window !== 'undefined') {
+      const isHttps = window.location.protocol === 'https:';
+      const protocol = isHttps ? 'wss:' : 'ws:';
+      if (window.location.hostname.includes('github.io')) {
+        wsUrl = 'wss://royal-backgammon-3d.onrender.com/ws';
+      } else {
+        wsUrl = `${protocol}//${window.location.host}/ws`;
+      }
+    } else {
+      wsUrl = 'wss://royal-backgammon-3d.onrender.com/ws';
+    }
+
     try {
       this.socket = new WebSocket(wsUrl);
 
       this.socket.onopen = () => {
-        this.telegramAuthenticated = false;
-        const initData = getTelegramWebApp()?.initData || '';
-        this.socket?.send(JSON.stringify({ type: 'auth:telegram', initData }));
+        this.isConnected = true;
+        this.emit('connection_status', { connected: true });
+        if (this.currentUser) {
+          this.send({ type: 'user:register', user: this.currentUser });
+        }
+        while (this.pendingQueue.length > 0) {
+          const msg = this.pendingQueue.shift();
+          if (msg) this.send(msg);
+        }
       };
 
       this.socket.onmessage = (event) => {
         try {
-          const msg: any = JSON.parse(event.data);
+          const msg: ServerToClientMessage = JSON.parse(event.data);
           this.emit(msg.type, msg);
-          if (msg.type === 'auth:success') {
-            this.telegramAuthenticated = true;
-            this.isConnected = true;
-            this.emit('connection_status', { connected: true });
-            if (this.currentUser) this.send({ type: 'user:register', user: this.currentUser });
-            while (this.pendingQueue.length > 0) {
-              const queued = this.pendingQueue.shift();
-              if (queued) this.send(queued);
-            }
-          } else if (msg.type === 'error' && !this.telegramAuthenticated) {
-            this.isConnected = false;
-            this.emit('connection_status', { connected: false, error: msg.message });
-          }
-        } catch (err) {
-          console.warn('[WS Client] Failed to parse message', err);
+        } catch {
+          // Ignore parse errors on ping/pong frames
         }
       };
 
       this.socket.onclose = () => {
-        this.telegramAuthenticated = false;
         this.isConnected = false;
         this.emit('connection_status', { connected: false });
         this.scheduleReconnect();
       };
 
-      this.socket.onerror = () => {
+      this.socket.onerror = (e) => {
         this.isConnected = false;
+        // Suppress uncaught exception to avoid crashing or displaying red browser alert
       };
-    } catch (err) {
-      console.warn('[WS Client] Connection initialization error', err);
+    } catch {
       this.scheduleReconnect();
     }
   }
@@ -109,7 +116,7 @@ class RealMultiplayerClient {
       if (this.currentUser) {
         this.connect(this.currentUser);
       }
-    }, 2800);
+    }, 4000);
   }
 
   public send(msg: ClientToServerMessage) {
@@ -169,8 +176,8 @@ class RealMultiplayerClient {
     this.send({ type: 'friend:request_reject', requestId });
   }
 
-  public sendFriendChallenge(targetUserId: string, amountUsdt = 0) {
-    this.send({ type: 'friend:challenge_send', targetUserId, amountUsdt });
+  public sendFriendChallenge(targetUserId: string) {
+    this.send({ type: 'friend:challenge_send', targetUserId });
   }
 
   public respondFriendChallenge(challengeId: string, accept: boolean) {
@@ -256,13 +263,24 @@ class RealMultiplayerClient {
     this.send({ type: 'game:leave', roomId });
   }
 
+  public sendGlobalChat(text: string) {
+    this.send({ type: 'chat:global_send', text });
+  }
+
+  public requestGlobalChatHistory() {
+    this.send({ type: 'chat:global_history' });
+  }
+
+  public sendPrivateChat(targetUserId: string, text: string) {
+    this.send({ type: 'chat:private_send', targetUserId, text });
+  }
+
   public disconnect() {
     if (this.reconnectTimer) window.clearTimeout(this.reconnectTimer);
     if (this.socket) {
       this.socket.close();
       this.socket = null;
     }
-    this.telegramAuthenticated = false;
     this.isConnected = false;
   }
 }

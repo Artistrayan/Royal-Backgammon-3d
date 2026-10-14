@@ -7,6 +7,8 @@ export interface OnlineTier {
   badge: string;
   entryFeeUsdt: number;
   prizePoolUsdt: number;
+  rakePercent: number;
+  rakeAmountUsdt: number;
   minLevel: number;
   maxLevel: number;
   color: string;
@@ -24,12 +26,14 @@ export const ONLINE_TIERS: OnlineTier[] = [
     persianName: 'سالن نوآموزان برنز',
     badge: 'TIER I',
     entryFeeUsdt: 1,
-    prizePoolUsdt: 1.9,
+    prizePoolUsdt: 1.7,
+    rakePercent: 15,
+    rakeAmountUsdt: 0.3,
     minLevel: 0,
     maxLevel: 10,
     color: '#cd7f32',
     bgGradient: 'from-[#2e1d10] to-[#120a05]',
-    description: 'ورودی ۱ تتر • لول ۰ تا ۱۰',
+    description: 'ورودی ۱ تتر • کارمزد ۱۵٪ • جایزه ۱.۷۰ تتر',
     matchFormat: 'فقط یک دست (تک مسابقه برای برد سریع)',
     targetWins: 1,
   },
@@ -39,12 +43,14 @@ export const ONLINE_TIERS: OnlineTier[] = [
     persianName: 'محفل استادان نقره',
     badge: 'TIER II',
     entryFeeUsdt: 2,
-    prizePoolUsdt: 3.8,
+    prizePoolUsdt: 3.4,
+    rakePercent: 15,
+    rakeAmountUsdt: 0.6,
     minLevel: 11,
     maxLevel: 25,
     color: '#c0c0c0',
     bgGradient: 'from-[#1c242b] to-[#0a0f14]',
-    description: 'ورودی ۲ تتر • لول ۱۱ تا ۲۵',
+    description: 'ورودی ۲ تتر • کارمزد ۱۵٪ • جایزه ۳.۴۰ تتر',
     matchFormat: '۲ دست بازی (در صورت تساوی ۱-۱ دست سوم اضافه)',
     targetWins: 2,
   },
@@ -54,12 +60,14 @@ export const ONLINE_TIERS: OnlineTier[] = [
     persianName: 'میدان گرندمسترهای زرین',
     badge: 'TIER III',
     entryFeeUsdt: 5,
-    prizePoolUsdt: 9.5,
+    prizePoolUsdt: 8.5,
+    rakePercent: 15,
+    rakeAmountUsdt: 1.5,
     minLevel: 26,
     maxLevel: 50,
     color: '#e5c158',
     bgGradient: 'from-[#2b220d] to-[#120d04]',
-    description: 'ورودی ۵ تتر • لول ۲۶ تا ۵۰',
+    description: 'ورودی ۵ تتر • کارمزد ۱۵٪ • جایزه ۸.۵۰ تتر',
     matchFormat: 'مسابقه در ۳ دست برد (۳ پیروزی برای برنده)',
     targetWins: 3,
   },
@@ -69,12 +77,14 @@ export const ONLINE_TIERS: OnlineTier[] = [
     persianName: 'دربار های‌رولر پلاتین',
     badge: 'TIER IV',
     entryFeeUsdt: 10,
-    prizePoolUsdt: 19.0,
+    prizePoolUsdt: 17.0,
+    rakePercent: 15,
+    rakeAmountUsdt: 3.0,
     minLevel: 51,
     maxLevel: 80,
     color: '#9ae6b4',
     bgGradient: 'from-[#0b291d] to-[#04120c]',
-    description: 'ورودی ۱۰ تتر • لول ۵۱ تا ۸۰',
+    description: 'ورودی ۱۰ تتر • کارمزد ۱۵٪ • جایزه ۱۷.۰۰ تتر',
     matchFormat: 'مسابقه در ۳ دست بازی سنگین (۳ راند برد)',
     targetWins: 3,
   },
@@ -84,13 +94,15 @@ export const ONLINE_TIERS: OnlineTier[] = [
     persianName: 'سوپر لیگ سلطنتی قهرمانان (۱۰ نفره)',
     badge: 'TIER V • LEAGUE',
     entryFeeUsdt: 25,
-    prizePoolUsdt: 235.0,
+    prizePoolUsdt: 212.5,
+    rakePercent: 15,
+    rakeAmountUsdt: 37.5,
     minLevel: 81,
     maxLevel: 999,
     color: '#f6ad55',
     bgGradient: 'from-[#2f1838] to-[#130717]',
-    description: 'ورودی ۲۵ تتر • لول ۸۱ به بالا (لیگ ۱۰ بازیکن)',
-    matchFormat: 'لیگ مسابقاتی با ۱۰ بازیکن • جدول رده‌بندی و جوایز نفیس',
+    description: 'ورودی ۲۵ تتر • کارمزد ۱۵٪ • مجموع جوایز ۲۱۲.۵۰ تتر',
+    matchFormat: 'لیگ مسابقاتی با ۱۰ بازیکن • جدول رده‌بندی و جوایز ۳ نفر اول',
     targetWins: 5,
     isLeague: true,
   },
@@ -244,7 +256,10 @@ export type ClientToServerMessage =
       amountUsdt: number;
       destinationAddress: string;
       network: 'TRC20' | 'TON';
-    };
+    }
+  | { type: 'chat:global_send'; text: string }
+  | { type: 'chat:global_history' }
+  | { type: 'chat:private_send'; targetUserId: string; text: string };
 
 export type ServerToClientMessage =
   | { type: 'auth:success'; telegramUserId: string }
@@ -339,4 +354,37 @@ export type ServerToClientMessage =
   | {
       type: 'error';
       message: string;
+    }
+  | {
+      type: 'chat:global_message';
+      message: {
+        id: string;
+        senderId: string;
+        senderName: string;
+        level: number;
+        text: string;
+        timestamp: number;
+      };
+    }
+  | {
+      type: 'chat:global_history';
+      messages: {
+        id: string;
+        senderId: string;
+        senderName: string;
+        level: number;
+        text: string;
+        timestamp: number;
+      }[];
+    }
+  | {
+      type: 'chat:private_message';
+      message: {
+        id: string;
+        fromUserId: string;
+        fromUsername: string;
+        toUserId: string;
+        text: string;
+        timestamp: number;
+      };
     };

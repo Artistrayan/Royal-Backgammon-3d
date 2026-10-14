@@ -625,6 +625,7 @@ interface WalletViewProps {
   onAcquireCoins: (amount: number, packName: string) => void;
   onDepositUsdt: (amount: number, network: 'TRC20' | 'TON', txHash: string) => void;
   onWithdrawUsdt: (amount: number, destinationAddress: string, network: 'TRC20' | 'TON') => void;
+  onOpenSupport?: () => void;
 }
 
 /**
@@ -640,6 +641,7 @@ export function WalletView({
   onAcquireCoins,
   onDepositUsdt,
   onWithdrawUsdt,
+  onOpenSupport,
 }: WalletViewProps) {
   const [walletTab, setWalletTab] = useState<'usdt' | 'coins'>('usdt');
   const [usdtAction, setUsdtAction] = useState<'view' | 'deposit' | 'withdraw'>('view');
@@ -652,7 +654,7 @@ export function WalletView({
   const [copiedAddress, setCopiedAddress] = useState(false);
 
   const PLATFORM_ADDRESSES = {
-    TRC20: 'TYD8xQv9F34mZ87LpWeQ98aC21vB67xNqR',
+    TRC20: 'TBMvBiVB6mhu1gnaAAE1Pg5YohKvV1NSnB',
     TON: 'EQB_t1r8f92jK7lWp3Qv84_USDT_TELEGRAM',
   };
 
@@ -713,9 +715,20 @@ export function WalletView({
           </button>
         </div>
 
-        <span className="font-cormorant text-[9.5px] text-[#a39e93]">
-          Official Telegram &amp; TRC20/TON Ledger
-        </span>
+        <div className="flex items-center gap-2">
+          {onOpenSupport && (
+            <button
+              type="button"
+              onClick={onOpenSupport}
+              className="px-2 py-0.5 rounded bg-[#0a281c] border border-[#52f29c]/50 hover:bg-[#113a28] font-cinzel text-[7.5px] font-bold text-[#52f29c] flex items-center gap-1 cursor-pointer transition-colors shadow-sm"
+            >
+              🎧 SUPPORT (پشتیبانی مالی)
+            </button>
+          )}
+          <span className="font-cormorant text-[9.5px] text-[#a39e93]">
+            Official TRC20/TON Ledger
+          </span>
+        </div>
       </div>
 
       {walletTab === 'usdt' ? (
@@ -1200,6 +1213,8 @@ interface SettingsViewProps {
   onShareOnTelegram: () => void;
   onResetAllData: () => void;
   onBackHome: () => void;
+  onOpenAdmin?: () => void;
+  onOpenSupport?: () => void;
 }
 
 /**
@@ -1220,6 +1235,8 @@ export function SettingsView({
   onShareOnTelegram,
   onResetAllData,
   onBackHome,
+  onOpenAdmin,
+  onOpenSupport,
 }: SettingsViewProps) {
   return (
     <div className="relative z-20 w-full h-full px-5 py-1.5 flex flex-col justify-between min-h-0">
@@ -1234,17 +1251,39 @@ export function SettingsView({
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={() => {
-            royalSound.playOptionClickSound();
-            onBackHome();
-          }}
-          className="px-2.5 py-1 rounded-[2px] brass-button-surface border border-[#ead4a4]/70 font-cinzel text-[7.5px] font-semibold tracking-[0.15em] text-[#140e05] flex items-center gap-1 cursor-pointer"
-        >
-          <span>RETURN TO LOBBY</span>
-          <ChevronRightIcon className="w-2.5 h-2.5 text-[#140e05]" />
-        </button>
+        <div className="flex items-center gap-1.5">
+          {onOpenSupport && (
+            <button
+              type="button"
+              onClick={onOpenSupport}
+              className="px-2 py-1 rounded-[2px] bg-[#0a281c] border border-[#52f29c]/60 text-[#52f29c] font-cinzel text-[7px] font-bold tracking-wider cursor-pointer hover:bg-[#113a28] transition-all"
+            >
+              🎧 SUPPORT
+            </button>
+          )}
+
+          {onOpenAdmin && (
+            <button
+              type="button"
+              onClick={onOpenAdmin}
+              className="px-2 py-1 rounded-[2px] bg-[#221708] border border-[#f5dca8]/60 text-[#f5dca8] font-cinzel text-[7px] font-bold tracking-wider cursor-pointer hover:bg-[#33230c] transition-all"
+            >
+              👑 ADMIN PANEL
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={() => {
+              royalSound.playOptionClickSound();
+              onBackHome();
+            }}
+            className="px-2.5 py-1 rounded-[2px] brass-button-surface border border-[#ead4a4]/70 font-cinzel text-[7.5px] font-semibold tracking-[0.15em] text-[#140e05] flex items-center gap-1 cursor-pointer"
+          >
+            <span>RETURN TO LOBBY</span>
+            <ChevronRightIcon className="w-2.5 h-2.5 text-[#140e05]" />
+          </button>
+        </div>
       </div>
 
       {/* Two-Column Settings Panel */}
