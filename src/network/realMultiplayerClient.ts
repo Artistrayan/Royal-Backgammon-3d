@@ -176,8 +176,8 @@ class RealMultiplayerClient {
     this.send({ type: 'friend:request_reject', requestId });
   }
 
-  public sendFriendChallenge(targetUserId: string) {
-    this.send({ type: 'friend:challenge_send', targetUserId });
+  public sendFriendChallenge(targetUserId: string, amountUsdt: number) {
+    this.send({ type: 'friend:challenge_send', targetUserId, amountUsdt });
   }
 
   public respondFriendChallenge(challengeId: string, accept: boolean) {

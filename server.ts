@@ -5,6 +5,9 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import pg from 'pg';
+import { tournamentManager } from './server_tournament_manager.js';
+import { provablyFairEngine, verifyProvablyFairRoll } from './server_provably_fair.js';
+import { seasonalLeaderboard } from './server_elo_seasons.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -72,6 +75,7 @@ interface ActiveGameRoom {
   mode: 'online_match' | 'friend_match' | 'quick_seat';
   playerLight: { socket: WebSocket; user: OnlineUser };
   playerDark: { socket: WebSocket; user: OnlineUser };
+  spectators?: Set<WebSocket>;
   createdAt: number;
 }
 
@@ -303,7 +307,10 @@ function recordFinancialAudit(record: Omit<FinancialAuditRecord, 'id' | 'timesta
   return audit;
 }
 
-// Initialize all 7 Production Database Tables if PostgreSQL is available
+// Initialize Tournament Manager with live users and financial audit callback
+tournamentManager.init(registeredUsers as any, (entry) => recordFinancialAudit(entry as any));
+
+// Initialize all Production Database Tables if PostgreSQL is available
 async function initDatabaseTables() {
   if (!pgPool) {
     console.log('[Database] No DATABASE_URL found. Running with local JSON store.');
@@ -1504,6 +1511,206 @@ function handleClientMessage(ws: WebSocket, msg: any) {
       }
       break;
     }
+
+    // --- TOURNAMENT SYSTEM (Swiss + Knockout) ---
+    case 'tournament:list': {
+      sendMsg(ws, {
+        type: 'tournament:list',
+        tournaments: tournamentManager.getTournamentsList(),
+      });
+      break;
+    }
+
+    case 'tournament:register': {
+      const senderId = socketToUserId.get(ws);
+      const user = senderId ? registeredUsers.get(senderId) : null;
+      if (!user) {
+        sendMsg(ws, { type: 'error', message: 'ابتدا وارد حساب کاربری خود شوید' });
+        break;
+      }
+      const res = tournamentManager.registerUser(msg.tournamentId, user as any);
+      if (!res.success) {
+        sendMsg(ws, { type: 'error', message: res.error || 'خطا در ثبت‌نام تورنمنت' });
+      } else {
+        persistStore();
+        // Broadcast updated tournament state to all connected clients
+        const allTournaments = tournamentManager.getTournamentsList();
+        wss.clients.forEach((c) => {
+          if (c.readyState === WebSocket.OPEN) {
+            sendMsg(c, { type: 'tournament:updated', tournament: res.tournament, allTournaments });
+          }
+        });
+        sendMsg(ws, {
+          type: 'wallet:updated',
+          newUsdtBalance: user.usdtBalance,
+          txId: `tourn-entry-${Date.now()}`,
+          actionType: 'match_entry',
+          amount: res.tournament?.config.entryFeeUsdt || 5,
+          description: `ورودی تورنمنت ${res.tournament?.config.persianTitle || 'Swiss'} قفل شد.`,
+        });
+      }
+      break;
+    }
+
+    case 'tournament:unregister': {
+      const senderId = socketToUserId.get(ws);
+      if (!senderId) break;
+      const res = tournamentManager.unregisterUser(msg.tournamentId, senderId);
+      if (res.success) {
+        persistStore();
+        const allTournaments = tournamentManager.getTournamentsList();
+        wss.clients.forEach((c) => {
+          if (c.readyState === WebSocket.OPEN) {
+            sendMsg(c, { type: 'tournament:updated', tournament: res.tournament, allTournaments });
+          }
+        });
+      }
+      break;
+    }
+
+    case 'tournament:match_game_report': {
+      try {
+        const { match, matchFinished, winnerUserId } = tournamentManager.reportMatchGameResult(
+          msg.tournamentId,
+          msg.matchId,
+          msg.gameWinnerUserId,
+          msg.pointsAwarded || 1
+        );
+        persistStore();
+        const allTournaments = tournamentManager.getTournamentsList();
+        wss.clients.forEach((c) => {
+          if (c.readyState === WebSocket.OPEN) {
+            sendMsg(c, { type: 'tournament:match_updated', match, matchFinished, winnerUserId, allTournaments });
+          }
+        });
+      } catch (e: any) {
+        sendMsg(ws, { type: 'error', message: e.message });
+      }
+      break;
+    }
+
+    case 'tournament:spectate_join': {
+      tournamentManager.addSpectator(msg.matchId, ws);
+      sendMsg(ws, {
+        type: 'tournament:spectator_joined',
+        matchId: msg.matchId,
+        spectatorCount: tournamentManager.getSpectatorCount(msg.matchId),
+      });
+      break;
+    }
+
+    case 'tournament:spectate_leave': {
+      tournamentManager.removeSpectator(msg.matchId, ws);
+      break;
+    }
+
+    // --- PROVABLY FAIR CRYPTOGRAPHIC DICE ENGINE ---
+    case 'provably_fair:init': {
+      const session = provablyFairEngine.createSession(msg.sessionId, msg.clientSeed);
+      sendMsg(ws, {
+        type: 'provably_fair:session_ready',
+        sessionId: session.sessionId,
+        serverSeedHash: session.serverSeedHash, // Upfront SHA-256 commitment!
+        clientSeed: session.clientSeed,
+        currentNonce: session.currentNonce,
+      });
+      break;
+    }
+
+    case 'provably_fair:set_client_seed': {
+      const ok = provablyFairEngine.updateClientSeed(msg.sessionId, msg.newClientSeed);
+      sendMsg(ws, {
+        type: 'provably_fair:client_seed_updated',
+        sessionId: msg.sessionId,
+        clientSeed: msg.newClientSeed,
+        success: ok,
+      });
+      break;
+    }
+
+    case 'provably_fair:roll': {
+      const roll = provablyFairEngine.roll(msg.sessionId);
+      if (roll) {
+        sendMsg(ws, {
+          type: 'provably_fair:roll_result',
+          sessionId: msg.sessionId,
+          dice: roll.dice,
+          isDoubles: roll.isDoubles,
+          nonce: roll.nonce,
+          serverSeedHash: roll.serverSeedHash,
+          clientSeed: roll.clientSeed,
+          hmacSignature: roll.hmacSignature,
+          timestamp: roll.timestamp,
+        });
+      }
+      break;
+    }
+
+    case 'provably_fair:reveal': {
+      const reveal = provablyFairEngine.revealServerSeed(msg.sessionId);
+      if (reveal) {
+        sendMsg(ws, {
+          type: 'provably_fair:revealed',
+          sessionId: msg.sessionId,
+          serverSeed: reveal.serverSeed,
+          serverSeedHash: reveal.serverSeedHash,
+          clientSeed: reveal.clientSeed,
+          totalRolls: reveal.totalRolls,
+        });
+      }
+      break;
+    }
+
+    case 'provably_fair:verify': {
+      const audit = verifyProvablyFairRoll(
+        msg.serverSeed,
+        msg.serverSeedHash,
+        msg.clientSeed,
+        msg.nonce,
+        msg.reportedDice
+      );
+      sendMsg(ws, {
+        type: 'provably_fair:verification_result',
+        audit,
+      });
+      break;
+    }
+
+    // --- GLOBAL ELO & SEASONS LEADERBOARD ---
+    case 'leaderboard:get': {
+      const data = seasonalLeaderboard.getLeaderboard(50);
+      sendMsg(ws, {
+        type: 'leaderboard:data',
+        ...data,
+      });
+      break;
+    }
+
+    case 'room:spectate_join': {
+      const room = activeRooms.get(msg.roomId);
+      if (room) {
+        if (!room.spectators) room.spectators = new Set();
+        room.spectators.add(ws);
+        sendMsg(ws, {
+          type: 'room:spectator_joined',
+          roomId: msg.roomId,
+          spectatorCount: room.spectators.size,
+          playerLight: room.playerLight.user,
+          playerDark: room.playerDark.user,
+          tierId: room.tierId,
+          prizePoolUsdt: room.prizePoolUsdt,
+        });
+      }
+      break;
+    }
+
+    case 'room:spectate_leave': {
+      const room = activeRooms.get(msg.roomId);
+      if (room?.spectators) {
+        room.spectators.delete(ws);
+      }
+      break;
+    }
   }
 }
 
@@ -1877,10 +2084,37 @@ app.get('/api/admin/rooms', (_req, res) => {
       mode: r.mode,
       playerLight: { id: r.playerLight.user.id, username: r.playerLight.user.username },
       playerDark: { id: r.playerDark.user.id, username: r.playerDark.user.username },
+      spectatorsCount: r.spectators?.size || 0,
       createdAt: r.createdAt,
     });
   }
   res.json(roomsList);
+});
+
+// REST API: Tournaments List & Details
+app.get('/api/tournaments', (_req, res) => {
+  res.json(tournamentManager.getTournamentsList());
+});
+
+app.get('/api/tournaments/:id', (req, res) => {
+  const tourn = tournamentManager.getTournament(req.params.id);
+  if (!tourn) return res.status(404).json({ error: 'Tournament not found' });
+  res.json(tourn);
+});
+
+// REST API: Global ELO & Seasonal Leaderboard
+app.get('/api/leaderboard', (_req, res) => {
+  res.json(seasonalLeaderboard.getLeaderboard(50));
+});
+
+// REST API: Provably Fair Verification Audit
+app.post('/api/provably-fair/verify', (req, res) => {
+  const { serverSeed, serverSeedHash, clientSeed, nonce, reportedDice } = req.body;
+  if (!serverSeed || !serverSeedHash || !clientSeed || typeof nonce !== 'number') {
+    return res.status(400).json({ error: 'Missing required cryptographic audit parameters' });
+  }
+  const result = verifyProvablyFairRoll(serverSeed, serverSeedHash, clientSeed, nonce, reportedDice);
+  res.json(result);
 });
 
 // API Route: Database Health Check & Schema Status

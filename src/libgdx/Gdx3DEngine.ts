@@ -313,7 +313,16 @@ export class GdxModelInstance {
         const mesh = child as THREE.Mesh;
         mesh.castShadow = true;
         mesh.receiveShadow = true;
-        this.interactiveMeshes.push(mesh);
+        
+        // Only add interactive elements, exclude the board itself to improve click precision
+        if (
+          mesh.name.startsWith('Checker_') ||
+          mesh.name.includes('Dice') ||
+          mesh.name.includes('Die') ||
+          mesh.name === 'DoublingCube'
+        ) {
+          this.interactiveMeshes.push(mesh);
+        }
       }
     });
   }
@@ -523,7 +532,7 @@ export class GdxAnimationController {
       arcHeight,
       isCaptureHit,
       elapsed: 0,
-      duration: Math.min(0.42, Math.max(0.28, 0.24 + dist * 0.02)),
+      duration: Math.min(0.25, Math.max(0.15, 0.12 + dist * 0.01)),
     });
   }
 
@@ -764,15 +773,28 @@ export class Gdx3DEngine {
       onDoublingCubeClicked?: () => void;
     }
   ) {
+    // Mobile GPU Tier Detection: scale down shadows, pixel ratio, and antialiasing on budget mobile devices
+    const isMobile = typeof navigator !== 'undefined' && /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+    const cores = typeof navigator !== 'undefined' ? navigator.hardwareConcurrency || 4 : 4;
+    const memory = typeof navigator !== 'undefined' ? (navigator as any).deviceMemory || 4 : 4;
+    const isLowEndDevice = isMobile && (cores <= 4 || memory <= 2);
+
     this.renderer = new THREE.WebGLRenderer({
-      antialias: true,
+      antialias: !isLowEndDevice,
       alpha: true,
-      powerPreference: 'high-performance',
+      powerPreference: isLowEndDevice ? 'default' : 'high-performance',
+      precision: isLowEndDevice ? 'mediump' : 'highp',
     });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.setPixelRatio(
+      isLowEndDevice
+        ? Math.min(window.devicePixelRatio || 1, 1.25)
+        : Math.min(window.devicePixelRatio || 1, 2)
+    );
     this.renderer.setSize(container.clientWidth, container.clientHeight);
-    this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.renderer.shadowMap.enabled = !isLowEndDevice;
+    if (!isLowEndDevice) {
+      this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    }
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.15;
 
@@ -780,6 +802,7 @@ export class Gdx3DEngine {
     dom.style.display = 'block';
     dom.style.width = '100%';
     dom.style.height = '100%';
+    dom.style.touchAction = 'none'; // Eliminate 300ms mobile tap latency
     container.appendChild(dom);
 
     this.scene = new THREE.Scene();
@@ -1154,8 +1177,8 @@ export class Gdx3DEngine {
       updatePointer(clientX, clientY);
       this.raycaster.setFromCamera(this.pointer, this.camera);
 
-      // 1. If board is closed, clicking anywhere on the board unfolds it
-      if (this.animController.openProgress < 0.95) {
+      // 1. If board is closed, clicking anywhere on the board unfolds it (only in game mode)
+      if (this.isGameStage && this.animController.openProgress < 0.95) {
         const hits = this.raycaster.intersectObjects(
           this.modelInstance.interactiveMeshes,
           false
@@ -1295,24 +1318,40 @@ export class Gdx3DEngine {
     this.disposed = true;
     if (this.rafId !== null) {
       cancelAnimationFrame(this.rafId);
+      this.rafId = null;
     }
     window.removeEventListener('resize', this.handleResize);
+
+    // Deep scene resource disposal to eliminate WebGL memory leaks
+    this.scene.traverse((obj) => {
+      if (obj instanceof THREE.Mesh) {
+        if (obj.geometry) {
+          obj.geometry.dispose();
+        }
+        if (Array.isArray(obj.material)) {
+          obj.material.forEach((mat) => {
+            if ((mat as any).map) (mat as any).map.dispose();
+            mat.dispose();
+          });
+        } else if (obj.material) {
+          if ((obj.material as any).map) (obj.material as any).map.dispose();
+          obj.material.dispose();
+        }
+      }
+    });
+
     for (const group of this.targetRingMeshes) {
       this.highlightGroup.remove(group);
-      group.traverse((child) => {
-        if (child instanceof THREE.Mesh) {
-          child.geometry?.dispose();
-          if (Array.isArray(child.material)) {
-            child.material.forEach((mat) => mat.dispose());
-          } else if (child.material) {
-            child.material.dispose();
-          }
-        }
-      });
     }
     this.targetRingMeshes = [];
+
     if (this.builtGlb) {
       URL.revokeObjectURL(this.builtGlb.glbUrl);
+    }
+
+    const dom = this.renderer.domElement;
+    if (dom && dom.parentElement) {
+      dom.parentElement.removeChild(dom);
     }
     this.renderer.dispose();
   }

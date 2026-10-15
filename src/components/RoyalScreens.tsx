@@ -1212,6 +1212,7 @@ interface SettingsViewProps {
   onDownloadTelegramBotScript: () => void;
   onShareOnTelegram: () => void;
   onResetAllData: () => void;
+  onLogoutTelegram: () => void;
   onBackHome: () => void;
   onOpenAdmin?: () => void;
   onOpenSupport?: () => void;
@@ -1234,6 +1235,7 @@ export function SettingsView({
   onDownloadTelegramBotScript,
   onShareOnTelegram,
   onResetAllData,
+  onLogoutTelegram,
   onBackHome,
   onOpenAdmin,
   onOpenSupport,
@@ -1370,6 +1372,25 @@ export function SettingsView({
                 {sfxEnabled ? 'SFX' : 'MUTE'}
               </button>
             </div>
+          </div>
+
+          <div className="flex items-center justify-between gap-2 py-0.5 border-b border-[#c8a668]/15">
+            <div>
+              <div className="font-cinzel text-[7.5px] tracking-[0.12em] text-[#ebe3d2]">
+                TELEGRAM ACCOUNT VERIFICATION
+              </div>
+              <div className="font-cormorant text-[8px] text-[#9c9689] leading-none">
+                Log out &amp; return to Telegram login screen
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={onLogoutTelegram}
+              className="px-2 h-[18px] rounded-[2px] bg-[#1a2c22] hover:bg-[#253f31] border border-[#52f29c]/50 font-cinzel text-[6px] tracking-[0.14em] text-[#72f2b3] cursor-pointer"
+            >
+              TG LOGIN / SWITCH
+            </button>
           </div>
 
           <div className="flex items-center justify-between gap-2 py-0.5">

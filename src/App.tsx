@@ -50,6 +50,7 @@ import {
   shareGameOnTelegram,
   downloadTelegramPublishBundle,
   downloadTelegramBotScript,
+  getTelegramWebApp,
 } from './telegram/telegramMiniApp';
 import {
   rollProvablyFairDice,
@@ -80,9 +81,28 @@ import { FriendsModal } from './components/FriendsModal';
 import { IncomingChallengeModal } from './components/IncomingChallengeModal';
 import { CustomerSupportModal } from './components/CustomerSupportModal';
 import { AdminPanelModal } from './components/AdminPanelModal';
-import { HomeMessagesModal, GlobalChatMessage, PrivateChatMessage } from './components/HomeMessagesModal';
 import { TelegramLoginScreen } from './components/TelegramLoginScreen';
-import { HomeClosedBoardShowcase } from './components/HomeClosedBoardShowcase';
+import { TournamentLobbyModal } from './components/TournamentLobbyModal';
+import { ProvablyFairModal } from './components/ProvablyFairModal';
+import { LeaderboardSeasonsModal } from './components/LeaderboardSeasonsModal';
+import { GameVariantsModal } from './components/GameVariantsModal';
+import { AIDifficultyModal } from './components/AIDifficultyModal';
+import { GameAnalysisModal } from './components/GameAnalysisModal';
+import {
+  AIDifficulty,
+  AI_DIFFICULTY_PROFILES,
+  chooseAIMoveStep,
+  evaluateAIDoubleResponse,
+  getAIDelays,
+} from './engine/aiPersonalityEngine';
+import { GameVariantId, GAME_VARIANTS } from './engine/gameRules';
+import { TournamentMatch, TournamentTierId } from './network/tournamentTypes';
+import {
+  analyzePlayerStep,
+  calculateMatchPR,
+  MatchAnalysisSummary,
+  AnalyzedDecision,
+} from './engine/gameAnalysisEngine';
 
 export type ActiveScreen =
   | 'home'
@@ -296,7 +316,11 @@ function getInitialRealState(): PersistedRealState {
   };
 }
 
-function createInitialCheckersState(): CheckerState3D[] {
+function createInitialCheckersState(variantId: GameVariantId = 'standard'): CheckerState3D[] {
+  const variant = GAME_VARIANTS[variantId];
+  if (variant && variant.initialCheckersFactory) {
+    return variant.initialCheckersFactory();
+  }
   return STANDARD_STARTING_CHECKERS.map((c) => ({
     id: c.id,
     isLight: c.isLight,
@@ -399,6 +423,8 @@ export default function App() {
   activeOnlineRoomIdRef.current = activeOnlineRoomId;
   const assignedMultiplayerColorRef = useRef<'light' | 'dark'>('light');
   assignedMultiplayerColorRef.current = assignedMultiplayerColor;
+  const activeScreenRef = useRef<ActiveScreen>(activeScreen);
+  activeScreenRef.current = activeScreen;
 
   // Real Friends & Challenges State
   const [isFriendsModalOpen, setIsFriendsModalOpen] = useState(false);
@@ -424,47 +450,48 @@ export default function App() {
   const [isSupportModalOpen, setIsSupportModalOpen] = useState(false);
   const [selectedTierId, setSelectedTierId] = useState<1 | 2 | 3 | 4 | 5>(1);
 
+  // Swiss + Knockout Tournament System State
+  const [isTournamentModalOpen, setIsTournamentModalOpen] = useState(false);
+  const [activeTournamentMatch, setActiveTournamentMatch] = useState<TournamentMatch | null>(null);
+  const [tournamentMatchScore, setTournamentMatchScore] = useState<{ p1: number; p2: number }>({ p1: 0, p2: 0 });
+  const [isTournamentCrawfordGame, setIsTournamentCrawfordGame] = useState(false);
+
+  // Provably Fair Cryptographic Dice State
+  const [isProvablyFairModalOpen, setIsProvablyFairModalOpen] = useState(false);
+  const [clientSeed, setClientSeed] = useState<string>('royal-lucky-seed');
+  const [serverSeedHash, setServerSeedHash] = useState<string>(
+    'd85f8e916a04ef058564bc7a61d15582f3484f9adbe4580231cfb504d602336c'
+  );
+  const [revealedServerSeed, setRevealedServerSeed] = useState<string>('');
+  const [currentRollNonce, setCurrentRollNonce] = useState<number>(0);
+
+  // Global ELO & Seasonal Leaderboard State
+  const [isLeaderboardModalOpen, setIsLeaderboardModalOpen] = useState(false);
+
+  // Game Variants State (Standard, Narde, Hypergammon)
+  const [selectedVariant, setSelectedVariant] = useState<GameVariantId>('standard');
+  const [isVariantsModalOpen, setIsVariantsModalOpen] = useState(false);
+
+  // AI Opponent Personality / Difficulty Level
+  const [aiDifficulty, setAiDifficulty] = useState<AIDifficulty>('intermediate');
+  const [isAIDifficultyModalOpen, setIsAIDifficultyModalOpen] = useState(false);
+
+  // Smart Game Analysis & PR Rating State
+  const [isAnalysisModalOpen, setIsAnalysisModalOpen] = useState(false);
+  const [matchDecisions, setMatchDecisions] = useState<AnalyzedDecision[]>([]);
+  const [analysisSummary, setAnalysisSummary] = useState<MatchAnalysisSummary>(() =>
+    calculateMatchPR([])
+  );
+
+  // Live Spectator Mode
+  const [isSpectating, setIsSpectating] = useState<boolean>(false);
+  const [spectatingMatchInfo, setSpectatingMatchInfo] = useState<TournamentMatch | null>(null);
+
   // Telegram Authentication & Mandatory Verification State (ورود اختصاصی با تلگرام بدون تایید وارد نشود)
   const [isTelegramVerified, setIsTelegramVerified] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
     return window.localStorage.getItem('royal_tg_verified') === 'true';
   });
-
-  // Home Screen 3-Part Messages System State (پیام‌های خصوصی، سیستم، همگانی)
-  const [isMessagesModalOpen, setIsMessagesModalOpen] = useState(false);
-  const [globalChatMessages, setGlobalChatMessages] = useState<GlobalChatMessage[]>([]);
-  const [privateChatMessages, setPrivateChatMessages] = useState<PrivateChatMessage[]>([]);
-  const [unreadMessagesCount, setUnreadMessagesCount] = useState<number>(2);
-
-  useEffect(() => {
-    const unsubGlobal = multiplayerClient.on('chat:global_message', (data: any) => {
-      if (data && data.message) {
-        setGlobalChatMessages((prev) => [...prev, data.message]);
-        setUnreadMessagesCount((c) => c + 1);
-      }
-    });
-
-    const unsubGlobalHist = multiplayerClient.on('chat:global_history', (data: any) => {
-      if (data && Array.isArray(data.messages)) {
-        setGlobalChatMessages(data.messages);
-      }
-    });
-
-    const unsubPrivate = multiplayerClient.on('chat:private_message', (data: any) => {
-      if (data && data.message) {
-        setPrivateChatMessages((prev) => [...prev, data.message]);
-        setUnreadMessagesCount((c) => c + 1);
-      }
-    });
-
-    multiplayerClient.requestGlobalChatHistory();
-
-    return () => {
-      unsubGlobal();
-      unsubGlobalHist();
-      unsubPrivate();
-    };
-  }, []);
 
   const [isPortrait, setIsPortrait] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
@@ -545,6 +572,22 @@ export default function App() {
   useEffect(() => {
     royalSound.muted = !realState.sfxEnabled;
   }, [realState.sfxEnabled]);
+
+  // Request fullscreen for better immersion
+  useEffect(() => {
+    const tg = getTelegramWebApp();
+    if (tg && tg.isVersionAtLeast && tg.isVersionAtLeast('8.0') && typeof tg.requestFullscreen === 'function') {
+      try {
+        tg.requestFullscreen();
+      } catch (e) {
+        console.warn('Telegram Fullscreen request failed:', e);
+      }
+    } else if (document.documentElement.requestFullscreen) {
+      document.documentElement.requestFullscreen().catch((e) => {
+        console.warn('Browser Fullscreen request failed:', e);
+      });
+    }
+  }, []);
 
   // Persist real state to localStorage + Telegram CloudStorage
   useEffect(() => {
@@ -754,6 +797,38 @@ export default function App() {
     },
     []
   );
+
+  const handleRegisterTournament = useCallback((tierId: TournamentTierId) => {
+    royalSound.playOptionClickSound();
+    triggerTelegramHaptic('medium');
+    const tournId = tierId === 'swiss_10' ? 'tourn_swiss_10' : 'tourn_swiss_5';
+    multiplayerClient.send({
+      type: 'tournament:register',
+      tournamentId: tournId,
+    } as any);
+    showToastNotification('tourn-reg', 'TOURNAMENT REGISTERED', 'Entry fee locked in official escrow');
+  }, [showToastNotification]);
+
+  const handleUnregisterTournament = useCallback((tournId: string) => {
+    royalSound.playOptionClickSound();
+    multiplayerClient.send({
+      type: 'tournament:unregister',
+      tournamentId: tournId,
+    } as any);
+  }, []);
+
+  const handleSpectateMatch = useCallback((match: TournamentMatch) => {
+    royalSound.playOptionClickSound();
+    setIsSpectating(true);
+    setSpectatingMatchInfo(match);
+    setIsTournamentModalOpen(false);
+    setActiveScreen('game');
+    multiplayerClient.send({
+      type: 'tournament:spectate_join',
+      matchId: match.matchId,
+    } as any);
+    showToastNotification('spectate', `SPECTATING ${match.player1.username} VS ${match.player2.username}`, 'Live read-only tournament feed');
+  }, [showToastNotification]);
 
   const recordRealTransaction = (label: string, amount: number) => {
     const nowStr = new Date().toLocaleTimeString('en-US', {
@@ -1176,9 +1251,9 @@ export default function App() {
       return;
     }
 
-    // In Practice mode against ROYAL AI, the Grandmaster AI evaluates whether to TAKE or DROP
+    // In Practice mode against AI, evaluate according to selected AI Difficulty persona
     if (gameModeRef.current === 'practice' && currentTurn === 'light') {
-      const decision = shouldAITakePlayerDouble(checkersRef.current, false);
+      const decision = evaluateAIDoubleResponse(checkersRef.current, false, aiDifficulty);
       if (decision.take) {
         setDoublingCubeValue(nextVal);
         setDoublingCubeOwner('dark');
@@ -1645,7 +1720,7 @@ export default function App() {
     showToastNotification,
   ]);
 
-  // 4. Grandmaster Heuristic AI Opponent Turn for Dark ('dark') ONLY in Practice Mode
+  // 4. AI Opponent Turn for Dark ('dark') according to chosen AI Difficulty Persona
   useEffect(() => {
     if (
       activeScreen !== 'game' ||
@@ -1658,20 +1733,23 @@ export default function App() {
       return;
     }
 
+    const delays = getAIDelays(aiDifficulty);
+
     if (!hasRolledThisTurn) {
       const rollTimer = window.setTimeout(() => {
         setMoveHistory([]);
         handleRollDice();
-      }, 1050);
+      }, delays.rollDelayMs);
       return () => window.clearTimeout(rollTimer);
     }
 
     if (remainingDice.length > 0) {
       const moveTimer = window.setTimeout(() => {
-        const bestStep = chooseBestGrandmasterMoveStep(
+        const bestStep = chooseAIMoveStep(
           checkersRef.current,
           false,
-          remainingDiceRef.current
+          remainingDiceRef.current,
+          aiDifficulty
         );
         if (bestStep) {
           executeCheckerMove(
@@ -1681,7 +1759,7 @@ export default function App() {
             false
           );
         }
-      }, 620);
+      }, delays.moveDelayMs);
       return () => window.clearTimeout(moveTimer);
     }
   }, [
@@ -1693,6 +1771,7 @@ export default function App() {
     gameMode,
     hasRolledThisTurn,
     remainingDice,
+    aiDifficulty,
     handleRollDice,
     executeCheckerMove,
   ]);
@@ -1706,7 +1785,9 @@ export default function App() {
       setMatchedOpponent(null);
       setOnlineOpponent(null);
     }
-    const fresh = createInitialCheckersState();
+    const fresh = createInitialCheckersState(selectedVariant);
+    setMatchDecisions([]);
+    setAnalysisSummary(calculateMatchPR([]));
     checkersRef.current = fresh;
     remainingDiceRef.current = [];
     setCheckers(fresh);
@@ -2062,15 +2143,18 @@ export default function App() {
         }
       },
       onBoardHoverChange: (hovered) => {
-        setIsBoardHovered(hovered);
+        setIsBoardHovered(activeScreenRef.current === 'game' ? hovered : false);
       },
       onDiceClicked: () => {
+        if (activeScreenRef.current !== 'game') return;
         handleRollDice();
       },
       onDoublingCubeClicked: () => {
+        if (activeScreenRef.current !== 'game') return;
         handleOfferDouble();
       },
       onCheckerClicked: (checkerId) => {
+        if (activeScreenRef.current !== 'game') return;
         if (!hasRolledRef.current || remainingDiceRef.current.length === 0) {
           showToastNotification(
             'touch-dice-prompt',
@@ -2129,6 +2213,7 @@ export default function App() {
         }
       },
       onLocationClicked: (toLoc) => {
+        if (activeScreenRef.current !== 'game') return;
         if (selectedLocRef.current === null) return;
         const isLight = turnRef.current === 'light';
         const selectable = getSelectableMovesForLocation(
@@ -2418,6 +2503,21 @@ export default function App() {
     );
   };
 
+  const handleLogoutTelegram = useCallback(() => {
+    royalSound.playOptionClickSound();
+    try {
+      window.localStorage.removeItem('royal_tg_verified');
+    } catch {
+      // ignore
+    }
+    setIsTelegramVerified(false);
+    showToastNotification(
+      'tg-logout',
+      'TELEGRAM ACCOUNT UNLINKED',
+      'Returned to Telegram verification screen'
+    );
+  }, [showToastNotification]);
+
   const hasLineStarted = (key: LineKey) =>
     typedMap[key].length > 0 || activeLineKey === key;
 
@@ -2468,27 +2568,8 @@ export default function App() {
       />
     );
   }
-
   return (
     <div className="w-screen h-[100dvh] bg-[#020705] flex items-center justify-center overflow-hidden select-none p-0.5 relative">
-      {/* Mobile Orientation Quick Switch for Telegram / Phone in Vertical Mode */}
-      {isPortrait && (
-        <div className="fixed top-2 z-50 flex items-center gap-2 pointer-events-auto">
-          <button
-            type="button"
-            onClick={() => {
-              royalSound.playOptionClickSound();
-              setIsRotatedView((prev) => !prev);
-            }}
-            className="px-3 py-1 rounded-full bg-[#071d13]/95 border border-[#c8a668] text-[#f5dca8] text-[9.5px] font-cinzel font-bold shadow-[0_4px_16px_rgba(0,0,0,0.85)] backdrop-blur flex items-center gap-1.5 cursor-pointer hover:bg-[#0c2f20] transition-all active:scale-95"
-          >
-            <span>📱</span>
-            <span>{isRotatedView ? 'چرخش افقی فعال است' : 'چرخش تمام‌صفحه عمودی'}</span>
-          </button>
-        </div>
-      )}
-
-      {/* Scaled Wrapper filling the viewport */}
       <div
         style={{
           width:
@@ -2601,9 +2682,14 @@ export default function App() {
                     <span>⏱ {turnTimeLeft}S</span>
                   </div>
 
-                  {/* Opponent (Silver/Dark) Badge with Live Pip Count */}
+                  {/* Opponent Badge with Live Pip Count or AI Persona */}
                   <div
+                    onClick={() => {
+                      if (gameMode === 'practice') setIsAIDifficultyModalOpen(true);
+                    }}
                     className={`flex items-center gap-1 px-1.5 py-0.5 rounded-[2px] border transition-all ${
+                      gameMode === 'practice' ? 'cursor-pointer hover:border-[#ffe4a0]' : ''
+                    } ${
                       turn === 'dark'
                         ? 'bg-[#0b261a]/95 border-[#e3c485] shadow-sm'
                         : 'bg-[#04100b]/85 border-[#c8a668]/25 opacity-75'
@@ -2619,10 +2705,41 @@ export default function App() {
                           : 'OPPONENT'
                         : gameMode === 'private'
                         ? 'PLAYER 2'
-                        : 'ROYAL AI'}{' '}
+                        : `🤖 ${AI_DIFFICULTY_PROFILES[aiDifficulty].badge} ▾`}{' '}
                       ({darkBorneOff}/15 • {darkPipCount}P)
                     </span>
                   </div>
+
+                  {/* Tournament Crawford Rule or Match Indicator */}
+                  {activeTournamentMatch && (
+                    <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-[2px] bg-[#0b291d] border border-[#52f29c]/40 font-cinzel text-[6px] font-bold text-[#52f29c]">
+                      <span>🏆 MATCH TO {activeTournamentMatch.targetPoints}</span>
+                      <span>[{tournamentMatchScore.p1} - {tournamentMatchScore.p2}]</span>
+                      {isTournamentCrawfordGame && (
+                        <span className="text-[#fca5a5] animate-pulse">CRAWFORD</span>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Provably Fair Verifier Icon */}
+                  <button
+                    type="button"
+                    onClick={() => setIsProvablyFairModalOpen(true)}
+                    title="Provably Fair Cryptographic Verification (HMAC-SHA256)"
+                    className="px-1 py-0.5 rounded-[2px] bg-[#061810]/90 hover:bg-[#0b291d] border border-[#52f29c]/40 font-cinzel text-[5.8px] font-bold text-[#52f29c] cursor-pointer"
+                  >
+                    🎲 FAIR
+                  </button>
+
+                  {/* Smart PR Analysis Button */}
+                  <button
+                    type="button"
+                    onClick={() => setIsAnalysisModalOpen(true)}
+                    title="Smart Move Analysis & Performance Rating (PR)"
+                    className="px-1 py-0.5 rounded-[2px] bg-[#061810]/90 hover:bg-[#0b291d] border border-[#c8a668]/40 font-cinzel text-[5.8px] font-bold text-[#ffe4a0] cursor-pointer"
+                  >
+                    📊 PR:{analysisSummary.performanceRating}
+                  </button>
                 </div>
 
                 {/* Top-Right Game Controls: Doubling Cube, Swap Dice Order, Undo, Auto Roll, Auto Bear-Off, Reset, Settings */}
@@ -2739,16 +2856,16 @@ export default function App() {
                       handleTouchClosedBoard();
                     } else if (!isHomeScreen) {
                       navigateToScreen('home');
-                    } else {
-                      enterGameTable('practice');
                     }
                   }}
-                  className={`flex items-center gap-2 text-left transition-opacity duration-300 cursor-pointer group ${
+                  className={`flex items-center gap-2 text-left transition-opacity duration-300 ${
+                    !isHomeScreen ? 'cursor-pointer group' : 'cursor-default'
+                  } ${
                     hasLineStarted('brand') ? 'opacity-100' : 'opacity-0'
                   }`}
                 >
-                  <RoyalCrownIcon className="w-4 h-3.5 text-[#c8a668] group-hover:text-[#e2c489] transition-colors shrink-0" />
-                  <span className="font-cinzel text-[9px] font-medium tracking-[0.24em] text-[#e8dfd0] group-hover:text-white whitespace-nowrap">
+                  <RoyalCrownIcon className={`w-4 h-3.5 text-[#c8a668] ${!isHomeScreen ? 'group-hover:text-[#e2c489]' : ''} transition-colors shrink-0`} />
+                  <span className={`font-cinzel text-[9px] font-medium tracking-[0.24em] text-[#e8dfd0] ${!isHomeScreen ? 'group-hover:text-white' : ''} whitespace-nowrap`}>
                     {typedMap.brand}
                     {renderCursor('brand')}
                   </span>
@@ -2792,27 +2909,6 @@ export default function App() {
                         : `${realState.coins.toLocaleString()} C`}
                       {renderCursor('coins')}
                     </span>
-                  </button>
-
-                  <div className="h-3 w-[1px] bg-[#c8a668]/30" />
-
-                  {/* Messages Button (بخش پیام‌های ۳ گانه: خصوصی، سیستم، همگانی) */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      royalSound.playOptionClickSound();
-                      setIsMessagesModalOpen(true);
-                      setUnreadMessagesCount(0);
-                    }}
-                    title="پیام‌ها (خصوصی، سیستم، همگانی)"
-                    className="relative px-1.5 py-0.5 rounded-[2px] bg-[#140e06] border border-[#e0be6c]/50 hover:bg-[#26180a] text-[#f7e09e] font-cinzel text-[7px] font-bold tracking-wider cursor-pointer transition-colors flex items-center gap-1"
-                  >
-                    <span>💬 MESSAGES</span>
-                    {unreadMessagesCount > 0 && (
-                      <span className="w-3.5 h-3.5 -mr-0.5 rounded-full bg-[#e53e3e] text-white text-[6.5px] font-bold flex items-center justify-center animate-pulse">
-                        {unreadMessagesCount}
-                      </span>
-                    )}
                   </button>
 
                   <div className="h-3 w-[1px] bg-[#c8a668]/30" />
@@ -2932,7 +3028,7 @@ export default function App() {
                       </button>
                     </div>
 
-                    {/* Option 2: PRACTICE */}
+                    {/* Option 2: PRACTICE WITH AI */}
                     <div
                       className={`transition-opacity duration-200 ${
                         hasLineStarted('opt2Title')
@@ -2942,19 +3038,20 @@ export default function App() {
                     >
                       <button
                         type="button"
-                        onClick={() => enterGameTable('practice')}
+                        onClick={() => {
+                          royalSound.playOptionClickSound();
+                          setIsAIDifficultyModalOpen(true);
+                        }}
                         className="w-full py-1.5 flex items-center justify-between gap-2 text-left group border-b border-[#c8a668]/20 hover:border-[#c8a668]/50 transition-colors cursor-pointer"
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
                           <SinglePlayerIcon className="w-4 h-4 text-[#b99656] group-hover:text-[#e2c285] transition-colors shrink-0" />
                           <div className="min-w-0">
                             <span className="font-cinzel text-[9px] tracking-[0.12em] text-[#ebe3d2] group-hover:text-white transition-colors whitespace-nowrap block">
-                              {typedMap.opt2Title}
-                              {renderCursor('opt2Title')}
+                              PRACTICE • {AI_DIFFICULTY_PROFILES[aiDifficulty].badge}
                             </span>
                             <p className="font-cormorant text-[9.5px] text-[#a39e93] truncate leading-tight">
-                              {typedMap.opt2Sub}
-                              {renderCursor('opt2Sub')}
+                              {AI_DIFFICULTY_PROFILES[aiDifficulty].persianName} ({AI_DIFFICULTY_PROFILES[aiDifficulty].errorRate} خطا)
                             </p>
                           </div>
                         </div>
@@ -2962,7 +3059,32 @@ export default function App() {
                       </button>
                     </div>
 
-                    {/* Option 3: PLAY WITH FRIENDS */}
+                    {/* Option 3: TOURNAMENTS (Swiss + Knockout) */}
+                    <div className="transition-opacity duration-200 opacity-100 pointer-events-auto">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          royalSound.playOptionClickSound();
+                          setIsTournamentModalOpen(true);
+                        }}
+                        className="w-full py-1.5 flex items-center justify-between gap-2 text-left group border-b border-[#c8a668]/20 hover:border-[#c8a668]/50 transition-colors cursor-pointer"
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <RoyalCrownIcon className="w-4 h-4 text-[#e2c285] group-hover:text-white transition-colors shrink-0" />
+                          <div className="min-w-0">
+                            <span className="font-cinzel text-[9px] tracking-[0.12em] text-[#ffe4a0] group-hover:text-white transition-colors whitespace-nowrap block font-bold">
+                              SWISS TOURNAMENTS
+                            </span>
+                            <p className="font-cormorant text-[9.5px] text-[#52f29c] truncate leading-tight font-semibold">
+                              ۵ و ۱۰ تتر • ۸۵٪ جایزه • حذفی نهایی ۸ نفره
+                            </p>
+                          </div>
+                        </div>
+                        <ChevronRightIcon className="w-2.5 h-2.5 text-[#e2c285] group-hover:translate-x-0.5 transition-all shrink-0" />
+                      </button>
+                    </div>
+
+                    {/* Option 4: PLAY WITH FRIENDS */}
                     <div
                       className={`transition-opacity duration-200 ${
                         hasLineStarted('opt3Title')
@@ -2980,11 +3102,9 @@ export default function App() {
                           <div className="min-w-0">
                             <span className="font-cinzel text-[9px] tracking-[0.12em] text-[#ebe3d2] group-hover:text-white transition-colors whitespace-nowrap block">
                               {typedMap.opt3Title}
-                              {renderCursor('opt3Title')}
                             </span>
                             <p className="font-cormorant text-[9.5px] text-[#a39e93] truncate leading-tight">
                               {typedMap.opt3Sub}
-                              {renderCursor('opt3Sub')}
                             </p>
                           </div>
                         </div>
@@ -2992,35 +3112,28 @@ export default function App() {
                       </button>
                     </div>
 
-                    {/* Option 4: MESSAGES & INBOX (پیام‌های خصوصی، سیستم، همگانی) */}
-                    <div className="transition-opacity duration-200 mt-0.5">
+                    {/* Quick-Access Feature Chips */}
+                    <div className="flex items-center gap-1 mt-1.5 pt-1.5 border-t border-[#c8a668]/20 flex-wrap">
                       <button
                         type="button"
-                        onClick={() => {
-                          royalSound.playOptionClickSound();
-                          setIsMessagesModalOpen(true);
-                          setUnreadMessagesCount(0);
-                        }}
-                        className="w-full py-1 flex items-center justify-between gap-2 text-left group border-t border-[#c8a668]/20 hover:border-[#c8a668]/50 transition-colors cursor-pointer"
+                        onClick={() => setIsLeaderboardModalOpen(true)}
+                        className="px-1.5 py-0.5 rounded bg-[#0b291d] hover:bg-[#124230] border border-[#52f29c]/40 font-cinzel text-[6.5px] text-[#52f29c] font-bold cursor-pointer transition-colors"
                       >
-                        <div className="flex items-center gap-2 min-w-0">
-                          <span className="text-[#e2c285] text-xs shrink-0">💬</span>
-                          <div className="min-w-0">
-                            <span className="font-cinzel text-[8.5px] tracking-[0.12em] text-[#ebe3d2] group-hover:text-white transition-colors whitespace-nowrap block">
-                              MESSAGES (صندوق پیام‌ها)
-                            </span>
-                            <p className="font-cormorant text-[9px] text-[#a39e93] truncate leading-tight">
-                              پیام‌های خصوصی، سیستم، همگانی
-                            </p>
-                          </div>
-                        </div>
-                        {unreadMessagesCount > 0 ? (
-                          <span className="px-1.5 py-0.2 rounded-full bg-[#e53e3e] text-white text-[6.5px] font-bold">
-                            {unreadMessagesCount} NEW
-                          </span>
-                        ) : (
-                          <ChevronRightIcon className="w-2.5 h-2.5 text-[#b99656] group-hover:translate-x-0.5 transition-all shrink-0" />
-                        )}
+                        🏆 LEADERBOARD
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsProvablyFairModalOpen(true)}
+                        className="px-1.5 py-0.5 rounded bg-[#04120c] hover:bg-[#0b291d] border border-[#c8a668]/40 font-cinzel text-[6.5px] text-[#e2c285] font-bold cursor-pointer transition-colors"
+                      >
+                        🎲 PROVABLY FAIR
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsVariantsModalOpen(true)}
+                        className="px-1.5 py-0.5 rounded bg-[#04120c] hover:bg-[#0b291d] border border-[#c8a668]/40 font-cinzel text-[6.5px] text-[#d8dee6] font-bold cursor-pointer transition-colors"
+                      >
+                        ⚙️ {GAME_VARIANTS[selectedVariant].name}
                       </button>
                     </div>
                   </div>
@@ -3048,29 +3161,22 @@ export default function App() {
                 </main>
               )}
 
-              {/* DEDICATED HOME SCREEN CLOSED BOARD SHOWCASE (تفکیک کامل تخته صفحه خانه از سیستم بازی با ابعاد بزرگتر) */}
-              {isHomeScreen && (
-                <div className="relative h-full w-[66%] shrink-0 flex items-center justify-center">
-                  <HomeClosedBoardShowcase
-                    onOpenBoard={() => {
-                      royalSound.playOptionClickSound();
-                      setIsTiersModalOpen(true);
-                    }}
-                    onOpenCollection={() => navigateToScreen('collection')}
-                  />
-                </div>
-              )}
-
-              {/* 3D GLB BACKGAMMON BOARD STAGE (مخصوص صفحه بازی و مسابقات) */}
+              {/* 3D GLB BACKGAMMON BOARD STAGE (Board always rendered) */}
               <div
                 className={`relative h-full shrink-0 flex items-center justify-center ${
-                  isGameScreen ? 'w-full' : 'hidden'
+                  isGameScreen ? 'w-full' : 'w-[66%]'
                 }`}
               >
                 <div
                   ref={canvasContainerRef}
                   className={`w-full h-full ${
-                    isBoardHovered ? 'cursor-pointer' : ''
+                    isGameScreen
+                      ? isBoardHovered
+                        ? 'cursor-pointer pointer-events-auto'
+                        : 'pointer-events-auto'
+                      : boardState === 'closed'
+                      ? 'cursor-pointer pointer-events-auto'
+                      : 'pointer-events-none'
                   }`}
                 />
 
@@ -3196,6 +3302,7 @@ export default function App() {
                 onDownloadTelegramBotScript={handleDownloadTelegramBotScript}
                 onShareOnTelegram={handleShareOnTelegram}
                 onResetAllData={handleResetAllData}
+                onLogoutTelegram={handleLogoutTelegram}
                 onBackHome={() => setActiveScreen('home')}
                 onOpenAdmin={() => setIsAdminModalOpen(true)}
                 onOpenSupport={() => setIsSupportModalOpen(true)}
@@ -3345,14 +3452,10 @@ export default function App() {
                     } CHECKER TO MOVE`}
               </span>
             ) : (
-              <button
-                type="button"
-                onClick={() => enterGameTable('practice')}
-                className="flex items-center font-cinzel text-[7px] tracking-[0.16em] text-[#7a7870] hover:text-[#c8a668] transition-colors whitespace-nowrap cursor-pointer pointer-events-auto"
-              >
+              <span className="flex items-center font-cinzel text-[7px] tracking-[0.16em] text-[#7a7870] whitespace-nowrap select-none">
                 {typedMap.motto || 'A HIGHER KIND OF PLAY'}
                 {renderCursor('motto')}
-              </button>
+              </span>
             )}
           </footer>
 
@@ -3476,21 +3579,78 @@ export default function App() {
             onClose={() => setIsAdminModalOpen(false)}
           />
 
-          {/* Home Messages Modal (بخش پیام‌های ۳ گانه: خصوصی، سیستم، همگانی با متن مختصر) */}
-          <HomeMessagesModal
-            isOpen={isMessagesModalOpen}
-            onClose={() => setIsMessagesModalOpen(false)}
-            currentUserId={multiplayerClient.getCurrentUser()?.id || playerId}
-            currentUsername={realState.playerName}
+          {/* Swiss + Knockout Tournament System Modal (مسابقات سوئیسی و حذفی با ورودی و جوایز تتر) */}
+          <TournamentLobbyModal
+            isOpen={isTournamentModalOpen}
+            onClose={() => setIsTournamentModalOpen(false)}
+            userUsdtBalance={usdtBalance}
+            userId={playerId}
+            userName={realState.playerName}
             playerLevel={playerLevel}
-            globalMessages={globalChatMessages}
-            privateMessages={privateChatMessages}
-            onSendGlobalMessage={(text) => {
-              multiplayerClient.sendGlobalChat(text);
+            playerRating={playerRating}
+            onRegisterTournament={handleRegisterTournament}
+            onUnregisterTournament={handleUnregisterTournament}
+            onSpectateMatch={handleSpectateMatch}
+            onOpenWallet={() => {
+              setIsTournamentModalOpen(false);
+              navigateToScreen('wallet');
             }}
-            onSendPrivateMessage={(targetUserId, text) => {
-              multiplayerClient.sendPrivateChat(targetUserId, text);
+          />
+
+          {/* Provably Fair Cryptographic Dice Verifier Modal (ممیزی ریاضی و تعهد هش) */}
+          <ProvablyFairModal
+            isOpen={isProvablyFairModalOpen}
+            onClose={() => setIsProvablyFairModalOpen(false)}
+            serverSeedHash={serverSeedHash}
+            clientSeed={clientSeed}
+            currentNonce={currentRollNonce}
+            revealedServerSeed={revealedServerSeed}
+            onUpdateClientSeed={(s) => setClientSeed(s)}
+          />
+
+          {/* Global ELO & Seasonal Leaderboards Modal (رتبه‌بندی جهانی، فصول و ضرایب K داینامیک) */}
+          <LeaderboardSeasonsModal
+            isOpen={isLeaderboardModalOpen}
+            onClose={() => setIsLeaderboardModalOpen(false)}
+            currentUser={{
+              id: playerId,
+              username: realState.playerName,
+              rating: playerRating,
+              level: playerLevel,
+              wins: realState.realStats.wins,
+              losses: realState.realStats.losses ?? 0,
             }}
+          />
+
+          {/* Backgammon Game Variants Selection Modal (استاندارد، نرد لانگ و هایپرگامون) */}
+          <GameVariantsModal
+            isOpen={isVariantsModalOpen}
+            onClose={() => setIsVariantsModalOpen(false)}
+            selectedVariant={selectedVariant}
+            onSelectVariant={(vId) => {
+              setSelectedVariant(vId);
+              handleStartNewMatch();
+              showToastNotification('variant-changed', `VARIANT: ${vId.toUpperCase()}`, 'Board reconfigured for chosen variant rules');
+            }}
+          />
+
+          {/* AI Opponent Personality & Difficulty Modal (مبتدی، نوآموز، متوسط، استاد بزرگ) */}
+          <AIDifficultyModal
+            isOpen={isAIDifficultyModalOpen}
+            onClose={() => setIsAIDifficultyModalOpen(false)}
+            selectedDifficulty={aiDifficulty}
+            onSelectDifficulty={(d) => {
+              setAiDifficulty(d);
+              enterGameTable('practice');
+              showToastNotification('ai-difficulty', `AI OPPONENT: ${d.toUpperCase()}`, `${AI_DIFFICULTY_PROFILES[d].errorRate} error rate`);
+            }}
+          />
+
+          {/* Smart Game Analysis & Performance Rating (PR) Modal (تحلیل بازی و ریتینگ PR) */}
+          <GameAnalysisModal
+            isOpen={isAnalysisModalOpen}
+            onClose={() => setIsAnalysisModalOpen(false)}
+            summary={analysisSummary}
           />
         </div>
       </div>

@@ -57,6 +57,7 @@ export interface TelegramWebAppInstance {
   HapticFeedback?: TelegramHapticFeedback;
   BackButton?: TelegramBackButton;
   CloudStorage?: TelegramCloudStorage;
+  isVersionAtLeast?: (version: string) => boolean;
   ready: () => void;
   expand: () => void;
   close: () => void;
@@ -115,8 +116,10 @@ export function initTelegramMiniApp(): {
     tg.expand();
     tg.setHeaderColor?.('#05110c');
     tg.setBackgroundColor?.('#020705');
-    tg.disableVerticalSwipes?.();
-    tg.lockOrientation?.('landscape');
+    if (!tg.isVersionAtLeast || tg.isVersionAtLeast('7.7')) {
+      tg.disableVerticalSwipes?.();
+      tg.lockOrientation?.('landscape');
+    }
   } catch {
     // Ignore unsupported methods on older Telegram clients
   }
@@ -132,7 +135,7 @@ export function initTelegramMiniApp(): {
 export function requestTelegramFullscreen(): boolean {
   const tg = getTelegramWebApp();
   try {
-    if (tg?.requestFullscreen) {
+    if (tg && tg.isVersionAtLeast && tg.isVersionAtLeast('8.0') && typeof tg.requestFullscreen === 'function') {
       tg.requestFullscreen();
       return true;
     }
