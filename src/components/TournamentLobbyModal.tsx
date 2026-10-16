@@ -463,7 +463,7 @@ export function TournamentLobbyModal({
                   <span className="font-cinzel text-[7.5px] font-bold text-[#c8a668] block">
                     QUARTERFINALS (یک‌چهارم)
                   </span>
-                  {(currentTourn.bracket?.quarters || [1, 2, 3, 4]).map((q: any, i) => (
+                  {(currentTourn.bracket?.quarters || [1, 2, 3, 4]).map((q: any, i: number) => (
                     <div
                       key={i}
                       className="p-2 rounded bg-[#04120c] border border-[#c8a668]/25 text-[8px] space-y-1"
@@ -485,7 +485,7 @@ export function TournamentLobbyModal({
                   <span className="font-cinzel text-[7.5px] font-bold text-[#c8a668] block">
                     SEMIFINALS (نیمه‌نهایی)
                   </span>
-                  {(currentTourn.bracket?.semis || [1, 2]).map((s: any, i) => (
+                  {(currentTourn.bracket?.semis || [1, 2]).map((s: any, i: number) => (
                     <div
                       key={i}
                       className="p-2.5 rounded bg-[#04120c] border border-[#c8a668]/35 text-[8.5px] space-y-1.5 my-3"

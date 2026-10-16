@@ -2190,7 +2190,8 @@ if (!isProduction) {
 
 const portArgIdx = process.argv.indexOf('--port');
 const portArg = portArgIdx !== -1 ? Number(process.argv[portArgIdx + 1]) : null;
-const PORT = Number(process.env.PORT) || portArg || 3000;
+// Must run on port 3000 (control-plane proxies to 3000, while nginx occupies 8080)
+const PORT = portArg || (process.env.APP_PORT ? Number(process.env.APP_PORT) : 3000);
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`[Royal Backgammon Engine] Full-stack Server listening on http://0.0.0.0:${PORT}`);
 });

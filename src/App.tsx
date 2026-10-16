@@ -87,7 +87,9 @@ import { ProvablyFairModal } from './components/ProvablyFairModal';
 import { LeaderboardSeasonsModal } from './components/LeaderboardSeasonsModal';
 import { GameVariantsModal } from './components/GameVariantsModal';
 import { AIDifficultyModal } from './components/AIDifficultyModal';
+import { MatchEndModal } from './components/MatchEndModal';
 import { GameAnalysisModal } from './components/GameAnalysisModal';
+import { PoolStyleHomeCarousel } from './components/PoolStyleHomeCarousel';
 import {
   AIDifficulty,
   AI_DIFFICULTY_PROFILES,
@@ -95,8 +97,8 @@ import {
   evaluateAIDoubleResponse,
   getAIDelays,
 } from './engine/aiPersonalityEngine';
-import { GameVariantId, GAME_VARIANTS } from './engine/gameRules';
 import { TournamentMatch, TournamentTierId } from './network/tournamentTypes';
+import { GameVariantId, GAME_VARIANTS } from './engine/gameRules';
 import {
   analyzePlayerStep,
   calculateMatchPR,
@@ -457,6 +459,7 @@ export default function App() {
   const [isTournamentCrawfordGame, setIsTournamentCrawfordGame] = useState(false);
 
   // Provably Fair Cryptographic Dice State
+  const [isGameEndModalOpen, setIsGameEndModalOpen] = useState(false);
   const [isProvablyFairModalOpen, setIsProvablyFairModalOpen] = useState(false);
   const [clientSeed, setClientSeed] = useState<string>('royal-lucky-seed');
   const [serverSeedHash, setServerSeedHash] = useState<string>(
@@ -652,6 +655,12 @@ export default function App() {
     !hasRolledThisTurn &&
     !pendingDoubleOffer &&
     isHumanTurn;
+
+  useEffect(() => {
+    if (winner) {
+      setIsGameEndModalOpen(true);
+    }
+  }, [winner]);
 
   useEffect(() => {
     if (engineRef.current) {
@@ -1271,7 +1280,7 @@ export default function App() {
         showToastNotification(
           'cube-taken',
           `CUBE DOUBLED TO ${nextVal}X!`,
-          decision.reason
+          decision.reason || 'AI accepted doubling cube'
         );
       } else {
         // AI drops the cube -> Player wins immediately at currentVal stake!
@@ -1298,7 +1307,7 @@ export default function App() {
         showToastNotification(
           'cube-dropped',
           `AI PASSED CUBE! +${payout} COINS`,
-          decision.reason
+          decision.reason || 'AI surrendered match'
         );
       }
       return;
@@ -2241,6 +2250,7 @@ export default function App() {
   const handleTouchClosedBoard = () => {
     if (boardState === 'closed' && engineRef.current) {
       engineRef.current.openBoard();
+      setBoardState('opening');
     }
   };
 
@@ -2847,326 +2857,142 @@ export default function App() {
                 </div>
               </>
             ) : (
-              /* LOBBY / INNER SCREENS TOP BAR */
-              <>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (boardState !== 'open') {
-                      handleTouchClosedBoard();
-                    } else if (!isHomeScreen) {
-                      navigateToScreen('home');
-                    }
-                  }}
-                  className={`flex items-center gap-2 text-left transition-opacity duration-300 ${
-                    !isHomeScreen ? 'cursor-pointer group' : 'cursor-default'
-                  } ${
-                    hasLineStarted('brand') ? 'opacity-100' : 'opacity-0'
-                  }`}
-                >
-                  <RoyalCrownIcon className={`w-4 h-3.5 text-[#c8a668] ${!isHomeScreen ? 'group-hover:text-[#e2c489]' : ''} transition-colors shrink-0`} />
-                  <span className={`font-cinzel text-[9px] font-medium tracking-[0.24em] text-[#e8dfd0] ${!isHomeScreen ? 'group-hover:text-white' : ''} whitespace-nowrap`}>
-                    {typedMap.brand}
-                    {renderCursor('brand')}
-                  </span>
-                </button>
-
+              /* LOBBY / INNER SCREENS TOP BAR (8 BALL POOL LUXURY DESIGN) */
+              <div className="flex items-center justify-between w-full pointer-events-auto">
+                {/* Left: Player Profile Badge with Avatar, Crown border, Level, Username, XP */}
                 <div
-                  className={`flex items-center gap-3 transition-opacity duration-300 ${
-                    hasLineStarted('coins') ? 'opacity-100' : 'opacity-0'
-                  }`}
+                  onClick={() => navigateToScreen('profile')}
+                  className="flex items-center gap-2 cursor-pointer group px-2 py-0.5 rounded-xl bg-[#03140c]/90 border border-[#c8a668]/50 hover:border-[#f5dca8] transition-all shadow-md"
                 >
+                  <div className="relative">
+                    <div className="w-7 h-7 rounded-full border border-[#f5dca8] bg-[#020a06] overflow-hidden flex items-center justify-center shadow-sm">
+                      <img
+                        src={boardCrestImg}
+                        alt="Avatar"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full bg-[#15803d] border border-white text-[6.5px] font-bold font-cinzel text-white flex items-center justify-center">
+                      {playerLevel}
+                    </div>
+                  </div>
+                  <div className="flex flex-col text-left">
+                    <div className="flex items-center gap-1">
+                      <RoyalCrownIcon className="w-2.5 h-2.5 text-[#f5dca8]" />
+                      <span className="font-cinzel text-[8px] font-black tracking-wider text-white group-hover:text-[#f5dca8]">
+                        {realState.playerName}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1 mt-0.5">
+                      <div className="w-12 h-1 rounded-full bg-black/60 overflow-hidden border border-white/10">
+                        <div
+                          className="h-full bg-gradient-to-r from-[#eab308] to-[#22c55e]"
+                          style={{ width: `${Math.min(100, (realState.xp || 50) % 100)}%` }}
+                        />
+                      </div>
+                      <span className="font-cinzel text-[6px] text-[#52f29c] font-bold">
+                        LVL {playerLevel}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Middle: Currency Badges (Coins & USDT) */}
+                <div className="flex items-center gap-1.5">
+                  {/* Coins Badge */}
                   <button
                     type="button"
                     onClick={() => navigateToScreen('wallet')}
-                    className={`flex items-center gap-1 transition-colors cursor-pointer whitespace-nowrap px-1.5 py-0.5 rounded-[2px] ${
-                      activeScreen === 'wallet'
-                        ? 'bg-[#0a281c] text-[#52f29c] border border-[#52f29c]/50'
-                        : 'text-[#52f29c] bg-[#020d07] border border-[#52f29c]/30 hover:brightness-110'
-                    }`}
+                    className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-[#020d07] border border-[#c8a668]/50 hover:brightness-110 shadow-sm cursor-pointer"
                   >
-                    <span className="font-cinzel text-[7.5px] font-bold tracking-wider tabular-nums">
-                      💵 {usdtBalance.toFixed(2)} USDT
+                    <span className="text-[9px]">🟡</span>
+                    <span className="font-cinzel text-[8px] font-black text-[#f5dca8] tabular-nums">
+                      {realState.coins.toLocaleString()}
+                    </span>
+                    <span className="w-3 h-3 rounded bg-[#c8a668] text-[#140e05] font-bold text-[7px] flex items-center justify-center">
+                      +
                     </span>
                   </button>
 
+                  {/* USDT Balance Badge */}
                   <button
                     type="button"
                     onClick={() => navigateToScreen('wallet')}
-                    className={`flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap px-1.5 py-0.5 rounded-[2px] ${
-                      activeScreen === 'wallet'
-                        ? 'bg-[#c8a668]/20 text-[#f5dca8] border border-[#c8a668]/50'
-                        : 'text-[#e5dccb] hover:text-[#f5dca8]'
-                    }`}
+                    className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-[#031a10] border border-[#22c55e]/60 hover:brightness-110 shadow-sm cursor-pointer"
                   >
-                    <WalletIcon
-                      className="w-3 h-3 text-[#b89352] shrink-0"
-                      filled={true}
-                    />
-                    <span className="font-cinzel text-[7.5px] tracking-[0.14em] tabular-nums">
-                      {activeLineKey === 'coins'
-                        ? typedMap.coins
-                        : `${realState.coins.toLocaleString()} C`}
-                      {renderCursor('coins')}
+                    <span className="text-[9px]">💵</span>
+                    <span className="font-cinzel text-[8px] font-black text-[#52f29c] tabular-nums">
+                      {usdtBalance.toFixed(2)} USDT
                     </span>
-                  </button>
-
-                  <div className="h-3 w-[1px] bg-[#c8a668]/30" />
-
-                  {/* Customer Support Button */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      royalSound.playOptionClickSound();
-                      setIsSupportModalOpen(true);
-                    }}
-                    title="پشتیبانی ۲۴ ساعته"
-                    className="px-1.5 py-0.5 rounded-[2px] bg-[#061810] border border-[#52f29c]/40 hover:bg-[#0c2b1e] text-[#52f29c] font-cinzel text-[7px] font-bold tracking-wider cursor-pointer transition-colors flex items-center gap-1"
-                  >
-                    <span>🎧 SUPPORT</span>
-                  </button>
-
-                  {/* Admin Panel Button */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      royalSound.playOptionClickSound();
-                      setIsAdminModalOpen(true);
-                    }}
-                    title="پنل مدیریت مستقل"
-                    className="px-1.5 py-0.5 rounded-[2px] bg-[#1a1205] border border-[#c8a668]/50 hover:bg-[#2b1e09] text-[#f5dca8] font-cinzel text-[7px] font-bold tracking-wider cursor-pointer transition-colors flex items-center gap-1"
-                  >
-                    <RoyalCrownIcon className="w-2.5 h-2.5 text-[#f5dca8]" />
-                    <span>ADMIN</span>
-                  </button>
-
-                  <div className="h-3 w-[1px] bg-[#c8a668]/30" />
-
-                  <button
-                    type="button"
-                    aria-label="Settings"
-                    onClick={() =>
-                      navigateToScreen(
-                        activeScreen === 'settings' ? 'home' : 'settings'
-                      )
-                    }
-                    className={`p-1 rounded-[2px] transition-all duration-200 cursor-pointer ${
-                      activeScreen === 'settings'
-                        ? 'bg-[#c8a668]/25 text-[#f5dca8] border border-[#c8a668]/60 rotate-45'
-                        : 'text-[#c5a263] hover:text-[#ebd09a] hover:rotate-45'
-                    }`}
-                  >
-                    <GearSettingsIcon className="w-3.5 h-3.5" />
+                    <span className="w-3 h-3 rounded bg-[#22c55e] text-[#021008] font-bold text-[7px] flex items-center justify-center">
+                      +
+                    </span>
                   </button>
                 </div>
-              </>
+
+                {/* Right: Quick Action Icons (Leaderboard, Support, Settings) */}
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setIsLeaderboardModalOpen(true)}
+                    title="رتبه‌بندی جهانی (Leaderboard)"
+                    className="w-6 h-6 rounded-lg bg-[#061c12] hover:bg-[#0c3120] border border-[#52f29c]/40 text-[#52f29c] flex items-center justify-center shadow cursor-pointer transition-all active:scale-95 text-[10px] font-bold"
+                  >
+                    🏆
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsSupportModalOpen(true)}
+                    title="پشتیبانی ۲۴ ساعته"
+                    className="w-6 h-6 rounded-lg bg-[#061810] hover:bg-[#0c2b1e] border border-[#52f29c]/40 text-[#52f29c] flex items-center justify-center shadow cursor-pointer transition-all active:scale-95 text-[10px]"
+                  >
+                    🎧
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => navigateToScreen(activeScreen === 'settings' ? 'home' : 'settings')}
+                    title="تنظیمات"
+                    className="w-6 h-6 rounded-lg bg-[#04100b] hover:bg-[#0b261b] border border-[#c8a668]/40 text-[#c8a668] flex items-center justify-center shadow cursor-pointer transition-all active:scale-95 text-[10px]"
+                  >
+                    ⚙️
+                  </button>
+                </div>
+              </div>
             )}
           </header>
 
-          {/* 3. CENTER LANDSCAPE BODY */}
-          <div className="relative z-10 w-full flex-1 min-h-0 flex flex-row items-center">
-            {/* SHARED 3D GLB STAGE */}
+          {/* 3. CENTER LANDSCAPE BODY (8 BALL POOL CAROUSEL ON HOME, 3D TABLE IN GAME) */}
+          <div className="relative z-10 w-full flex-1 min-h-0 flex flex-row items-center overflow-hidden">
+            {/* If on Home Screen, render the 8 Ball Pool style middle cards carousel */}
+            {isHomeScreen ? (
+              <div className="w-full h-full flex items-center justify-center relative z-20">
+                <PoolStyleHomeCarousel
+                  onPlayOneOnOne={() => {
+                    handleStartOnlineMatch('quick_seat');
+                  }}
+                  onOpenTournaments={() => {
+                    setIsTournamentModalOpen(true);
+                  }}
+                  onOpenPractice={() => {
+                    setIsAIDifficultyModalOpen(true);
+                  }}
+                  onOpenFriends={() => {
+                    setIsFriendsModalOpen(true);
+                  }}
+                />
+              </div>
+            ) : null}
+
+            {/* 3D GLB BACKGAMMON BOARD STAGE (Active and visible when on Game Screen) */}
             <div
-              className={`w-full h-full flex flex-row items-center ${
-                show3DStage
-                  ? 'opacity-100 pointer-events-auto'
-                  : 'opacity-0 pointer-events-none absolute inset-0'
+              className={`h-full flex items-center justify-center transition-all duration-300 ${
+                isGameScreen
+                  ? 'w-full opacity-100 pointer-events-auto'
+                  : 'w-0 opacity-0 pointer-events-none absolute inset-0'
               }`}
             >
-              {/* LEFT MENU COLUMN (Visible only on Home Screen) */}
-              {isHomeScreen && (
-                <main className="relative z-20 w-[34%] h-full pl-5 pr-1.5 flex flex-col justify-center min-h-0">
-                  <div className="mb-2 min-h-[42px]">
-                    {hasLineStarted('hero1') && (
-                      <h1 className="font-cormorant text-[21px] font-normal leading-[1.02] tracking-[0.04em] text-[#ece5d5] uppercase">
-                        <span className="block whitespace-nowrap">
-                          {typedMap.hero1}
-                          {renderCursor('hero1')}
-                        </span>
-                        {hasLineStarted('hero2') && (
-                          <span className="block whitespace-nowrap">
-                            {typedMap.hero2}
-                            {renderCursor('hero2')}
-                          </span>
-                        )}
-                      </h1>
-                    )}
-                  </div>
-
-                  {/* Menu Options List — All 100% Connected to the Active 3D Game Page */}
-                  <div className="flex flex-col">
-                    {/* Option 1: ONLINE MATCH */}
-                    <div
-                      className={`transition-opacity duration-200 ${
-                        hasLineStarted('opt1Title')
-                          ? 'opacity-100 pointer-events-auto'
-                          : 'opacity-0 pointer-events-none'
-                      }`}
-                    >
-                      <button
-                        type="button"
-                        onClick={() => {
-                          royalSound.playOptionClickSound();
-                          setIsTiersModalOpen(true);
-                        }}
-                        className="w-full py-1.5 flex items-center justify-between gap-2 text-left group border-b border-[#c8a668]/20 hover:border-[#c8a668]/50 transition-colors cursor-pointer"
-                      >
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <GlobeMatchIcon className="w-4 h-4 text-[#b99656] group-hover:text-[#e2c285] transition-colors shrink-0" />
-                          <div className="min-w-0">
-                            <span className="font-cinzel text-[9px] tracking-[0.12em] text-[#ebe3d2] group-hover:text-white transition-colors whitespace-nowrap block">
-                              {typedMap.opt1Title}
-                              {renderCursor('opt1Title')}
-                            </span>
-                            <p className="font-cormorant text-[9.5px] text-[#a39e93] truncate leading-tight">
-                              {typedMap.opt1Sub}
-                              {renderCursor('opt1Sub')}
-                            </p>
-                          </div>
-                        </div>
-                        <ChevronRightIcon className="w-2.5 h-2.5 text-[#b99656] group-hover:translate-x-0.5 transition-all shrink-0" />
-                      </button>
-                    </div>
-
-                    {/* Option 2: PRACTICE WITH AI */}
-                    <div
-                      className={`transition-opacity duration-200 ${
-                        hasLineStarted('opt2Title')
-                          ? 'opacity-100 pointer-events-auto'
-                          : 'opacity-0 pointer-events-none'
-                      }`}
-                    >
-                      <button
-                        type="button"
-                        onClick={() => {
-                          royalSound.playOptionClickSound();
-                          setIsAIDifficultyModalOpen(true);
-                        }}
-                        className="w-full py-1.5 flex items-center justify-between gap-2 text-left group border-b border-[#c8a668]/20 hover:border-[#c8a668]/50 transition-colors cursor-pointer"
-                      >
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <SinglePlayerIcon className="w-4 h-4 text-[#b99656] group-hover:text-[#e2c285] transition-colors shrink-0" />
-                          <div className="min-w-0">
-                            <span className="font-cinzel text-[9px] tracking-[0.12em] text-[#ebe3d2] group-hover:text-white transition-colors whitespace-nowrap block">
-                              PRACTICE • {AI_DIFFICULTY_PROFILES[aiDifficulty].badge}
-                            </span>
-                            <p className="font-cormorant text-[9.5px] text-[#a39e93] truncate leading-tight">
-                              {AI_DIFFICULTY_PROFILES[aiDifficulty].persianName} ({AI_DIFFICULTY_PROFILES[aiDifficulty].errorRate} خطا)
-                            </p>
-                          </div>
-                        </div>
-                        <ChevronRightIcon className="w-2.5 h-2.5 text-[#b99656] group-hover:translate-x-0.5 transition-all shrink-0" />
-                      </button>
-                    </div>
-
-                    {/* Option 3: TOURNAMENTS (Swiss + Knockout) */}
-                    <div className="transition-opacity duration-200 opacity-100 pointer-events-auto">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          royalSound.playOptionClickSound();
-                          setIsTournamentModalOpen(true);
-                        }}
-                        className="w-full py-1.5 flex items-center justify-between gap-2 text-left group border-b border-[#c8a668]/20 hover:border-[#c8a668]/50 transition-colors cursor-pointer"
-                      >
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <RoyalCrownIcon className="w-4 h-4 text-[#e2c285] group-hover:text-white transition-colors shrink-0" />
-                          <div className="min-w-0">
-                            <span className="font-cinzel text-[9px] tracking-[0.12em] text-[#ffe4a0] group-hover:text-white transition-colors whitespace-nowrap block font-bold">
-                              SWISS TOURNAMENTS
-                            </span>
-                            <p className="font-cormorant text-[9.5px] text-[#52f29c] truncate leading-tight font-semibold">
-                              ۵ و ۱۰ تتر • ۸۵٪ جایزه • حذفی نهایی ۸ نفره
-                            </p>
-                          </div>
-                        </div>
-                        <ChevronRightIcon className="w-2.5 h-2.5 text-[#e2c285] group-hover:translate-x-0.5 transition-all shrink-0" />
-                      </button>
-                    </div>
-
-                    {/* Option 4: PLAY WITH FRIENDS */}
-                    <div
-                      className={`transition-opacity duration-200 ${
-                        hasLineStarted('opt3Title')
-                          ? 'opacity-100 pointer-events-auto'
-                          : 'opacity-0 pointer-events-none'
-                      }`}
-                    >
-                      <button
-                        type="button"
-                        onClick={() => setIsFriendsModalOpen(true)}
-                        className="w-full py-1.5 flex items-center justify-between gap-2 text-left group transition-colors cursor-pointer"
-                      >
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <GroupPlayersIcon className="w-4 h-4 text-[#b99656] group-hover:text-[#e2c285] transition-colors shrink-0" />
-                          <div className="min-w-0">
-                            <span className="font-cinzel text-[9px] tracking-[0.12em] text-[#ebe3d2] group-hover:text-white transition-colors whitespace-nowrap block">
-                              {typedMap.opt3Title}
-                            </span>
-                            <p className="font-cormorant text-[9.5px] text-[#a39e93] truncate leading-tight">
-                              {typedMap.opt3Sub}
-                            </p>
-                          </div>
-                        </div>
-                        <ChevronRightIcon className="w-2.5 h-2.5 text-[#b99656] group-hover:translate-x-0.5 transition-all shrink-0" />
-                      </button>
-                    </div>
-
-                    {/* Quick-Access Feature Chips */}
-                    <div className="flex items-center gap-1 mt-1.5 pt-1.5 border-t border-[#c8a668]/20 flex-wrap">
-                      <button
-                        type="button"
-                        onClick={() => setIsLeaderboardModalOpen(true)}
-                        className="px-1.5 py-0.5 rounded bg-[#0b291d] hover:bg-[#124230] border border-[#52f29c]/40 font-cinzel text-[6.5px] text-[#52f29c] font-bold cursor-pointer transition-colors"
-                      >
-                        🏆 LEADERBOARD
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setIsProvablyFairModalOpen(true)}
-                        className="px-1.5 py-0.5 rounded bg-[#04120c] hover:bg-[#0b291d] border border-[#c8a668]/40 font-cinzel text-[6.5px] text-[#e2c285] font-bold cursor-pointer transition-colors"
-                      >
-                        🎲 PROVABLY FAIR
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setIsVariantsModalOpen(true)}
-                        className="px-1.5 py-0.5 rounded bg-[#04120c] hover:bg-[#0b291d] border border-[#c8a668]/40 font-cinzel text-[6.5px] text-[#d8dee6] font-bold cursor-pointer transition-colors"
-                      >
-                        ⚙️ {GAME_VARIANTS[selectedVariant].name}
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Primary Brushed Brass Button: TAKE YOUR SEAT */}
-                  <div
-                    className={`mt-2 transition-all duration-300 ${
-                      hasLineStarted('cta')
-                        ? 'opacity-100 translate-y-0 pointer-events-auto'
-                        : 'opacity-0 translate-y-1 pointer-events-none'
-                    }`}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => handleStartOnlineMatch('quick_seat')}
-                      className="w-full h-[28px] px-3.5 rounded-[3px] brass-button-surface border border-[#ead4a4]/65 flex items-center justify-between group cursor-pointer active:scale-[0.99] transition-transform"
-                    >
-                      <span className="font-cinzel text-[9px] font-semibold tracking-[0.18em] text-[#140e05] whitespace-nowrap">
-                        {typedMap.cta}
-                        {renderCursor('cta')}
-                      </span>
-                      <ChevronRightIcon className="w-2.5 h-2.5 text-[#140e05] group-hover:translate-x-0.5 transition-transform shrink-0" />
-                    </button>
-                  </div>
-                </main>
-              )}
-
-              {/* 3D GLB BACKGAMMON BOARD STAGE (Board always rendered) */}
-              <div
-                className={`relative h-full shrink-0 flex items-center justify-center ${
-                  isGameScreen ? 'w-full' : 'w-[66%]'
-                }`}
-              >
                 <div
                   ref={canvasContainerRef}
                   className={`w-full h-full ${
@@ -3435,9 +3261,7 @@ export default function App() {
             {/* Right Status / Quick Game Launch */}
             {isGameScreen ? (
               <span className="font-cinzel text-[6px] tracking-[0.12em] text-[#e3c485] whitespace-nowrap pointer-events-auto">
-                {victoryBanner
-                  ? victoryBanner
-                  : !isHumanTurn
+                {!isHumanTurn
                   ? `WAITING FOR ${
                       onlineOpponent ? onlineOpponent.username : 'OPPONENT'
                     }'S MOVE...`
@@ -3651,6 +3475,18 @@ export default function App() {
             isOpen={isAnalysisModalOpen}
             onClose={() => setIsAnalysisModalOpen(false)}
             summary={analysisSummary}
+          />
+          <MatchEndModal
+            isOpen={isGameEndModalOpen}
+            onClose={() => setIsGameEndModalOpen(false)}
+            winner={winner}
+            victoryBanner={victoryBanner}
+            isTournamentMatch={Boolean(activeTournamentMatch)}
+            tournamentMatch={activeTournamentMatch || undefined}
+            onPlayAgain={() => {
+              setIsGameEndModalOpen(false);
+              handleStartNewMatch();
+            }}
           />
         </div>
       </div>
