@@ -809,7 +809,7 @@ export class Gdx3DEngine {
     this.scene.add(this.boardStageGroup);
 
     const aspect = container.clientWidth / Math.max(1, container.clientHeight);
-    this.camera = new THREE.PerspectiveCamera(24, aspect, 0.5, 80);
+    this.camera = new THREE.PerspectiveCamera(34, aspect, 0.5, 100);
     this.updateCameraFraming(aspect);
 
     this.environment = new GdxEnvironment(this.scene);
@@ -921,8 +921,9 @@ export class Gdx3DEngine {
       const isMax = this.zoomLevel === 'max';
       this.boardStageGroup.scale.set(1.0, 1.0, 1.0);
 
-      const targetBoardWidthUnits = isPortrait ? 12.2 : (isMax ? 12.9 : 13.85);
-      const targetBoardHeightUnits = isPortrait ? 8.2 : (isMax ? 8.85 : 9.5);
+      // Safe framing dimensions covering the full 3D board, border, bear-off trays and dice
+      const targetBoardWidthUnits = isPortrait ? 13.8 : (isMax ? 12.2 : 13.4);
+      const targetBoardHeightUnits = isPortrait ? 10.4 : (isMax ? 8.6 : 9.6);
 
       const vFovRad = THREE.MathUtils.degToRad(this.camera.fov);
       const hFovRad =
@@ -931,18 +932,19 @@ export class Gdx3DEngine {
       const distByHeight = targetBoardHeightUnits / 2 / Math.tan(vFovRad / 2);
 
       const requiredDist = Math.max(distByWidth, distByHeight);
-      const pitchAngle = isPortrait ? 1.18 : 1.12;
+      // Balanced camera pitch angle (54 degrees) so both near & far checkers and points are completely visible:
+      const pitchAngle = isPortrait ? 1.02 : 0.94;
       const camY = Math.sin(pitchAngle) * requiredDist;
       const camZ = Math.cos(pitchAngle) * requiredDist;
 
       this.camera.position.set(0, camY, camZ);
-      this.camera.lookAt(0, 0.06, 0.14);
+      this.camera.lookAt(0, 0, 0); // Symmetrically centered
       this.camera.updateProjectionMatrix();
     } else {
       this.boardStageGroup.scale.set(1.0, 1.0, 1.0);
 
-      const targetBoardWidthUnits = isPortrait ? 10.8 : 12.5;
-      const targetBoardHeightUnits = isPortrait ? 7.8 : 9.05;
+      const targetBoardWidthUnits = isPortrait ? 13.5 : 12.6;
+      const targetBoardHeightUnits = isPortrait ? 10.2 : 9.2;
 
       const vFovRad = THREE.MathUtils.degToRad(this.camera.fov);
       const hFovRad =
@@ -951,12 +953,12 @@ export class Gdx3DEngine {
       const distByHeight = targetBoardHeightUnits / 2 / Math.tan(vFovRad / 2);
 
       const requiredDist = Math.max(distByWidth, distByHeight);
-      const pitchAngle = isPortrait ? 1.04 : 0.96;
+      const pitchAngle = isPortrait ? 0.96 : 0.90;
       const camY = Math.sin(pitchAngle) * requiredDist;
       const camZ = Math.cos(pitchAngle) * requiredDist;
 
       this.camera.position.set(0, camY, camZ);
-      this.camera.lookAt(0, 0.08, 0.12);
+      this.camera.lookAt(0, 0, 0); // Symmetrically centered
       this.camera.updateProjectionMatrix();
     }
   }

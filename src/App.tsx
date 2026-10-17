@@ -2579,37 +2579,8 @@ export default function App() {
     );
   }
   return (
-    <div className="w-screen h-[100dvh] bg-[#020705] flex items-center justify-center overflow-hidden select-none p-0.5 relative">
-      <div
-        style={{
-          width:
-            isPortrait && isRotatedView
-              ? `${Math.round(ANDROID_LANDSCAPE_H * fitScale)}px`
-              : `${Math.round(ANDROID_LANDSCAPE_W * fitScale)}px`,
-          height:
-            isPortrait && isRotatedView
-              ? `${Math.round(ANDROID_LANDSCAPE_W * fitScale)}px`
-              : `${Math.round(ANDROID_LANDSCAPE_H * fitScale)}px`,
-        }}
-        className="relative flex items-center justify-center shrink-0"
-      >
-        {/* HORIZONTAL (LANDSCAPE) ANDROID & TELEGRAM MINI APP SHELL (680 x 320 dp) */}
-        <div
-          style={{
-            width: `${ANDROID_LANDSCAPE_W}px`,
-            height: `${ANDROID_LANDSCAPE_H}px`,
-            transform:
-              isPortrait && isRotatedView
-                ? `rotate(90deg) scale(${fitScale})`
-                : `scale(${fitScale})`,
-            transformOrigin: 'center center',
-          }}
-          className="relative bg-[#05110c] rounded-[20px] border-[2.5px] border-[#222825] ring-1 ring-[#c8a668]/45 shadow-[0_20px_60px_rgba(0,0,0,0.95)] overflow-hidden flex flex-col justify-between shrink-0"
-        >
-          {/* Subtle Android Front Camera Punch-Hole (Left Bezel in Landscape) */}
-          <div className="absolute left-1.5 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-[#020504] border border-white/10 z-40 pointer-events-none" />
-
-          {/* 1. Photorealistic Luxury Dark Emerald Parlor & Velvet Table Background */}
+    <div className="w-screen h-[100dvh] bg-[#020705] text-[#e8dfd0] overflow-hidden select-none flex flex-col justify-between relative">
+      {/* 1. Photorealistic Luxury Dark Emerald Parlor & Velvet Table Background */}
           <div className="absolute inset-0 z-0 pointer-events-none">
             <img
               src={isHomeScreen ? parlorBg : parlorOverheadBg}
@@ -2636,14 +2607,15 @@ export default function App() {
             />
           </div>
 
-          {/* 2. TOP BAR */}
-          <header
-            className={`relative z-30 w-full flex items-center justify-between shrink-0 ${
-              isGameScreen
-                ? 'h-[32px] px-3 bg-[#040e09]/92 border-b border-[#c8a668]/25'
-                : 'h-[36px] pt-1.5 px-5'
-            }`}
-          >
+          {/* 2. TOP BAR (Shown on inner screens and game table) */}
+          {!isHomeScreen && (
+            <header
+              className={`relative z-30 w-full flex items-center justify-between shrink-0 ${
+                isGameScreen
+                  ? 'h-[32px] px-3 bg-[#040e09]/92 border-b border-[#c8a668]/25'
+                  : 'h-[36px] pt-1.5 px-5'
+              }`}
+            >
             {isGameScreen ? (
               /* GAME PAGE TOP BAR: Player 1 (+Pips) vs Opponent (+Pips) + Timer + Cube + Swap Dice + Undo + Auto Roll + Auto Bear-Off */
               <>
@@ -2962,6 +2934,7 @@ export default function App() {
               </div>
             )}
           </header>
+        )}
 
           {/* 3. CENTER LANDSCAPE BODY (ROYAL BACKGAMMON 3D LOBBY ON HOME, 3D TABLE IN GAME) */}
           <div className="relative z-10 w-full flex-1 min-h-0 flex flex-row items-center overflow-hidden">
@@ -2997,12 +2970,22 @@ export default function App() {
                     onOpenVariants={() => {
                       setIsVariantsModalOpen(true);
                     }}
-                    onQuickPlay={() => {
-                      enterGameTable('practice');
+                    onOpenProfile={() => {
+                      navigateToScreen('profile');
                     }}
                     onOpenWallet={() => {
                       navigateToScreen('wallet');
                     }}
+                    onOpenStore={() => {
+                      navigateToScreen('collection');
+                    }}
+                    onOpenSettings={() => {
+                      navigateToScreen('settings');
+                    }}
+                    onOpenSupport={() => {
+                      setIsSupportModalOpen(true);
+                    }}
+                    onClaimDailyReward={handleClaimDailyTribute}
                   />
                 </div>
               </React.Fragment>
@@ -3080,7 +3063,6 @@ export default function App() {
                   </div>
                 )}
               </div>
-            </div>
 
             {/* STORE / COLLECTION SCREEN (BOARDS | CHECKERS | DICE) */}
             {activeScreen === 'collection' && (
@@ -3159,41 +3141,25 @@ export default function App() {
             )}
           </div>
 
-          {/* 4. BOTTOM NAVIGATION BAR */}
-          <footer
-            className={`relative z-30 w-full flex items-center justify-between shrink-0 border-t border-[#c8a668]/25 bg-[#040d09]/92 transition-opacity duration-300 ${
-              isGameScreen ? 'h-[28px] px-4' : 'h-[34px] px-5'
-            } ${
-              hasLineStarted('navHome') || !isHomeScreen
-                ? 'opacity-100'
-                : 'opacity-0 pointer-events-none'
-            }`}
-          >
+          {/* 4. BOTTOM NAVIGATION BAR (Shown on inner screens and game table) */}
+          {!isHomeScreen && (
+            <footer
+              className={`relative z-30 w-full flex items-center justify-between shrink-0 border-t border-[#c8a668]/25 bg-[#040d09]/92 transition-opacity duration-300 ${
+                isGameScreen ? 'h-[28px] px-4' : 'h-[34px] px-5'
+              }`}
+            >
             <nav className="flex items-center h-full pointer-events-auto">
               {/* HOME */}
               <button
                 type="button"
                 onClick={() => navigateToScreen('home')}
-                className={`relative h-full px-2 flex items-center gap-1 transition-colors cursor-pointer whitespace-nowrap group ${
-                  activeScreen === 'home'
-                    ? 'text-[#ebe3d2]'
-                    : 'text-[#7e7c74] hover:text-[#ebe3d2]'
-                }`}
+                className="relative h-full px-2 flex items-center gap-1 transition-colors cursor-pointer whitespace-nowrap group text-[#7e7c74] hover:text-[#ebe3d2]"
               >
-                <HomeIcon
-                  className={`w-2.5 h-2.5 shrink-0 transition-colors ${
-                    activeScreen === 'home'
-                      ? 'text-[#c8a668]'
-                      : 'text-[#7e7c74] group-hover:text-[#c8a668]'
-                  }`}
-                />
+                <HomeIcon className="w-2.5 h-2.5 shrink-0 transition-colors text-[#7e7c74] group-hover:text-[#c8a668]" />
                 <span className="font-cinzel text-[7px] tracking-[0.15em]">
                   {typedMap.navHome || 'HOME'}
                   {renderCursor('navHome')}
                 </span>
-                {activeScreen === 'home' && (
-                  <span className="absolute bottom-0.5 left-2 right-2 h-[1px] bg-[#c8a668]" />
-                )}
               </button>
 
               <div className="h-2.5 w-[1px] bg-[#c8a668]/20 mx-0.5" />
@@ -3305,6 +3271,7 @@ export default function App() {
               </span>
             )}
           </footer>
+        )}
 
           {/* 5. English Luxury Notification Toast */}
           {comingSoonModal && (
@@ -3512,6 +3479,5 @@ export default function App() {
             }}
           />
         </div>
-      </div>
     );
 }
