@@ -30,7 +30,7 @@ export function TelegramLoginScreen({ onLoginSuccess }: TelegramLoginScreenProps
 
     triggerTelegramHaptic('heavy');
     royalSound.playOptionClickSound();
-    royalSound.playBoardFoldSound();
+    royalSound.playBoardOpenSound();
 
     // Opening animation transition: board flips open, then navigates to home
     setTimeout(() => {

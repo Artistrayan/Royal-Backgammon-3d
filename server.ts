@@ -157,7 +157,7 @@ if (DATABASE_URL) {
   try {
     pgPool = new Pool({
       connectionString: DATABASE_URL,
-      connectionTimeoutMillis: 3000,
+      connectionTimeoutMillis: 10000,
       ssl:
         process.env.NODE_ENV === 'production' || DATABASE_URL.includes('render.com')
           ? { rejectUnauthorized: false }
@@ -468,7 +468,7 @@ async function initDatabaseTables() {
       client.release();
     }
   } catch (err) {
-    console.warn('[Render PostgreSQL] Connection error; continuing with local JSON store:', err);
+    console.log('[Database] PostgreSQL connection unavailable. Running with local JSON store.');
     isPostgresConnected = false;
   }
 }

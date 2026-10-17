@@ -2967,22 +2967,24 @@ export default function App() {
           <div className="relative z-10 w-full flex-1 min-h-0 flex flex-row items-center overflow-hidden">
             {/* If on Home Screen, render the 8 Ball Pool style middle cards carousel */}
             {isHomeScreen ? (
-              <div className="w-full h-full flex items-center justify-center relative z-20">
-                <PoolStyleHomeCarousel
-                  onPlayOneOnOne={() => {
-                    handleStartOnlineMatch('quick_seat');
-                  }}
-                  onOpenTournaments={() => {
-                    setIsTournamentModalOpen(true);
-                  }}
-                  onOpenPractice={() => {
-                    setIsAIDifficultyModalOpen(true);
-                  }}
-                  onOpenFriends={() => {
-                    setIsFriendsModalOpen(true);
-                  }}
-                />
-              </div>
+              <React.Fragment>
+                <div className="w-full h-full flex items-center justify-center relative z-20">
+                  <PoolStyleHomeCarousel
+                    onPlayOneOnOne={() => {
+                      handleStartOnlineMatch('quick_seat');
+                    }}
+                    onOpenTournaments={() => {
+                      setIsTournamentModalOpen(true);
+                    }}
+                    onOpenPractice={() => {
+                      setIsAIDifficultyModalOpen(true);
+                    }}
+                    onOpenFriends={() => {
+                      setIsFriendsModalOpen(true);
+                    }}
+                  />
+                </div>
+              </React.Fragment>
             ) : null}
 
             {/* 3D GLB BACKGAMMON BOARD STAGE (Active and visible when on Game Screen) */}
@@ -3490,6 +3492,5 @@ export default function App() {
           />
         </div>
       </div>
-    </div>
-  );
+    );
 }
