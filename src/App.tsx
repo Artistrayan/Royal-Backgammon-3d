@@ -89,7 +89,7 @@ import { GameVariantsModal } from './components/GameVariantsModal';
 import { AIDifficultyModal } from './components/AIDifficultyModal';
 import { MatchEndModal } from './components/MatchEndModal';
 import { GameAnalysisModal } from './components/GameAnalysisModal';
-import { PoolStyleHomeCarousel } from './components/PoolStyleHomeCarousel';
+import { RoyalBackgammonHomeLobby } from './components/RoyalBackgammonHomeLobby';
 import {
   AIDifficulty,
   AI_DIFFICULTY_PROFILES,
@@ -2857,7 +2857,7 @@ export default function App() {
                 </div>
               </>
             ) : (
-              /* LOBBY / INNER SCREENS TOP BAR (8 BALL POOL LUXURY DESIGN) */
+              /* LOBBY / INNER SCREENS TOP BAR (ROYAL BACKGAMMON LUXURY DESIGN) */
               <div className="flex items-center justify-between w-full pointer-events-auto">
                 {/* Left: Player Profile Badge with Avatar, Crown border, Level, Username, XP */}
                 <div
@@ -2963,13 +2963,19 @@ export default function App() {
             )}
           </header>
 
-          {/* 3. CENTER LANDSCAPE BODY (8 BALL POOL CAROUSEL ON HOME, 3D TABLE IN GAME) */}
+          {/* 3. CENTER LANDSCAPE BODY (ROYAL BACKGAMMON 3D LOBBY ON HOME, 3D TABLE IN GAME) */}
           <div className="relative z-10 w-full flex-1 min-h-0 flex flex-row items-center overflow-hidden">
-            {/* If on Home Screen, render the 8 Ball Pool style middle cards carousel */}
+            {/* If on Home Screen, render the world-class Royal Backgammon 3D Lobby */}
             {isHomeScreen ? (
               <React.Fragment>
                 <div className="w-full h-full flex items-center justify-center relative z-20">
-                  <PoolStyleHomeCarousel
+                  <RoyalBackgammonHomeLobby
+                    onlineCount={onlineCount}
+                    userCoins={realState.coins}
+                    userUsdt={usdtBalance}
+                    playerLevel={playerLevel}
+                    playerRating={playerRating}
+                    playerName={realState.playerName}
                     onPlayOneOnOne={() => {
                       handleStartOnlineMatch('quick_seat');
                     }}
@@ -2981,6 +2987,21 @@ export default function App() {
                     }}
                     onOpenFriends={() => {
                       setIsFriendsModalOpen(true);
+                    }}
+                    onOpenProvablyFair={() => {
+                      setIsProvablyFairModalOpen(true);
+                    }}
+                    onOpenLeaderboard={() => {
+                      setIsLeaderboardModalOpen(true);
+                    }}
+                    onOpenVariants={() => {
+                      setIsVariantsModalOpen(true);
+                    }}
+                    onQuickPlay={() => {
+                      enterGameTable('practice');
+                    }}
+                    onOpenWallet={() => {
+                      navigateToScreen('wallet');
                     }}
                   />
                 </div>

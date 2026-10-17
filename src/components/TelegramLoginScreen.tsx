@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { royalSound } from '../libgdx/Gdx3DEngine';
 import { initTelegramMiniApp, triggerTelegramHaptic } from '../telegram/telegramMiniApp';
 import royalClosedBoardImg from '../assets/images/royal_closed_board_gold_lion.jpg';
+import boardImperialImg from '../assets/images/board_imperial_emerald_walnut_1791747690118.jpg';
 
 interface TelegramLoginScreenProps {
   onLoginSuccess: (user: {
@@ -32,7 +33,7 @@ export function TelegramLoginScreen({ onLoginSuccess }: TelegramLoginScreenProps
     royalSound.playOptionClickSound();
     royalSound.playBoardOpenSound();
 
-    // Opening animation transition: board flips open, then navigates to home
+    // Opening animation transition: 3D lid physically unfolds open, sound effects play, then enters home
     setTimeout(() => {
       royalSound.playVictoryFanfareSound();
       const finalId = telegramUser ? String(telegramUser.id) : `tg-${Date.now().toString().slice(-6)}`;
@@ -56,28 +57,26 @@ export function TelegramLoginScreen({ onLoginSuccess }: TelegramLoginScreenProps
       }
 
       onLoginSuccess(userPayload);
-    }, 900);
+    }, 1150);
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-gradient-to-b from-[#030a06] via-[#05140d] to-[#010603] text-[#e8dfd0] overflow-hidden select-none">
-      {/* Background Ambient Table Glow (Pure Dark Gold & Emerald Velvet, No Red/Green flag stripes) */}
+      {/* Background Ambient Table Glow */}
       <div className="absolute inset-0 pointer-events-none flex items-center justify-center overflow-hidden">
         <div className="w-[600px] h-[600px] rounded-full bg-[#1b3d29]/20 blur-[130px]" />
-        <div className="w-[380px] h-[380px] rounded-full bg-[#c8a668]/12 blur-[100px]" />
+        <div className="w-[380px] h-[380px] rounded-full bg-[#c8a668]/15 blur-[100px]" />
       </div>
 
       {/* Main Container */}
       <div className="relative z-10 w-full max-w-[560px] flex flex-col items-center text-center">
-        
         {/* Board Display Area with Telegram Icon Behind */}
-        <div className="relative w-full max-w-[420px] aspect-[4/3] flex items-center justify-center mb-4 perspective-[1000px]">
-          
+        <div className="relative w-full max-w-[440px] aspect-[16/11] flex items-center justify-center mb-4 perspective-[1200px]">
           {/* Subtle Glowing Telegram Watermark Icon Behind the Board */}
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-25">
-            <div className="w-52 h-52 rounded-full bg-[#24A1DE]/20 blur-xl absolute" />
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-20">
+            <div className="w-56 h-56 rounded-full bg-[#24A1DE]/25 blur-2xl absolute" />
             <svg
-              className="w-44 h-44 text-[#24A1DE] drop-shadow-[0_0_35px_rgba(36,161,222,0.45)]"
+              className="w-48 h-48 text-[#24A1DE] drop-shadow-[0_0_35px_rgba(36,161,222,0.45)]"
               viewBox="0 0 24 24"
               fill="currentColor"
             >
@@ -85,64 +84,95 @@ export function TelegramLoginScreen({ onLoginSuccess }: TelegramLoginScreenProps
             </svg>
           </div>
 
-          {/* Luxury Closed Backgammon Board with Golden Lion & Sun with Crown */}
-          <div
-            className={`relative w-full h-full rounded-2xl overflow-hidden border-[3px] border-[#c8a668] shadow-[0_20px_50px_rgba(0,0,0,0.95)] transition-all duration-700 ease-out cursor-pointer group ${
-              isOpening
-                ? 'rotate-x-70 scale-95 opacity-20 -translate-y-8 brightness-150'
-                : 'hover:scale-[1.02] hover:shadow-[0_25px_60px_rgba(200,166,104,0.3)]'
-            }`}
-            onClick={handleLogin}
-          >
-            <img
-              src={royalClosedBoardImg}
-              alt="تخته نرد بسته سلطنتی شیر و خورشید با تاج"
-              className="w-full h-full object-cover object-center scale-105 transition-transform duration-500 group-hover:scale-110"
-            />
-            {/* Elegant Glass Reflection & Brass Edges */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-white/10 pointer-events-none" />
-            
-            {/* Opening Lid Hinge Animation Overlay */}
-            {isOpening && (
-              <div className="absolute inset-0 bg-gradient-to-b from-[#ffe4a0]/40 to-transparent animate-pulse pointer-events-none" />
-            )}
+          {/* 3D DOUBLE-LAYERED BACKGAMMON CASE:
+              Layer 1 (Underneath): The Interior Open Walnut/Emerald Board
+              Layer 2 (Top): The Closed Lid with Golden Lion & Sun that physically hinges open */}
+          <div className="relative w-full h-full rounded-2xl overflow-visible">
+            {/* UNDERNEATH LAYER: The Revealed Interior Board */}
+            <div className="absolute inset-0 rounded-2xl overflow-hidden border-[3px] border-[#c8a668] shadow-[0_20px_50px_rgba(0,0,0,0.95)] bg-[#05140d]">
+              <img
+                src={boardImperialImg}
+                alt="داخل تخته نرد سلطنتی"
+                className="w-full h-full object-cover object-center"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-white/10 pointer-events-none" />
+
+              {/* Glowing Warm Rays when Lid opens */}
+              {isOpening && (
+                <div className="absolute inset-0 bg-gradient-to-b from-[#ffe4a0]/50 via-transparent to-amber-500/20 animate-pulse pointer-events-none" />
+              )}
+            </div>
+
+            {/* TOP LAYER: The 3D Closed Lid that swings open on top hinge */}
+            <div
+              onClick={handleLogin}
+              style={{
+                transformOrigin: 'top center',
+              }}
+              className={`absolute inset-0 rounded-2xl overflow-hidden border-[3px] border-[#c8a668] shadow-[0_25px_60px_rgba(0,0,0,0.95)] transition-all duration-1000 ease-in-out cursor-pointer group ${
+                isOpening
+                  ? '-rotate-x-105 opacity-0 scale-95 pointer-events-none -translate-y-12'
+                  : 'hover:scale-[1.01] hover:shadow-[0_30px_70px_rgba(200,166,104,0.35)]'
+              }`}
+            >
+              <img
+                src={royalClosedBoardImg}
+                alt="تخته نرد بسته سلطنتی شیر و خورشید با تاج"
+                className="w-full h-full object-cover object-center scale-105 transition-transform duration-500 group-hover:scale-110"
+              />
+
+              {/* Solid Brass Clasps / Locks on bottom edge */}
+              <div className="absolute bottom-2 left-1/4 -translate-x-1/2 px-2 py-0.5 rounded bg-gradient-to-b from-[#ffd700] to-[#b8860b] border border-[#fff2a8] shadow-md flex items-center gap-1">
+                <span className="text-[8px] text-[#140e05] font-bold">🔒</span>
+                <span className="text-[6.5px] font-cinzel font-black text-[#140e05]">BRASS LATCH</span>
+              </div>
+              <div className="absolute bottom-2 right-1/4 translate-x-1/2 px-2 py-0.5 rounded bg-gradient-to-b from-[#ffd700] to-[#b8860b] border border-[#fff2a8] shadow-md flex items-center gap-1">
+                <span className="text-[8px] text-[#140e05] font-bold">🔒</span>
+                <span className="text-[6.5px] font-cinzel font-black text-[#140e05]">BRASS LATCH</span>
+              </div>
+
+              {/* Glass sheen */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-white/15 pointer-events-none" />
+            </div>
           </div>
         </div>
 
-        {/* Telegram User Welcome Label if detected */}
+        {/* Telegram User Welcome Badge */}
         {telegramUser && (
-          <div className="mb-2 flex items-center gap-2 px-3 py-1 rounded-full bg-[#03140b] border border-[#c8a668]/40">
+          <div className="mb-2 flex items-center gap-2 px-3 py-1 rounded-full bg-[#03140b] border border-[#c8a668]/40 shadow-sm">
             <span className="w-2 h-2 rounded-full bg-[#52f29c] animate-ping" />
             <span className="font-cinzel text-[11px] font-bold text-[#f5dca8]">
-              {telegramUser.first_name} {telegramUser.username ? `(@${telegramUser.username})` : ''}
+              خوش آمدید: {telegramUser.first_name} {telegramUser.username ? `(@${telegramUser.username})` : ''}
             </span>
           </div>
         )}
 
-        {/* Prominent Login Button (ورود به بازی) */}
+        {/* Prominent Golden Login Button (ورود به بازی) */}
         <button
           type="button"
           onClick={handleLogin}
           disabled={isOpening}
           className={`w-full max-w-[340px] py-3.5 px-6 rounded-xl brass-button-surface border-2 border-[#fff0c4] font-cinzel text-sm sm:text-base font-extrabold tracking-[0.2em] text-[#140e05] shadow-[0_10px_30px_rgba(200,166,104,0.5)] transition-all transform active:scale-95 cursor-pointer uppercase flex items-center justify-center gap-3 ${
-            isOpening ? 'opacity-80 scale-95 brightness-110' : 'hover:brightness-110 hover:shadow-[0_12px_40px_rgba(200,166,104,0.7)]'
+            isOpening
+              ? 'opacity-80 scale-95 brightness-110'
+              : 'hover:brightness-110 hover:shadow-[0_12px_40px_rgba(200,166,104,0.7)]'
           }`}
         >
           {isOpening ? (
             <>
               <span className="w-4 h-4 border-2 border-[#140e05] border-t-transparent rounded-full animate-spin" />
-              <span>در حال باز شدن تخته...</span>
+              <span>در حال باز شدن درب تخته...</span>
             </>
           ) : (
             <>
-              <span>ورود به بازی</span>
+              <span>ورود به بازی و باز شدن تخته</span>
               <span className="text-lg">▶</span>
             </>
           )}
         </button>
 
         <p className="mt-2.5 font-cormorant text-[12px] text-[#a8a193]">
-          کلیک کنید تا درب تخته سلطنتی باز شده و وارد تالار بازی شوید
+          روی دکمه یا درب تخته کلیک کنید تا قفل‌های برنجی باز شده و وارد تالار اصلی شوید
         </p>
       </div>
     </div>
