@@ -2941,7 +2941,7 @@ export default function App() {
             {/* If on Home Screen, render the world-class Royal Backgammon 3D Lobby */}
             {isHomeScreen ? (
               <React.Fragment>
-                <div className="w-full h-full flex items-center justify-center relative z-20">
+                <div className="fixed inset-0 z-40 h-[100dvh] w-full overflow-hidden flex items-center justify-center">
                   <RoyalBackgammonHomeLobby
                     onlineCount={onlineCount}
                     userCoins={realState.coins}
