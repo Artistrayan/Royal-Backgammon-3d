@@ -747,7 +747,7 @@ export default function App() {
         const availW = Math.max(280, vh - 20);
         const availH = Math.max(200, vw - 20);
         const scale = Math.min(
-          1.35,
+          1.1,
           availW / ANDROID_LANDSCAPE_W,
           availH / ANDROID_LANDSCAPE_H
         );
@@ -2579,7 +2579,7 @@ export default function App() {
     );
   }
   return (
-    <div className="w-screen h-[100dvh] bg-[#020705] text-[#e8dfd0] overflow-hidden select-none flex flex-col justify-between relative">
+    <div className="w-full h-full min-h-screen bg-[#020705] text-[#e8dfd0] overflow-hidden select-none flex flex-col justify-between relative touch-none overscroll-none">
       {/* 1. Photorealistic Luxury Dark Emerald Parlor & Velvet Table Background */}
           <div className="absolute inset-0 z-0 pointer-events-none">
             <img
@@ -2937,7 +2937,7 @@ export default function App() {
         )}
 
           {/* 3. CENTER LANDSCAPE BODY (ROYAL BACKGAMMON 3D LOBBY ON HOME, 3D TABLE IN GAME) */}
-          <div className="relative z-10 w-full flex-1 min-h-0 flex flex-row items-center overflow-hidden">
+          <div className="relative z-10 w-full h-full flex flex-row items-center overflow-hidden">
             {/* If on Home Screen, render the world-class Royal Backgammon 3D Lobby */}
             {isHomeScreen ? (
               <React.Fragment>
