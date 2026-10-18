@@ -84,17 +84,17 @@ export function RoyalBackgammonHomeLobby({
           <p className="font-serif text-[clamp(10px,2.4vw,15px)] tracking-[.38em] text-[#f0d99f]">ROYAL BACKGAMMON</p>
           <p className="mt-1 text-[9px] tracking-[.25em] text-white/60">CHOOSE YOUR TABLE</p>
         </div>
-        <div className="relative mt-5 h-[min(48vh,360px)] w-full max-w-[900px] [perspective:1100px]">
+        <div className="relative mt-0 h-[min(62vh,440px)] w-full max-w-[900px] [perspective:1100px]">
           {cards.map((card, index) => {
             const offset = index - selectedCardIndex;
             if (Math.abs(offset) > 2) return null;
             const center = offset === 0;
             const small = typeof window !== 'undefined' && window.innerWidth < 500;
-            const x = offset * (small ? 35 : 155);
+            const x = offset * (small ? 58 : 155);
             const scale = center ? 1 : small ? 0.72 : 0.78;
             return <button key={card.id} type="button" onClick={() => activate(index)} aria-label={card.title}
               className="absolute left-1/2 top-1/2 block w-[min(47vw,230px)] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[20px] border-2 bg-black shadow-[0_18px_45px_rgba(0,0,0,.7)] transition-all duration-500 ease-out"
-              style={{ height: 'min(43vh,330px)', transform: `translate(calc(-50% + ${x}px), -50%) rotateY(${offset * -17}deg) scale(${scale})`, zIndex: 20 - Math.abs(offset), opacity: center ? 1 : 0.72, borderColor: center ? '#e8c76d' : '#89754b', boxShadow: center ? '0 0 0 2px rgba(232,199,109,.12),0 20px 50px rgba(0,0,0,.75)' : '0 15px 35px rgba(0,0,0,.65)' }}>
+              style={{ height: 'min(52vh,390px)', transform: `translate(calc(-50% + ${x}px), -50%) rotateY(${offset * -17}deg) scale(${scale})`, zIndex: 20 - Math.abs(offset), opacity: center ? 1 : 0.72, borderColor: center ? '#e8c76d' : '#89754b', boxShadow: center ? '0 0 0 2px rgba(232,199,109,.12),0 20px 50px rgba(0,0,0,.75)' : '0 15px 35px rgba(0,0,0,.65)' }}>
               <img src={card.image} alt="" className="absolute inset-0 h-full w-full object-cover" />
               <span className="absolute inset-0 bg-gradient-to-t from-black via-black/15 to-black/10" />
               <span className="absolute inset-x-0 bottom-0 flex min-h-[68px] flex-col items-center justify-center border-t border-[#d8b76c]/60 bg-black/90 px-1 py-2 text-center">
