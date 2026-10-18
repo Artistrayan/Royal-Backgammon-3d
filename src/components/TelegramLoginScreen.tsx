@@ -2,8 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { royalSound } from '../libgdx/Gdx3DEngine';
 import { initTelegramMiniApp, triggerTelegramHaptic } from '../telegram/telegramMiniApp';
 import palaceNightStageBg from '../assets/images/royal_palace_night_stage_1792268375096.jpg';
-import boardClosedExactImg from '../assets/images/board_closed_exact_matching_lid_1792324316682.jpg';
-import boardOpenExactImg from '../assets/images/board_open_exact_walnut_lion_sun_1792324299531.jpg';
 import {
   SUPPORTED_LANGUAGES,
   SupportedLanguage,
@@ -11,6 +9,7 @@ import {
   setLanguage,
   t,
 } from '../i18n/translations';
+import { ThreeDLoginBoard } from './ThreeDLoginBoard';
 
 interface TelegramLoginScreenProps {
   onLoginSuccess: (user: {
@@ -237,90 +236,8 @@ export function TelegramLoginScreen({ onLoginSuccess }: TelegramLoginScreenProps
         </div>
       </header>
 
-      {/* 3. CENTER 3D STAGE:
-          - CORRECT DIMENSIONS: Closed board is portrait vertical rectangle (height > width)!
-          - UNLOCK & OPENING: Opens from RIGHT to LEFT across its width ("از راست به چپ . یا از عرض باز بشه")
-          - NO PREMATURE TRIGGER: ONLY opens upon tapping "Start"! */}
-      <div className="relative z-20 flex-1 w-full flex flex-col items-center justify-center px-2 sm:px-4">
-        {/* 3D Perspective Stage Container */}
-        <div
-          style={{ perspective: '1600px' }}
-          className="relative flex items-center justify-center"
-        >
-          {/* Circular Illuminated Pedestal beneath the case */}
-          <div
-            style={{
-              width: isOpening ? 'min(500px, 94vw)' : 'min(300px, 70vw)',
-              transition: 'width 1.25s cubic-bezier(0.25, 1, 0.5, 1)',
-            }}
-            className="absolute -bottom-8 h-16 rounded-[100%] bg-gradient-to-r from-[#1e1307] via-[#5c3e17] to-[#1e1307] border border-[#d4af37]/60 shadow-[0_15px_45px_rgba(0,0,0,0.95)] transform rotate-x-60 pointer-events-none"
-          >
-            <div className="absolute inset-1 rounded-[100%] border border-[#38bdf8]/50 shadow-[0_0_25px_rgba(56,189,248,0.55)]" />
-          </div>
-
-          {/* DYNAMIC CASE CONTAINER:
-              When closed: Portrait vertical rectangle: width ~235px, height ~345px (طول و عرض دقیق تخته بسته)
-              When opened: Expands across width ("از عرض باز بشه") to width ~470px (طول و عرض دقیق تخته باز ۲ لنگه) */}
-          <div
-            style={{
-              width: isOpening ? 'min(480px, 92vw)' : 'min(240px, 58vw)',
-              height: 'min(345px, 52vh)',
-              transformStyle: 'preserve-3d',
-              transition: 'width 1.25s cubic-bezier(0.25, 1, 0.5, 1)',
-            }}
-            className="relative flex items-center justify-center shadow-[0_30px_70px_rgba(0,0,0,0.98)] rounded-2xl overflow-visible pointer-events-none"
-          >
-            {/* UNDERNEATH LAYER: The Revealed Open 2-Panel Interior Board */}
-            <div
-              style={{
-                opacity: isOpening ? 1 : 0,
-                transition: 'opacity 0.6s ease-in-out',
-              }}
-              className="absolute inset-0 rounded-2xl overflow-hidden border-[3.5px] border-[#d4af37] bg-[#1a0f05] shadow-2xl"
-            >
-              <img
-                src={boardOpenExactImg}
-                alt="Open Walnut Backgammon Board Interior"
-                className="w-full h-full object-cover object-center"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-white/10 pointer-events-none" />
-
-              {/* Golden celebration glow when opened */}
-              {isOpening && (
-                <div className="absolute inset-0 bg-gradient-to-r from-[#ffd700]/30 via-amber-300/20 to-[#ffd700]/30 animate-pulse pointer-events-none" />
-              )}
-            </div>
-
-            {/* TOP LAYER: The Closed Walnut Board with 3D Embossed Lion & Sun
-                - True vertical aspect ratio (height > width)!
-                - Pivots from RIGHT to LEFT across the center hinge spine:
-                  `transformOrigin: 'left center'` and `rotateY(-180deg)` */}
-            <div
-              style={{
-                width: 'min(240px, 58vw)',
-                height: 'min(345px, 52vh)',
-                transformOrigin: 'left center',
-                transformStyle: 'preserve-3d',
-                transform: isOpening
-                  ? 'rotateY(-180deg) scale(0.96)'
-                  : 'rotateY(0deg) scale(1)',
-                transition: 'transform 1.25s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.8s ease-in',
-                opacity: isOpening ? 0 : 1,
-              }}
-              className="absolute left-0 top-0 rounded-2xl overflow-hidden border-[3.5px] border-[#d4af37] shadow-[0_25px_65px_rgba(0,0,0,0.98)] bg-[#1e1006]"
-            >
-              <img
-                src={boardClosedExactImg}
-                alt="Closed Walnut Backgammon Board with Gold Lion and Sun"
-                className="w-full h-full object-cover object-center"
-              />
-
-              {/* Specular Diagonal Glint */}
-              <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent pointer-events-none" />
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* 3. CENTER 3D WEBGL BOARD (REAL 3D THREE.JS BACKGAMMON MODEL OPENS 180° FROM RIGHT TO LEFT) */}
+      <ThreeDLoginBoard isOpening={isOpening} />
 
       {/* 4. BOTTOM ACTION: ONLY THE "Start" BUTTON (NO EXTRA TEXT!) */}
       <footer className="relative z-30 w-full flex flex-col items-center pb-6 sm:pb-8 px-4">
