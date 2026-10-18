@@ -40,7 +40,21 @@ export function RoyalBackgammonHomeLobby({
     { label: 'HELP', icon: '?', action: onOpenSupport },
   ];
   return (
-    <div className="relative isolate w-full h-full min-h-0 flex flex-col overflow-hidden select-none bg-[#03070d] text-white font-sans">
+    <style>{`
+        .royal-lobby-root { width: 100%; height: 100%; }
+        @media (orientation: portrait) and (max-width: 900px) {
+          .royal-lobby-root {
+            position: absolute;
+            top: 0;
+            left: 100vw;
+            width: 100dvh;
+            height: 100vw;
+            transform: rotate(90deg);
+            transform-origin: top left;
+          }
+        }
+      `}</style>
+    <div className="royal-lobby-root relative isolate min-h-0 flex flex-col overflow-hidden select-none bg-[#03070d] text-white font-sans">
       <div className="absolute inset-0 -z-20">
         <img src={palaceNightStageBg} alt="" className="w-full h-full object-cover object-center" />
       </div>
