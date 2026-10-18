@@ -135,25 +135,25 @@ export function ThreeDCardCarousel({
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
       renderer.outputColorSpace = THREE.SRGBColorSpace;
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
-      renderer.toneMappingExposure = 1.3;
+      renderer.toneMappingExposure = 1.0;
     } catch (e) {
       console.warn('WebGL init notice:', e);
       return;
     }
 
-    // 3. Studio Lighting (Royal Warm Gold + Ambient Palace Glow)
-    const ambientLight = new THREE.AmbientLight(0xffecd2, 1.2);
+    // 3. Studio Lighting (Neutral White)
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
     scene.add(ambientLight);
 
-    const keyLight = new THREE.DirectionalLight(0xfff7e6, 2.8);
+    const keyLight = new THREE.DirectionalLight(0xffffff, 2.5);
     keyLight.position.set(4, 7, 6);
     scene.add(keyLight);
 
-    const fillLight = new THREE.DirectionalLight(0x38bdf8, 1.4);
+    const fillLight = new THREE.DirectionalLight(0xffffff, 1.0);
     fillLight.position.set(-6, 3, 4);
     scene.add(fillLight);
 
-    const centerGlowLight = new THREE.PointLight(0xffd700, 3.5, 12);
+    const centerGlowLight = new THREE.PointLight(0xffd700, 2.5, 12);
     centerGlowLight.position.set(0, 3, 4);
     scene.add(centerGlowLight);
 
@@ -225,18 +225,12 @@ export function ThreeDCardCarousel({
         roughness: 0.4,
       });
 
-      const frontFaceMat = new THREE.MeshStandardMaterial({
+      const frontFaceMat = new THREE.MeshBasicMaterial({
         map: texture,
-        color: 0xffffff, // Ensure white so it doesn't tint
-        metalness: 0.2,
-        roughness: 0.3,
       });
 
-      const backFaceMat = new THREE.MeshStandardMaterial({
+      const backFaceMat = new THREE.MeshBasicMaterial({
         map: texture,
-        color: 0xffffff, // Ensure white so it doesn't tint
-        metalness: 0.2,
-        roughness: 0.3,
       });
 
       const materials = [
