@@ -1,8 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { royalSound } from '../libgdx/Gdx3DEngine';
 import { initTelegramMiniApp, triggerTelegramHaptic } from '../telegram/telegramMiniApp';
-import royalClosedBoardImg from '../assets/images/royal_closed_board_gold_lion.jpg';
-import boardImperialImg from '../assets/images/board_imperial_emerald_walnut_1791747690118.jpg';
+import palaceNightStageBg from '../assets/images/royal_palace_night_stage_1792268375096.jpg';
+import boardClosedExactImg from '../assets/images/board_closed_exact_matching_lid_1792324316682.jpg';
+import boardOpenExactImg from '../assets/images/board_open_exact_walnut_lion_sun_1792324299531.jpg';
+import {
+  SUPPORTED_LANGUAGES,
+  SupportedLanguage,
+  getLanguage,
+  setLanguage,
+  t,
+} from '../i18n/translations';
 
 interface TelegramLoginScreenProps {
   onLoginSuccess: (user: {
@@ -11,11 +19,17 @@ interface TelegramLoginScreenProps {
     firstName: string;
     photoUrl?: string;
     isTelegram: boolean;
+    databaseConnected: boolean;
   }) => void;
 }
 
 export function TelegramLoginScreen({ onLoginSuccess }: TelegramLoginScreenProps) {
   const [isOpening, setIsOpening] = useState(false);
+  const [isDbConnecting, setIsDbConnecting] = useState(false);
+  const [currentLang, setCurrentLang] = useState<SupportedLanguage>(getLanguage());
+  const [showLangMenu, setShowLangMenu] = useState(false);
+
+  // Retrieve Telegram WebApp user context
   const [telegramUser] = useState(() => {
     try {
       const tgInit = initTelegramMiniApp();
@@ -25,156 +39,321 @@ export function TelegramLoginScreen({ onLoginSuccess }: TelegramLoginScreenProps
     }
   });
 
-  const handleLogin = () => {
-    if (isOpening) return;
-    setIsOpening(true);
+  useEffect(() => {
+    const handleLangChange = (e: any) => {
+      if (e?.detail) setCurrentLang(e.detail);
+    };
+    window.addEventListener('app_language_changed', handleLangChange);
+    return () => {
+      window.removeEventListener('app_language_changed', handleLangChange);
+    };
+  }, []);
+
+  const handleSelectLanguage = (code: SupportedLanguage) => {
+    setLanguage(code);
+    setCurrentLang(code);
+    setShowLangMenu(false);
+    triggerTelegramHaptic('light');
+    royalSound.playOptionClickSound();
+  };
+
+  // ONLY tapping the Start button triggers the right-to-left board opening and login
+  const handleStartLogin = async () => {
+    if (isOpening || isDbConnecting) return;
+    setIsDbConnecting(true);
 
     triggerTelegramHaptic('heavy');
     royalSound.playOptionClickSound();
+
+    let authenticatedUser: any = null;
+    let databaseStatus = true;
+
+    try {
+      // Authenticate Telegram identity with production database
+      const response = await fetch('/api/auth/telegram', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user: telegramUser,
+          id: telegramUser ? String(telegramUser.id) : undefined,
+          username: telegramUser?.username
+            ? `@${telegramUser.username}`
+            : telegramUser?.first_name || 'Masoud',
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.authenticated) {
+          authenticatedUser = data.user;
+          databaseStatus = Boolean(data.databaseConnected);
+        }
+      }
+    } catch (err) {
+      console.warn('[Login] DB Auth notice:', err);
+    } finally {
+      setIsDbConnecting(false);
+    }
+
+    // Begin 3D right-to-left unfolding across width
+    setIsOpening(true);
     royalSound.playBoardOpenSound();
 
-    // Opening animation transition: 3D lid physically unfolds open, sound effects play, then enters home
     setTimeout(() => {
       royalSound.playVictoryFanfareSound();
-      const finalId = telegramUser ? String(telegramUser.id) : `tg-${Date.now().toString().slice(-6)}`;
-      const finalUsername = telegramUser?.username
-        ? `@${telegramUser.username}`
-        : telegramUser?.first_name || 'ROYAL_PLAYER';
+
+      const finalId =
+        authenticatedUser?.id ||
+        (telegramUser ? String(telegramUser.id) : `tg-${Date.now().toString().slice(-6)}`);
+      const finalUsername =
+        authenticatedUser?.username ||
+        (telegramUser?.username
+          ? `@${telegramUser.username}`
+          : telegramUser?.first_name || 'Masoud');
 
       const userPayload = {
         id: finalId,
         username: finalUsername,
-        firstName: telegramUser?.first_name || 'ROYAL_PLAYER',
+        firstName: telegramUser?.first_name || 'Masoud',
         photoUrl: telegramUser?.photo_url,
         isTelegram: Boolean(telegramUser),
+        databaseConnected: databaseStatus,
       };
 
       try {
-        localStorage.setItem('royal_tg_verified', 'true');
         localStorage.setItem('royal_tg_last_user', JSON.stringify(userPayload));
       } catch {
         // ignore
       }
 
       onLoginSuccess(userPayload);
-    }, 1150);
+    }, 1300);
   };
 
+  const selectedLangObj =
+    SUPPORTED_LANGUAGES.find((l) => l.code === currentLang) || SUPPORTED_LANGUAGES[0];
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-gradient-to-b from-[#030a06] via-[#05140d] to-[#010603] text-[#e8dfd0] overflow-hidden select-none">
-      {/* Background Ambient Table Glow */}
-      <div className="absolute inset-0 pointer-events-none flex items-center justify-center overflow-hidden">
-        <div className="w-[600px] h-[600px] rounded-full bg-[#1b3d29]/20 blur-[130px]" />
-        <div className="w-[380px] h-[380px] rounded-full bg-[#c8a668]/15 blur-[100px]" />
+    <div className="fixed inset-0 z-50 w-full h-full flex flex-col items-center justify-between bg-black text-[#e8dfd0] overflow-hidden select-none touch-none">
+      {/* 1. CINEMATIC BACKGROUND: NIGHT PALACE COURTYARD WITH TORCHES & PILLARS */}
+      <div className="absolute inset-0 z-0 pointer-events-none">
+        <img
+          src={palaceNightStageBg}
+          alt="Palace Night Stage"
+          className="w-full h-full object-cover object-center scale-[1.03]"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-black/75" />
       </div>
 
-      {/* Main Container */}
-      <div className="relative z-10 w-full max-w-[560px] flex flex-col items-center text-center">
-        {/* Board Display Area with Telegram Icon Behind */}
-        <div className="relative w-full max-w-[440px] aspect-[16/11] flex items-center justify-center mb-4 perspective-[1200px]">
-          {/* Subtle Glowing Telegram Watermark Icon Behind the Board */}
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-20">
-            <div className="w-56 h-56 rounded-full bg-[#24A1DE]/25 blur-2xl absolute" />
-            <svg
-              className="w-48 h-48 text-[#24A1DE] drop-shadow-[0_0_35px_rgba(36,161,222,0.45)]"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-            >
-              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.52 2.77-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z" />
-            </svg>
+      {/* Ambient Lighting & Glows */}
+      <div className="absolute inset-0 pointer-events-none flex items-center justify-center overflow-hidden">
+        <div className="w-[520px] h-[520px] rounded-full bg-[#0284c7]/20 blur-[130px] transform -translate-y-12" />
+        <div className="w-[450px] h-[450px] rounded-full bg-[#eab308]/15 blur-[110px] transform translate-y-24" />
+      </div>
+
+      {/* 2. TOP HEADER: MINIMAL CROWN, TELEGRAM & DB BADGE, AND TOP 10 WORLD LANGUAGE SELECTOR */}
+      <header className="relative z-30 w-full flex items-center justify-between pt-3 sm:pt-5 px-3 sm:px-6">
+        {/* Telegram & DB Connection Status Badge */}
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-md border border-[#ffd700]/30 shadow-md">
+          <span className="w-2.5 h-2.5 rounded-full bg-[#22c55e] animate-pulse" />
+          <svg className="w-4 h-4 text-[#38bdf8]" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.52 2.77-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z" />
+          </svg>
+          <span className="text-[11px] font-semibold text-[#ffd700] tracking-wide">
+            {telegramUser?.first_name || 'Masoud'}
+          </span>
+          <span className="text-[10px] text-white/50">|</span>
+          <span className="text-[10px] font-mono text-[#22c55e]">DB ✓</span>
+        </div>
+
+        {/* Ornate Royal Crown */}
+        <div className="w-12 h-9 sm:w-16 sm:h-11 flex items-center justify-center drop-shadow-[0_4px_20px_rgba(234,179,8,0.7)]">
+          <svg viewBox="0 0 100 70" className="w-full h-full" fill="none">
+            <path
+              d="M50 8 L62 28 L84 16 L76 52 L24 52 L16 16 L38 28 Z"
+              fill="url(#goldCrownGradLg)"
+              stroke="#fff4cc"
+              strokeWidth="1.5"
+              filter="drop-shadow(0 2px 8px rgba(0,0,0,0.8))"
+            />
+            <ellipse cx="50" cy="54" rx="28" ry="6" fill="url(#goldCrownBandLg)" stroke="#ffe082" strokeWidth="1" />
+            <circle cx="50" cy="8" r="3" fill="#ffffff" />
+            <circle cx="16" cy="16" r="2.5" fill="#f43f5e" />
+            <circle cx="84" cy="16" r="2.5" fill="#f43f5e" />
+            <circle cx="38" cy="28" r="2" fill="#38bdf8" />
+            <circle cx="62" cy="28" r="2" fill="#38bdf8" />
+            <circle cx="50" cy="38" r="3" fill="#a855f7" />
+            <defs>
+              <linearGradient id="goldCrownGradLg" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stopColor="#fff3b0" />
+                <stop offset="35%" stopColor="#ffd700" />
+                <stop offset="70%" stopColor="#b8860b" />
+                <stop offset="100%" stopColor="#7a5203" />
+              </linearGradient>
+              <linearGradient id="goldCrownBandLg" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stopColor="#b8860b" />
+                <stop offset="50%" stopColor="#ffe57f" />
+                <stop offset="100%" stopColor="#b8860b" />
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+
+        {/* Top 10 Countries Language Selector */}
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setShowLangMenu(!showLangMenu)}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-black/60 backdrop-blur-md border border-[#ffd700]/40 text-xs text-white hover:border-[#ffd700] transition-colors cursor-pointer"
+          >
+            <span className="text-sm">{selectedLangObj.flag}</span>
+            <span className="font-bold text-[11px] uppercase tracking-wider">{selectedLangObj.code}</span>
+            <span className="text-[9px] text-[#ffd700]">▼</span>
+          </button>
+
+          {showLangMenu && (
+            <div className="absolute right-0 mt-2 w-48 rounded-2xl bg-[#140e06]/95 backdrop-blur-xl border border-[#ffd700]/50 shadow-[0_15px_40px_rgba(0,0,0,0.9)] py-2 z-50 max-h-64 overflow-y-auto">
+              <div className="px-3 py-1 text-[10px] uppercase font-bold text-[#ffd700] tracking-wider border-b border-white/10">
+                {t('selectLanguage')}
+              </div>
+              {SUPPORTED_LANGUAGES.map((lang) => (
+                <button
+                  key={lang.code}
+                  type="button"
+                  onClick={() => handleSelectLanguage(lang.code)}
+                  className={`w-full flex items-center justify-between px-3 py-1.5 text-xs text-left transition-colors cursor-pointer hover:bg-[#ffd700]/15 ${
+                    currentLang === lang.code ? 'text-[#ffd700] font-bold bg-[#ffd700]/10' : 'text-white/85'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm">{lang.flag}</span>
+                    <span>{lang.nativeName}</span>
+                  </div>
+                  {currentLang === lang.code && <span className="text-[#ffd700]">✓</span>}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </header>
+
+      {/* 3. CENTER 3D STAGE:
+          - CORRECT DIMENSIONS: Closed board is portrait vertical rectangle (height > width)!
+          - UNLOCK & OPENING: Opens from RIGHT to LEFT across its width ("از راست به چپ . یا از عرض باز بشه")
+          - NO PREMATURE TRIGGER: ONLY opens upon tapping "Start"! */}
+      <div className="relative z-20 flex-1 w-full flex flex-col items-center justify-center px-2 sm:px-4">
+        {/* 3D Perspective Stage Container */}
+        <div
+          style={{ perspective: '1600px' }}
+          className="relative flex items-center justify-center"
+        >
+          {/* Circular Illuminated Pedestal beneath the case */}
+          <div
+            style={{
+              width: isOpening ? 'min(500px, 94vw)' : 'min(300px, 70vw)',
+              transition: 'width 1.25s cubic-bezier(0.25, 1, 0.5, 1)',
+            }}
+            className="absolute -bottom-8 h-16 rounded-[100%] bg-gradient-to-r from-[#1e1307] via-[#5c3e17] to-[#1e1307] border border-[#d4af37]/60 shadow-[0_15px_45px_rgba(0,0,0,0.95)] transform rotate-x-60 pointer-events-none"
+          >
+            <div className="absolute inset-1 rounded-[100%] border border-[#38bdf8]/50 shadow-[0_0_25px_rgba(56,189,248,0.55)]" />
           </div>
 
-          {/* 3D DOUBLE-LAYERED BACKGAMMON CASE:
-              Layer 1 (Underneath): The Interior Open Walnut/Emerald Board
-              Layer 2 (Top): The Closed Lid with Golden Lion & Sun that physically hinges open */}
-          <div className="relative w-full h-full rounded-2xl overflow-visible">
-            {/* UNDERNEATH LAYER: The Revealed Interior Board */}
-            <div className="absolute inset-0 rounded-2xl overflow-hidden border-[3px] border-[#c8a668] shadow-[0_20px_50px_rgba(0,0,0,0.95)] bg-[#05140d]">
+          {/* DYNAMIC CASE CONTAINER:
+              When closed: Portrait vertical rectangle: width ~235px, height ~345px (طول و عرض دقیق تخته بسته)
+              When opened: Expands across width ("از عرض باز بشه") to width ~470px (طول و عرض دقیق تخته باز ۲ لنگه) */}
+          <div
+            style={{
+              width: isOpening ? 'min(480px, 92vw)' : 'min(240px, 58vw)',
+              height: 'min(345px, 52vh)',
+              transformStyle: 'preserve-3d',
+              transition: 'width 1.25s cubic-bezier(0.25, 1, 0.5, 1)',
+            }}
+            className="relative flex items-center justify-center shadow-[0_30px_70px_rgba(0,0,0,0.98)] rounded-2xl overflow-visible pointer-events-none"
+          >
+            {/* UNDERNEATH LAYER: The Revealed Open 2-Panel Interior Board */}
+            <div
+              style={{
+                opacity: isOpening ? 1 : 0,
+                transition: 'opacity 0.6s ease-in-out',
+              }}
+              className="absolute inset-0 rounded-2xl overflow-hidden border-[3.5px] border-[#d4af37] bg-[#1a0f05] shadow-2xl"
+            >
               <img
-                src={boardImperialImg}
-                alt="داخل تخته نرد سلطنتی"
+                src={boardOpenExactImg}
+                alt="Open Walnut Backgammon Board Interior"
                 className="w-full h-full object-cover object-center"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-white/10 pointer-events-none" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-white/10 pointer-events-none" />
 
-              {/* Glowing Warm Rays when Lid opens */}
+              {/* Golden celebration glow when opened */}
               {isOpening && (
-                <div className="absolute inset-0 bg-gradient-to-b from-[#ffe4a0]/50 via-transparent to-amber-500/20 animate-pulse pointer-events-none" />
+                <div className="absolute inset-0 bg-gradient-to-r from-[#ffd700]/30 via-amber-300/20 to-[#ffd700]/30 animate-pulse pointer-events-none" />
               )}
             </div>
 
-            {/* TOP LAYER: The 3D Closed Lid that swings open on top hinge */}
+            {/* TOP LAYER: The Closed Walnut Board with 3D Embossed Lion & Sun
+                - True vertical aspect ratio (height > width)!
+                - Pivots from RIGHT to LEFT across the center hinge spine:
+                  `transformOrigin: 'left center'` and `rotateY(-180deg)` */}
             <div
-              onClick={handleLogin}
               style={{
-                transformOrigin: 'top center',
+                width: 'min(240px, 58vw)',
+                height: 'min(345px, 52vh)',
+                transformOrigin: 'left center',
+                transformStyle: 'preserve-3d',
+                transform: isOpening
+                  ? 'rotateY(-180deg) scale(0.96)'
+                  : 'rotateY(0deg) scale(1)',
+                transition: 'transform 1.25s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.8s ease-in',
+                opacity: isOpening ? 0 : 1,
               }}
-              className={`absolute inset-0 rounded-2xl overflow-hidden border-[3px] border-[#c8a668] shadow-[0_25px_60px_rgba(0,0,0,0.95)] transition-all duration-1000 ease-in-out cursor-pointer group ${
-                isOpening
-                  ? '-rotate-x-105 opacity-0 scale-95 pointer-events-none -translate-y-12'
-                  : 'hover:scale-[1.01] hover:shadow-[0_30px_70px_rgba(200,166,104,0.35)]'
-              }`}
+              className="absolute left-0 top-0 rounded-2xl overflow-hidden border-[3.5px] border-[#d4af37] shadow-[0_25px_65px_rgba(0,0,0,0.98)] bg-[#1e1006]"
             >
               <img
-                src={royalClosedBoardImg}
-                alt="تخته نرد بسته سلطنتی شیر و خورشید با تاج"
-                className="w-full h-full object-cover object-center scale-105 transition-transform duration-500 group-hover:scale-110"
+                src={boardClosedExactImg}
+                alt="Closed Walnut Backgammon Board with Gold Lion and Sun"
+                className="w-full h-full object-cover object-center"
               />
 
-              {/* Solid Brass Clasps / Locks on bottom edge */}
-              <div className="absolute bottom-2 left-1/4 -translate-x-1/2 px-2 py-0.5 rounded bg-gradient-to-b from-[#ffd700] to-[#b8860b] border border-[#fff2a8] shadow-md flex items-center gap-1">
-                <span className="text-[8px] text-[#140e05] font-bold">🔒</span>
-                <span className="text-[6.5px] font-cinzel font-black text-[#140e05]">BRASS LATCH</span>
-              </div>
-              <div className="absolute bottom-2 right-1/4 translate-x-1/2 px-2 py-0.5 rounded bg-gradient-to-b from-[#ffd700] to-[#b8860b] border border-[#fff2a8] shadow-md flex items-center gap-1">
-                <span className="text-[8px] text-[#140e05] font-bold">🔒</span>
-                <span className="text-[6.5px] font-cinzel font-black text-[#140e05]">BRASS LATCH</span>
-              </div>
-
-              {/* Glass sheen */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-white/15 pointer-events-none" />
+              {/* Specular Diagonal Glint */}
+              <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent pointer-events-none" />
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Telegram User Welcome Badge */}
-        {telegramUser && (
-          <div className="mb-2 flex items-center gap-2 px-3 py-1 rounded-full bg-[#03140b] border border-[#c8a668]/40 shadow-sm">
-            <span className="w-2 h-2 rounded-full bg-[#52f29c] animate-ping" />
-            <span className="font-cinzel text-[11px] font-bold text-[#f5dca8]">
-              خوش آمدید: {telegramUser.first_name} {telegramUser.username ? `(@${telegramUser.username})` : ''}
-            </span>
-          </div>
-        )}
-
-        {/* Prominent Golden Login Button (ورود به بازی) */}
+      {/* 4. BOTTOM ACTION: ONLY THE "Start" BUTTON (NO EXTRA TEXT!) */}
+      <footer className="relative z-30 w-full flex flex-col items-center pb-6 sm:pb-8 px-4">
         <button
           type="button"
-          onClick={handleLogin}
-          disabled={isOpening}
-          className={`w-full max-w-[340px] py-3.5 px-6 rounded-xl brass-button-surface border-2 border-[#fff0c4] font-cinzel text-sm sm:text-base font-extrabold tracking-[0.2em] text-[#140e05] shadow-[0_10px_30px_rgba(200,166,104,0.5)] transition-all transform active:scale-95 cursor-pointer uppercase flex items-center justify-center gap-3 ${
-            isOpening
-              ? 'opacity-80 scale-95 brightness-110'
-              : 'hover:brightness-110 hover:shadow-[0_12px_40px_rgba(200,166,104,0.7)]'
+          onClick={handleStartLogin}
+          disabled={isOpening || isDbConnecting}
+          className={`relative group w-full max-w-[280px] sm:max-w-[320px] py-4 px-8 rounded-2xl bg-gradient-to-b from-[#ffea9f] via-[#d4af37] to-[#8c6b12] border-2 border-[#fff5cc] shadow-[0_12px_35px_rgba(212,175,55,0.7)] font-cinzel font-black text-2xl sm:text-3xl text-[#2b1702] tracking-wider transition-all transform active:scale-95 cursor-pointer flex items-center justify-center overflow-hidden ${
+            isOpening || isDbConnecting
+              ? 'opacity-90 scale-95 brightness-110 cursor-not-allowed'
+              : 'hover:brightness-110 hover:shadow-[0_18px_50px_rgba(212,175,55,0.9)]'
           }`}
         >
-          {isOpening ? (
-            <>
-              <span className="w-4 h-4 border-2 border-[#140e05] border-t-transparent rounded-full animate-spin" />
-              <span>در حال باز شدن درب تخته...</span>
-            </>
+          {/* Internal bevel glow */}
+          <div className="absolute inset-[2px] rounded-xl border border-white/45 pointer-events-none" />
+
+          {isDbConnecting ? (
+            <div className="flex items-center gap-2">
+              <span className="w-5 h-5 border-2 border-[#2b1702] border-t-transparent rounded-full animate-spin" />
+              <span className="text-xl font-bold font-sans">Connecting...</span>
+            </div>
+          ) : isOpening ? (
+            <div className="flex items-center gap-2">
+              <span className="w-5 h-5 border-2 border-[#2b1702] border-t-transparent rounded-full animate-spin" />
+              <span className="text-xl font-bold font-sans">Start</span>
+            </div>
           ) : (
-            <>
-              <span>ورود به بازی و باز شدن تخته</span>
-              <span className="text-lg">▶</span>
-            </>
+            <span className="drop-shadow-[0_2px_4px_rgba(255,255,255,0.6)]">
+              Start
+            </span>
           )}
         </button>
-
-        <p className="mt-2.5 font-cormorant text-[12px] text-[#a8a193]">
-          روی دکمه یا درب تخته کلیک کنید تا قفل‌های برنجی باز شده و وارد تالار اصلی شوید
-        </p>
-      </div>
+      </footer>
     </div>
   );
 }

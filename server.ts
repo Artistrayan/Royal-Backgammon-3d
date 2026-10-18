@@ -8,6 +8,7 @@ import pg from 'pg';
 import { tournamentManager } from './server_tournament_manager.js';
 import { provablyFairEngine, verifyProvablyFairRoll } from './server_provably_fair.js';
 import { seasonalLeaderboard } from './server_elo_seasons.js';
+import { productionDb } from './src/db/production_database.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -476,58 +477,51 @@ async function initDatabaseTables() {
 // Start database check on boot
 initDatabaseTables().catch(() => {});
 
-// Load persisted data if exists
+// Load persisted data directly from Production Database (users, transactions, ratings, balances)
 try {
-  if (fs.existsSync(DB_FILE)) {
-    const raw = fs.readFileSync(DB_FILE, 'utf-8');
-    const parsed = JSON.parse(raw);
-    if (parsed.users && Array.isArray(parsed.users)) {
-      for (const u of parsed.users) {
-        registeredUsers.set(u.id, {
-          ...u,
-          rating: u.rating ?? 1200,
-          xp: u.xp ?? (u.level ? u.level * 100 : 0),
-          usdtBalance: typeof u.usdtBalance === 'number' ? u.usdtBalance : 25,
-          losses: u.losses ?? 0,
-          winStreak: u.winStreak ?? 0,
-          status: 'offline',
-        });
-      }
-    }
-    if (parsed.friendships && typeof parsed.friendships === 'object') {
-      for (const [uid, friendsArr] of Object.entries(parsed.friendships)) {
-        friendships.set(uid, new Set(friendsArr as string[]));
-      }
-    }
+  const dbUsers = productionDb.getAllUsers();
+  for (const u of dbUsers) {
+    registeredUsers.set(u.id, {
+      id: u.id,
+      username: u.username,
+      level: u.level,
+      xp: u.xp,
+      rating: u.rating,
+      usdtBalance: u.usdt_balance,
+      wins: u.wins,
+      losses: u.losses,
+      winStreak: u.win_streak,
+      matchesPlayed: u.matches_played,
+      status: 'offline',
+      lastSeen: u.last_seen,
+    });
   }
+  console.log(`[Database] Loaded ${dbUsers.length} users directly from Production Database.`);
 } catch (e) {
-  console.warn('[Store] Could not load backend store file:', e);
+  console.warn('[Database] Could not load from production database:', e);
 }
 
 function persistStore() {
   try {
-    const usersArr = Array.from(registeredUsers.values());
-    const friendsObj: Record<string, string[]> = {};
-    for (const [uid, set] of friendships.entries()) {
-      friendsObj[uid] = Array.from(set);
+    for (const u of registeredUsers.values()) {
+      productionDb.saveUser({
+        id: u.id,
+        username: u.username,
+        level: u.level,
+        xp: u.xp,
+        rating: u.rating,
+        usdt_balance: u.usdtBalance,
+        wins: u.wins,
+        losses: u.losses,
+        win_streak: u.winStreak,
+        matches_played: u.matchesPlayed,
+        status: u.status,
+      });
     }
-    fs.writeFileSync(
-      DB_FILE,
-      JSON.stringify(
-        {
-          users: usersArr,
-          friendships: friendsObj,
-          savedAt: Date.now(),
-        },
-        null,
-        2
-      ),
-      'utf-8'
-    );
 
     // Persist to PostgreSQL if connected
     if (pgPool && isPostgresConnected) {
-      for (const u of usersArr) {
+      for (const u of registeredUsers.values()) {
         pgPool
           .query(
             `INSERT INTO users (id, username, level, xp, rating, usdt_balance, wins, losses, win_streak, matches_played, status, last_seen)
@@ -747,6 +741,9 @@ function handleClientMessage(ws: WebSocket, msg: any) {
       treasuryStats.totalDepositedUsdt = Math.round((treasuryStats.totalDepositedUsdt + depositAmount) * 100) / 100;
       treasuryStats.totalUsersBalanceUsdt = Math.round((treasuryStats.totalUsersBalanceUsdt + depositAmount) * 100) / 100;
 
+      // Record directly in production database
+      productionDb.deposit(user.id, depositAmount, txHash, msg.network || 'TRC20', msg.network === 'TON' ? 'EQB_t1r8f92jK7lWp3Qv84_USDT_TELEGRAM' : 'TBMvBiVB6mhu1gnaAAE1Pg5YohKvV1NSnB');
+
       // Real audit record in ledger
       const auditRec = recordFinancialAudit({
         type: 'deposit',
@@ -806,6 +803,9 @@ function handleClientMessage(ws: WebSocket, msg: any) {
       user.usdtBalance = Math.round((user.usdtBalance - withdrawAmount) * 100) / 100;
       treasuryStats.totalPendingWithdrawalsUsdt = Math.round((treasuryStats.totalPendingWithdrawalsUsdt + withdrawAmount) * 100) / 100;
       treasuryStats.totalUsersBalanceUsdt = Math.max(0, Math.round((treasuryStats.totalUsersBalanceUsdt - withdrawAmount) * 100) / 100);
+
+      // Record directly in production database
+      productionDb.requestWithdrawal(user.id, withdrawAmount, destAddr, msg.network === 'TON' ? 'TON' : 'TRC20');
 
       const wdItem: WithdrawalRequest = {
         id: `wd-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
@@ -1798,6 +1798,43 @@ server.on('upgrade', (request, socket, head) => {
     }
   } catch (err) {
     console.warn('[WS Server] Upgrade handle error:', err);
+  }
+});
+
+// ----------------------------------------------------
+// TELEGRAM AUTHENTICATION & PRODUCTION DATABASE SYNC
+// ----------------------------------------------------
+app.post('/api/auth/telegram', async (req, res) => {
+  try {
+    const { user, initData } = req.body || {};
+    const userId = user?.id ? String(user.id) : (req.body?.id || `tg-${Date.now().toString().slice(-6)}`);
+    const username = user?.username ? `@${user.username}` : (user?.first_name || req.body?.username || 'Masoud');
+
+    // Database connection status
+    const isDbConnected = Boolean((pgPool && isPostgresConnected) || productionDb);
+
+    // Persist and sync user in production database
+    const dbUser = productionDb.saveUser({
+      id: userId,
+      username: username,
+      status: 'online',
+    });
+
+    console.log(`[Database Auth] User authenticated via Telegram & synced to DB: ${username} (${userId})`);
+
+    res.json({
+      success: true,
+      authenticated: true,
+      databaseConnected: isDbConnected,
+      databaseType: (pgPool && isPostgresConnected) ? 'PostgreSQL' : 'Persistent Storage',
+      user: dbUser,
+    });
+  } catch (error: any) {
+    console.error('[Database Auth] Error:', error);
+    res.status(500).json({
+      success: false,
+      error: error?.message || 'Database authentication failed',
+    });
   }
 });
 

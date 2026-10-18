@@ -490,11 +490,8 @@ export default function App() {
   const [isSpectating, setIsSpectating] = useState<boolean>(false);
   const [spectatingMatchInfo, setSpectatingMatchInfo] = useState<TournamentMatch | null>(null);
 
-  // Telegram Authentication & Mandatory Verification State (ورود اختصاصی با تلگرام بدون تایید وارد نشود)
-  const [isTelegramVerified, setIsTelegramVerified] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false;
-    return window.localStorage.getItem('royal_tg_verified') === 'true';
-  });
+  // Telegram Authentication & Mandatory Verification State: Starts at false so Login Screen is always presented
+  const [isTelegramVerified, setIsTelegramVerified] = useState<boolean>(false);
 
   const [isPortrait, setIsPortrait] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
@@ -2578,6 +2575,227 @@ export default function App() {
       />
     );
   }
+
+  const renderModals = () => (
+    <>
+      {/* Real Online Matchmaking Modal */}
+      <OnlineMatchmakingModal
+        isOpen={isMatchmakingOpen}
+        mode={matchmakingMode}
+        player={{
+          username: realState.playerName,
+          level: playerLevel,
+          wins: realState.realStats.wins,
+          matchesPlayed: realState.realStats.matchesPlayed,
+        }}
+        onlineCount={onlineCount}
+        queueCount={queueCount}
+        matchedOpponent={matchedOpponent}
+        onCancel={() => {
+          multiplayerClient.cancelMatchmaking();
+          setIsMatchmakingOpen(false);
+        }}
+      />
+
+      {/* Real Online Friends & Challenges Modal */}
+      <FriendsModal
+        isOpen={isFriendsModalOpen}
+        onClose={() => setIsFriendsModalOpen(false)}
+        friends={friends}
+        incomingRequests={incomingRequests}
+        outgoingRequests={outgoingRequests}
+        searchResults={searchResults}
+        onSearchUsers={(q) => multiplayerClient.searchUsers(q)}
+        onSendFriendRequest={(targetId) =>
+          multiplayerClient.sendFriendRequest(targetId)
+        }
+        onAcceptFriendRequest={(reqId) =>
+          multiplayerClient.acceptFriendRequest(reqId)
+        }
+        onRejectFriendRequest={(reqId) =>
+          multiplayerClient.rejectFriendRequest(reqId)
+        }
+        onChallengeFriend={(targetId, amountUsdt) => {
+          multiplayerClient.sendFriendChallenge(targetId, amountUsdt);
+          showToastNotification(
+            'challenge-sent',
+            'CHALLENGE SENT',
+            amountUsdt > 0
+              ? `Invitation sent with ${amountUsdt} USDT selected. Paid matches are not active yet; no funds are transferred.`
+              : 'Free match invitation sent. Waiting for friend to accept...'
+          );
+        }}
+      />
+
+      {/* Incoming Real Challenge Modal */}
+      <IncomingChallengeModal
+        challenge={incomingChallenge}
+        onAccept={(chalId) => {
+          multiplayerClient.respondFriendChallenge(chalId, true);
+          setIncomingChallenge(null);
+        }}
+        onDecline={(chalId) => {
+          multiplayerClient.respondFriendChallenge(chalId, false);
+          setIncomingChallenge(null);
+        }}
+      />
+
+      {/* 24/7 Customer Support & Ticket System */}
+      <CustomerSupportModal
+        isOpen={isSupportModalOpen}
+        onClose={() => setIsSupportModalOpen(false)}
+        userId={multiplayerClient.getCurrentUser()?.id || `user-${realState.playerName}`}
+        username={realState.playerName}
+      />
+
+      {/* Independent Admin Command & Financial Ledger Modal */}
+      <AdminPanelModal
+        isOpen={isAdminModalOpen}
+        onClose={() => setIsAdminModalOpen(false)}
+      />
+
+      {/* Swiss + Knockout Tournament System Modal */}
+      <TournamentLobbyModal
+        isOpen={isTournamentModalOpen}
+        onClose={() => setIsTournamentModalOpen(false)}
+        userUsdtBalance={usdtBalance}
+        userId={playerId}
+        userName={realState.playerName}
+        playerLevel={playerLevel}
+        playerRating={playerRating}
+        onRegisterTournament={handleRegisterTournament}
+        onUnregisterTournament={handleUnregisterTournament}
+        onSpectateMatch={handleSpectateMatch}
+        onOpenWallet={() => {
+          setIsTournamentModalOpen(false);
+          navigateToScreen('wallet');
+        }}
+      />
+
+      {/* Provably Fair Cryptographic Dice Verifier Modal */}
+      <ProvablyFairModal
+        isOpen={isProvablyFairModalOpen}
+        onClose={() => setIsProvablyFairModalOpen(false)}
+        serverSeedHash={serverSeedHash}
+        clientSeed={clientSeed}
+        currentNonce={currentRollNonce}
+        revealedServerSeed={revealedServerSeed}
+        onUpdateClientSeed={(s) => setClientSeed(s)}
+      />
+
+      {/* Global ELO & Seasonal Leaderboards Modal */}
+      <LeaderboardSeasonsModal
+        isOpen={isLeaderboardModalOpen}
+        onClose={() => setIsLeaderboardModalOpen(false)}
+        currentUser={{
+          id: playerId,
+          username: realState.playerName,
+          rating: playerRating,
+          level: playerLevel,
+          wins: realState.realStats.wins,
+          losses: realState.realStats.losses ?? 0,
+        }}
+      />
+
+      {/* Backgammon Game Variants Selection Modal */}
+      <GameVariantsModal
+        isOpen={isVariantsModalOpen}
+        onClose={() => setIsVariantsModalOpen(false)}
+        selectedVariant={selectedVariant}
+        onSelectVariant={(vId) => {
+          setSelectedVariant(vId);
+          handleStartNewMatch();
+          showToastNotification('variant-changed', `VARIANT: ${vId.toUpperCase()}`, 'Board reconfigured for chosen variant rules');
+        }}
+      />
+
+      {/* AI Opponent Personality & Difficulty Modal */}
+      <AIDifficultyModal
+        isOpen={isAIDifficultyModalOpen}
+        onClose={() => setIsAIDifficultyModalOpen(false)}
+        selectedDifficulty={aiDifficulty}
+        onSelectDifficulty={(d) => {
+          setAiDifficulty(d);
+          enterGameTable('practice');
+          showToastNotification('ai-difficulty', `AI OPPONENT: ${d.toUpperCase()}`, `${AI_DIFFICULTY_PROFILES[d].errorRate} error rate`);
+        }}
+      />
+
+      {/* Smart Game Analysis & Performance Rating Modal */}
+      <GameAnalysisModal
+        isOpen={isAnalysisModalOpen}
+        onClose={() => setIsAnalysisModalOpen(false)}
+        summary={analysisSummary}
+      />
+      <MatchEndModal
+        isOpen={isGameEndModalOpen}
+        onClose={() => setIsGameEndModalOpen(false)}
+        winner={winner}
+        victoryBanner={victoryBanner}
+        isTournamentMatch={Boolean(activeTournamentMatch)}
+        tournamentMatch={activeTournamentMatch || undefined}
+        onPlayAgain={() => {
+          setIsGameEndModalOpen(false);
+          handleStartNewMatch();
+        }}
+      />
+    </>
+  );
+
+  // 1. SOVEREIGN FULL-SCREEN HOME SCREEN (EXACTLY AS IN IMAGE 2)
+  if (isHomeScreen) {
+    return (
+      <div className="fixed inset-0 w-full h-full bg-black overflow-hidden select-none touch-none">
+        <RoyalBackgammonHomeLobby
+          onlineCount={onlineCount}
+          userCoins={realState.coins}
+          userUsdt={usdtBalance}
+          playerLevel={playerLevel}
+          playerRating={playerRating}
+          playerName={realState.playerName}
+          onPlayOneOnOne={() => {
+            handleStartOnlineMatch('quick_seat');
+          }}
+          onOpenTournaments={() => {
+            setIsTournamentModalOpen(true);
+          }}
+          onOpenPractice={() => {
+            setIsAIDifficultyModalOpen(true);
+          }}
+          onOpenFriends={() => {
+            setIsFriendsModalOpen(true);
+          }}
+          onOpenProvablyFair={() => {
+            setIsProvablyFairModalOpen(true);
+          }}
+          onOpenLeaderboard={() => {
+            setIsLeaderboardModalOpen(true);
+          }}
+          onOpenVariants={() => {
+            setIsVariantsModalOpen(true);
+          }}
+          onOpenProfile={() => {
+            navigateToScreen('profile');
+          }}
+          onOpenWallet={() => {
+            navigateToScreen('wallet');
+          }}
+          onOpenStore={() => {
+            navigateToScreen('collection');
+          }}
+          onOpenSettings={() => {
+            navigateToScreen('settings');
+          }}
+          onOpenSupport={() => {
+            setIsSupportModalOpen(true);
+          }}
+          onClaimDailyReward={handleClaimDailyTribute}
+        />
+        {renderModals()}
+      </div>
+    );
+  }
+
   return (
     <div className="w-full h-full min-h-screen bg-[#020705] text-[#e8dfd0] overflow-hidden select-none flex flex-col justify-between relative touch-none overscroll-none">
       {/* 1. Photorealistic Luxury Dark Emerald Parlor & Velvet Table Background */}
@@ -2938,59 +3156,6 @@ export default function App() {
 
           {/* 3. CENTER LANDSCAPE BODY (ROYAL BACKGAMMON 3D LOBBY ON HOME, 3D TABLE IN GAME) */}
           <div className="relative z-10 w-full h-full flex flex-row items-center overflow-hidden">
-            {/* If on Home Screen, render the world-class Royal Backgammon 3D Lobby */}
-            {isHomeScreen ? (
-              <React.Fragment>
-                <div className="fixed inset-0 z-40 h-[100dvh] w-full overflow-hidden flex items-center justify-center">
-                  <RoyalBackgammonHomeLobby
-                    onlineCount={onlineCount}
-                    userCoins={realState.coins}
-                    userUsdt={usdtBalance}
-                    playerLevel={playerLevel}
-                    playerRating={playerRating}
-                    playerName={realState.playerName}
-                    onPlayOneOnOne={() => {
-                      handleStartOnlineMatch('quick_seat');
-                    }}
-                    onOpenTournaments={() => {
-                      setIsTournamentModalOpen(true);
-                    }}
-                    onOpenPractice={() => {
-                      setIsAIDifficultyModalOpen(true);
-                    }}
-                    onOpenFriends={() => {
-                      setIsFriendsModalOpen(true);
-                    }}
-                    onOpenProvablyFair={() => {
-                      setIsProvablyFairModalOpen(true);
-                    }}
-                    onOpenLeaderboard={() => {
-                      setIsLeaderboardModalOpen(true);
-                    }}
-                    onOpenVariants={() => {
-                      setIsVariantsModalOpen(true);
-                    }}
-                    onOpenProfile={() => {
-                      navigateToScreen('profile');
-                    }}
-                    onOpenWallet={() => {
-                      navigateToScreen('wallet');
-                    }}
-                    onOpenStore={() => {
-                      navigateToScreen('collection');
-                    }}
-                    onOpenSettings={() => {
-                      navigateToScreen('settings');
-                    }}
-                    onOpenSupport={() => {
-                      setIsSupportModalOpen(true);
-                    }}
-                    onClaimDailyReward={handleClaimDailyTribute}
-                  />
-                </div>
-              </React.Fragment>
-            ) : null}
-
             {/* 3D GLB BACKGAMMON BOARD STAGE (Active and visible when on Game Screen) */}
             <div
               className={`h-full flex items-center justify-center transition-all duration-300 ${
@@ -3317,167 +3482,8 @@ export default function App() {
             }}
           />
 
-          {/* Real Online Matchmaking Modal */}
-          <OnlineMatchmakingModal
-            isOpen={isMatchmakingOpen}
-            mode={matchmakingMode}
-            player={{
-              username: realState.playerName,
-              level: playerLevel,
-              wins: realState.realStats.wins,
-              matchesPlayed: realState.realStats.matchesPlayed,
-            }}
-            onlineCount={onlineCount}
-            queueCount={queueCount}
-            matchedOpponent={matchedOpponent}
-            onCancel={() => {
-              multiplayerClient.cancelMatchmaking();
-              setIsMatchmakingOpen(false);
-            }}
-          />
-
-          {/* Real Online Friends & Challenges Modal */}
-          <FriendsModal
-            isOpen={isFriendsModalOpen}
-            onClose={() => setIsFriendsModalOpen(false)}
-            friends={friends}
-            incomingRequests={incomingRequests}
-            outgoingRequests={outgoingRequests}
-            searchResults={searchResults}
-            onSearchUsers={(q) => multiplayerClient.searchUsers(q)}
-            onSendFriendRequest={(targetId) =>
-              multiplayerClient.sendFriendRequest(targetId)
-            }
-            onAcceptFriendRequest={(reqId) =>
-              multiplayerClient.acceptFriendRequest(reqId)
-            }
-            onRejectFriendRequest={(reqId) =>
-              multiplayerClient.rejectFriendRequest(reqId)
-            }
-            onChallengeFriend={(targetId, amountUsdt) => {
-              multiplayerClient.sendFriendChallenge(targetId, amountUsdt);
-              showToastNotification(
-                'challenge-sent',
-                'CHALLENGE SENT',
-                amountUsdt > 0
-                  ? `Invitation sent with ${amountUsdt} USDT selected. Paid matches are not active yet; no funds are transferred.`
-                  : 'Free match invitation sent. Waiting for friend to accept...'
-              );
-            }}
-          />
-
-          {/* Incoming Real Challenge Modal */}
-          <IncomingChallengeModal
-            challenge={incomingChallenge}
-            onAccept={(chalId) => {
-              multiplayerClient.respondFriendChallenge(chalId, true);
-              setIncomingChallenge(null);
-            }}
-            onDecline={(chalId) => {
-              multiplayerClient.respondFriendChallenge(chalId, false);
-              setIncomingChallenge(null);
-            }}
-          />
-
-          {/* 24/7 Customer Support & Ticket System (پشتیبانی فعال) */}
-          <CustomerSupportModal
-            isOpen={isSupportModalOpen}
-            onClose={() => setIsSupportModalOpen(false)}
-            userId={multiplayerClient.getCurrentUser()?.id || `user-${realState.playerName}`}
-            username={realState.playerName}
-          />
-
-          {/* Independent Admin Command & Financial Ledger Modal (پنل مدیریت مستقل با کنترل کامل) */}
-          <AdminPanelModal
-            isOpen={isAdminModalOpen}
-            onClose={() => setIsAdminModalOpen(false)}
-          />
-
-          {/* Swiss + Knockout Tournament System Modal (مسابقات سوئیسی و حذفی با ورودی و جوایز تتر) */}
-          <TournamentLobbyModal
-            isOpen={isTournamentModalOpen}
-            onClose={() => setIsTournamentModalOpen(false)}
-            userUsdtBalance={usdtBalance}
-            userId={playerId}
-            userName={realState.playerName}
-            playerLevel={playerLevel}
-            playerRating={playerRating}
-            onRegisterTournament={handleRegisterTournament}
-            onUnregisterTournament={handleUnregisterTournament}
-            onSpectateMatch={handleSpectateMatch}
-            onOpenWallet={() => {
-              setIsTournamentModalOpen(false);
-              navigateToScreen('wallet');
-            }}
-          />
-
-          {/* Provably Fair Cryptographic Dice Verifier Modal (ممیزی ریاضی و تعهد هش) */}
-          <ProvablyFairModal
-            isOpen={isProvablyFairModalOpen}
-            onClose={() => setIsProvablyFairModalOpen(false)}
-            serverSeedHash={serverSeedHash}
-            clientSeed={clientSeed}
-            currentNonce={currentRollNonce}
-            revealedServerSeed={revealedServerSeed}
-            onUpdateClientSeed={(s) => setClientSeed(s)}
-          />
-
-          {/* Global ELO & Seasonal Leaderboards Modal (رتبه‌بندی جهانی، فصول و ضرایب K داینامیک) */}
-          <LeaderboardSeasonsModal
-            isOpen={isLeaderboardModalOpen}
-            onClose={() => setIsLeaderboardModalOpen(false)}
-            currentUser={{
-              id: playerId,
-              username: realState.playerName,
-              rating: playerRating,
-              level: playerLevel,
-              wins: realState.realStats.wins,
-              losses: realState.realStats.losses ?? 0,
-            }}
-          />
-
-          {/* Backgammon Game Variants Selection Modal (استاندارد، نرد لانگ و هایپرگامون) */}
-          <GameVariantsModal
-            isOpen={isVariantsModalOpen}
-            onClose={() => setIsVariantsModalOpen(false)}
-            selectedVariant={selectedVariant}
-            onSelectVariant={(vId) => {
-              setSelectedVariant(vId);
-              handleStartNewMatch();
-              showToastNotification('variant-changed', `VARIANT: ${vId.toUpperCase()}`, 'Board reconfigured for chosen variant rules');
-            }}
-          />
-
-          {/* AI Opponent Personality & Difficulty Modal (مبتدی، نوآموز، متوسط، استاد بزرگ) */}
-          <AIDifficultyModal
-            isOpen={isAIDifficultyModalOpen}
-            onClose={() => setIsAIDifficultyModalOpen(false)}
-            selectedDifficulty={aiDifficulty}
-            onSelectDifficulty={(d) => {
-              setAiDifficulty(d);
-              enterGameTable('practice');
-              showToastNotification('ai-difficulty', `AI OPPONENT: ${d.toUpperCase()}`, `${AI_DIFFICULTY_PROFILES[d].errorRate} error rate`);
-            }}
-          />
-
-          {/* Smart Game Analysis & Performance Rating (PR) Modal (تحلیل بازی و ریتینگ PR) */}
-          <GameAnalysisModal
-            isOpen={isAnalysisModalOpen}
-            onClose={() => setIsAnalysisModalOpen(false)}
-            summary={analysisSummary}
-          />
-          <MatchEndModal
-            isOpen={isGameEndModalOpen}
-            onClose={() => setIsGameEndModalOpen(false)}
-            winner={winner}
-            victoryBanner={victoryBanner}
-            isTournamentMatch={Boolean(activeTournamentMatch)}
-            tournamentMatch={activeTournamentMatch || undefined}
-            onPlayAgain={() => {
-              setIsGameEndModalOpen(false);
-              handleStartNewMatch();
-            }}
-          />
+          {/* Global Modals (Tournaments, Leaderboards, Matchmaking, etc.) */}
+          {renderModals()}
         </div>
     );
 }
