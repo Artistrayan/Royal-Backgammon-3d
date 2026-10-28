@@ -38,7 +38,9 @@ main{max-width:1120px;margin:auto;padding:18px 14px 30px}.top{display:flex;justi
 <script>
 (() => {
 'use strict';
-const tg=window.Telegram?.WebApp;\nif(tg){try{tg.ready();tg.expand();tg.setHeaderColor?.('#101611');tg.setBackgroundColor?.('#101611');tg.disableVerticalSwipes?.();}catch(e){}}\nconst canvas=document.getElementById('board'),ctx=canvas.getContext('2d');
+const tg=window.Telegram?.WebApp;
+if(tg){try{tg.ready();tg.expand();tg.setHeaderColor?.('#101611');tg.setBackgroundColor?.('#101611');tg.disableVerticalSwipes?.();}catch(e){}}
+const canvas=document.getElementById('board'),ctx=canvas.getContext('2d');
 const $=id=>document.getElementById(id);
 const N=1000, rail=94, minX=220,maxX=780, baseY=815;
 let pieces=[],turn=0,whiteScore=0,blackScore=0,queenScore=0,moving=false,dragging=false,dragId=null,last=performance.now(),shotCount=0;
