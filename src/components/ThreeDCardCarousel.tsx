@@ -69,7 +69,7 @@ export function ThreeDCardCarousel({
                 opacity: visible ? (center ? 1 : Math.max(.62, 1 - Math.abs(diff) * .14)) : 0,
                 pointerEvents: visible ? 'auto' : 'none',
                 zIndex: 20 - Math.abs(diff),
-                transform: `translate(calc(-50% + ${diff * (typeof window !== 'undefined' && window.innerWidth < 640 ? 43 : 68)}%), -50%) rotateY(${diff * -17}deg) rotateZ(${center ? 0 : diff * -2}deg) scale(${center ? 1 : Math.max(.72, 1 - Math.abs(diff) * .12)})`,
+                transform: `translate(calc(-50% + ${diff * (typeof window !== 'undefined' && window.innerWidth < 640 ? 75 : 82)}%), -50%) rotateY(${diff * -17}deg) rotateZ(${center ? 0 : diff * -2}deg) scale(${center ? 1 : Math.max(.72, 1 - Math.abs(diff) * .12)})`,
                 borderColor: center ? '#ffd36b' : card.tone === 'green' ? '#5cae9b' : '#8294aa',
                 boxShadow: center ? '0 0 0 1px #8b5b1c, 0 0 30px rgba(0,145,255,.55), 0 0 36px rgba(255,186,54,.28)' : '0 12px 24px rgba(0,0,0,.65)',
               }}
