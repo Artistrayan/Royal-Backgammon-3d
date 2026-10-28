@@ -49,8 +49,10 @@ export function TelegramLoginScreen({ onLoginSuccess }: TelegramLoginScreenProps
   const handleStartLogin = async () => {
     if (isOpening || isDbConnecting) return;
     setIsDbConnecting(true);
+    setIsOpening(true);
     triggerTelegramHaptic('heavy');
     royalSound.playOptionClickSound();
+    royalSound.playBoardOpenSound();
 
     let authenticatedUser: any = null;
     let databaseStatus = true;
@@ -77,8 +79,6 @@ export function TelegramLoginScreen({ onLoginSuccess }: TelegramLoginScreenProps
       setIsDbConnecting(false);
     }
 
-    setIsOpening(true);
-    royalSound.playBoardOpenSound();
     setTimeout(() => {
       royalSound.playVictoryFanfareSound();
       const finalId = authenticatedUser?.id || (telegramUser ? String(telegramUser.id) : `tg-${Date.now().toString().slice(-6)}`);
