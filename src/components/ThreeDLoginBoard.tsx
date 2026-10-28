@@ -1,5 +1,5 @@
 import React from 'react';
-import boardClosedExactImg from '../assets/images/board_closed_exact_matching_lid_1792324316682.jpg';
+import boardClosedExactImg from '../assets/images/closed_board_lion_sun_emblem_1791745629203.jpg';
 
 interface ThreeDLoginBoardProps {
   isOpening: boolean;
