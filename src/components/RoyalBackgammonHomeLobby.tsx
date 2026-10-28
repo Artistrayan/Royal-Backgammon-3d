@@ -251,6 +251,23 @@ export function RoyalBackgammonHomeLobby({
         onOpenVariants={onOpenVariants}
       />
 
+      {/* ROYAL CARROM: second game available inside the same Telegram Mini App */}
+      <div className="absolute z-50 bottom-[66px] sm:bottom-[74px] left-1/2 -translate-x-1/2 pointer-events-auto">
+        <button
+          type="button"
+          onClick={() => {
+            triggerTelegramHaptic('light');
+            window.location.assign(`${import.meta.env.BASE_URL}carrom/`);
+          }}
+          className="flex items-center gap-2 rounded-full border border-[#d7b66d] bg-gradient-to-r from-[#33220d] via-[#8a6428] to-[#33220d] px-5 py-2 text-[#fff0bd] shadow-[0_0_24px_rgba(215,182,109,0.28)] hover:brightness-110 active:scale-95 transition-all"
+          aria-label="Open Royal Carrom Mini App"
+        >
+          <span className="text-lg">◉</span>
+          <span className="text-xs sm:text-sm font-black tracking-[0.12em]">ROYAL CARROM</span>
+          <span className="text-[9px] rounded-full border border-[#e8cf8c]/60 px-1.5 py-0.5">PLAY</span>
+        </button>
+      </div>
+
       {/* 4. BOTTOM BAR: NAVIGATION (HOME, PROFILE, WALLET, STORE, SETTINGS, HELP) + PIGGY BANK */}
       <footer className="relative z-30 w-full h-[58px] sm:h-[66px] px-2 sm:px-4 pb-1 sm:pb-2 flex items-center justify-between pointer-events-auto">
         <div className="flex items-center gap-1 sm:gap-2 bg-black/60 backdrop-blur-md p-1 rounded-2xl border border-white/10 shadow-lg">
