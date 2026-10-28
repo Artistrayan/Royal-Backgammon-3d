@@ -1,0 +1,9 @@
+{
+  "app_title": "Royal Carrom",
+  "short_name": "royal_carrom",
+  "webapp_url": "https://artistrayan.github.io/Royal-Backgammon-3d/carrom/",
+  "parent_app": "Royal Backgammon 3D",
+  "telegram_sdk": "https://telegram.org/js/telegram-web-app.js",
+  "orientation": "portrait",
+  "note": "This is a browser-based Carrom prototype inside the existing Royal Games Pages deployment. Multiplayer and shared wallet/account integration require a server-side implementation."
+}
