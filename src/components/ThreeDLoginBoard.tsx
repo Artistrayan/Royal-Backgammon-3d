@@ -56,21 +56,6 @@ export function ThreeDLoginBoard({ isOpening }: ThreeDLoginBoardProps) {
     board.rotation.y = -0.1;
     scene.add(board);
 
-    const platform = new THREE.Mesh(
-      new THREE.CylinderGeometry(2.3, 2.42, 0.18, 64),
-      new THREE.MeshStandardMaterial({ color: 0x090d15, metalness: 0.92, roughness: 0.22 })
-    );
-    platform.position.set(0, -2.15, -0.25);
-    scene.add(platform);
-
-    const platformRim = new THREE.Mesh(
-      new THREE.TorusGeometry(2.34, 0.035, 12, 64),
-      new THREE.MeshStandardMaterial({ color: 0xffc64a, emissive: 0xb87919, emissiveIntensity: 0.8, metalness: 0.9, roughness: 0.2 })
-    );
-    platformRim.rotation.x = Math.PI / 2;
-    platformRim.position.set(0, -2.04, -0.25);
-    scene.add(platformRim);
-
     const resize = () => {
       const width = Math.max(1, container.clientWidth);
       const height = Math.max(1, container.clientHeight);
@@ -109,7 +94,7 @@ export function ThreeDLoginBoard({ isOpening }: ThreeDLoginBoardProps) {
   }, []);
 
   return (
-    <div ref={containerRef} className="relative z-20 h-full min-h-0 w-full max-w-[min(88vw,420px)] flex-none overflow-hidden select-none pointer-events-none aspect-[.9] max-h-[min(48vh,440px)]">
+    <div ref={containerRef} className="relative z-20 h-full min-h-0 w-full max-w-[min(88vw,460px)] flex-none overflow-hidden select-none pointer-events-none aspect-[.9] max-h-[min(58vh,560px)]">
       <canvas ref={canvasRef} className="block h-full w-full" />
     </div>
   );
