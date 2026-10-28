@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#101611">
+<title>Royal Carrom — Telegram Mini App</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+:root{color-scheme:dark;--bg:#101611;--panel:#1a241c;--gold:#d7b66d;--muted:#a8b3a7;--line:#344337}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#253427 0,#101611 65%);font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#f4f0e5;min-height:100vh}
+main{max-width:1120px;margin:auto;padding:18px 14px 30px}.top{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px}.brand{font-weight:850;letter-spacing:.11em;font-size:clamp(18px,4vw,27px)}.brand span{color:var(--gold)}.tag{font-size:12px;color:var(--muted);margin-top:4px}.pill{border:1px solid #665b3b;color:#ead8a4;border-radius:999px;padding:7px 11px;font-size:12px;white-space:nowrap}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:16px;align-items:start}.boardWrap{background:#171f18;border:1px solid var(--line);border-radius:18px;padding:10px;box-shadow:0 18px 60px #0007}.canvasBox{width:100%;aspect-ratio:1;touch-action:none;overflow:hidden;border-radius:12px}canvas{display:block;width:100%;height:100%;touch-action:none}
+.panel{background:linear-gradient(155deg,#202c22,#151c16);border:1px solid var(--line);border-radius:16px;padding:15px;display:flex;flex-direction:column;gap:14px}.panel h2{font-size:14px;text-transform:uppercase;letter-spacing:.12em;color:var(--gold);margin:0}.statrow{display:flex;justify-content:space-between;gap:10px;font-size:13px;color:var(--muted)}.statrow strong{color:#f4f0e5;font-weight:650}.control label{display:flex;justify-content:space-between;font-size:13px;margin-bottom:8px}.control input{width:100%;accent-color:var(--gold)}.buttons{display:grid;grid-template-columns:1fr 1fr;gap:8px}button,select{font:inherit;border-radius:10px;border:1px solid #53624f;background:#263328;color:#f6f1e4;padding:11px 10px;cursor:pointer}button.primary{background:linear-gradient(135deg,#e7cc85,#b38c43);border-color:#e7cc85;color:#1a1a12;font-weight:800}button:disabled{opacity:.4;cursor:not-allowed}.hint{font-size:12px;line-height:1.5;color:var(--muted);border-top:1px solid var(--line);padding-top:12px}.status{border-radius:10px;padding:10px 11px;background:#111912;border:1px solid #354536;font-size:13px;line-height:1.45}.status strong{color:var(--gold)}.legend{display:flex;gap:10px;flex-wrap:wrap;font-size:11px;color:var(--muted)}.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px}.footer{font-size:11px;color:#849083;text-align:center;margin-top:14px}
+@media(max-width:780px){main{padding:12px 9px 24px}.layout{grid-template-columns:1fr}.panel{display:grid;grid-template-columns:1fr 1fr;gap:12px}.panel h2,.status,.hint,.buttons{grid-column:1/-1}.boardWrap{padding:6px}.top{align-items:flex-start}.pill{font-size:10px}.footer{margin-top:10px}}
+</style>
+</head>
+<body>
+<main>
+<header class="top"><div><div class="brand">ROYAL <span>CARROM</span></div><div class="tag">Play instantly inside Telegram · Royal Games</div></div><div class="pill">TELEGRAM MINI APP</div></header>
+<div class="layout">
+<section class="boardWrap"><div class="canvasBox"><canvas id="board" aria-label="Interactive carrom board"></canvas></div><div class="legend" style="padding:10px 3px 2px"><span><i class="dot" style="background:#f4ead2"></i>White</span><span><i class="dot" style="background:#242424;border:1px solid #888"></i>Black</span><span><i class="dot" style="background:#c84d43"></i>Queen</span><span><i class="dot" style="background:#d7b66d"></i>Striker</span></div></section>
+<aside class="panel">
+<h2>Shot controls</h2>
+<div class="statrow"><span>Turn</span><strong id="turn">White</strong></div>
+<div class="statrow"><span>White pocketed</span><strong id="whiteScore">0</strong></div>
+<div class="statrow"><span>Black pocketed</span><strong id="blackScore">0</strong></div>
+<div class="control"><label for="aim">Aim angle <strong id="angleText">90°</strong></label><input id="aim" type="range" min="12" max="168" value="90"></div>
+<div class="control"><label for="power">Shot power <strong id="powerText">45%</strong></label><input id="power" type="range" min="10" max="100" value="45"></div>
+<div class="control"><label for="mode">Opponent</label><select id="mode"><option value="local">Two players</option><option value="ai">Play vs simple AI</option></select></div>
+<div class="buttons"><button class="primary" id="shoot">Shoot</button><button id="reset">Reset board</button></div>
+<div class="status" id="status"><strong>Ready.</strong> Drag the striker along your baseline, aim and shoot.</div>
+<div class="hint">Physics preview: reduced bounce, surface friction, disc-to-disc momentum transfer and gradual pocket drop. Use the angle and power sliders or drag on the board to position the striker. This is a browser test build, not the Android app itself.</div>
+</aside>
+</div>
+<div class="footer">Royal Games · Royal Carrom Mini App · Touch and mouse supported</div>
+</main>
+<script>
+(() => {
+'use strict';
+const tg=window.Telegram?.WebApp;\nif(tg){try{tg.ready();tg.expand();tg.setHeaderColor?.('#101611');tg.setBackgroundColor?.('#101611');tg.disableVerticalSwipes?.();}catch(e){}}\nconst canvas=document.getElementById('board'),ctx=canvas.getContext('2d');
+const $=id=>document.getElementById(id);
+const N=1000, rail=94, minX=220,maxX=780, baseY=815;
+let pieces=[],turn=0,whiteScore=0,blackScore=0,queenScore=0,moving=false,dragging=false,dragId=null,last=performance.now(),shotCount=0;
+const pockets=[{x:96,y:96,r:47},{x:904,y:96,r:47},{x:96,y:904,r:47},{x:904,y:904,r:47}];
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+function piece(id,type,x,y,r=24,mass=1){return{id,type,x,y,vx:0,vy:0,r,mass,spin:0,sinking:0,pocketed:false,rot:Math.random()*6};}
+function reset(){pieces=[];let id=1;pieces.push(piece(id++,'queen',500,500));for(let i=0;i<6;i++){let a=i*Math.PI/3;pieces.push(piece(id++,i%2?'black':'white',500+48.8*Math.cos(a),500+48.8*Math.sin(a)));}for(let i=0;i<12;i++){let a=(i*30+15)*Math.PI/180;pieces.push(piece(id++,i%2?'white':'black',500+92.4*Math.cos(a),500+92.4*Math.sin(a)));}pieces.push(piece(999,'striker',500,baseY,33,2.6));turn=0;whiteScore=blackScore=queenScore=0;shotCount=0;moving=false;dragging=false;updateUi();say('<strong>Ready.</strong> Drag the striker along your baseline, aim and shoot.');}
+function striker(){return pieces.find(p=>p.type==='striker'&&!p.pocketed);}
+function resize(){const dpr=Math.min(window.devicePixelRatio||1,2),r=canvas.getBoundingClientRect();canvas.width=Math.round(r.width*dpr);canvas.height=Math.round(r.height*dpr);ctx.setTransform(canvas.width/N,0,0,canvas.height/N,0,0);draw();}
+function board(){ctx.clearRect(0,0,N,N);ctx.fillStyle='#392719';roundRect(10,10,980,980,32);ctx.fill();ctx.strokeStyle='#8d683a';ctx.lineWidth=7;roundRect(28,28,944,944,25);ctx.stroke();ctx.fillStyle='#d9b77a';roundRect(48,48,904,904,17);ctx.fill();let g=ctx.createLinearGradient(65,60,930,950);g.addColorStop(0,'#efd8a5');g.addColorStop(.48,'#d6b17a');g.addColorStop(1,'#bd8f58');ctx.fillStyle=g;roundRect(70,70,860,860,12);ctx.fill();ctx.strokeStyle='#8b5934';ctx.lineWidth=3;ctx.strokeRect(rail,rail,808,808);
+for(const p of pockets){ctx.beginPath();ctx.arc(p.x,p.y,p.r+8,0,Math.PI*2);ctx.fillStyle='#694629';ctx.fill();ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle='#191510';ctx.fill();ctx.strokeStyle='#ae8750';ctx.lineWidth=3;ctx.stroke();}
+ctx.strokeStyle='#965c36';ctx.lineWidth=3;ctx.beginPath();ctx.arc(500,500,118,0,Math.PI*2);ctx.stroke();ctx.beginPath();ctx.arc(500,500,58,0,Math.PI*2);ctx.stroke();ctx.beginPath();ctx.moveTo(220,baseY);ctx.lineTo(780,baseY);ctx.moveTo(220,185);ctx.lineTo(780,185);ctx.stroke();for(const x of [220,780]){ctx.beginPath();ctx.arc(x,baseY,7,0,Math.PI*2);ctx.fillStyle='#965c36';ctx.fill();ctx.beginPath();ctx.arc(x,185,7,0,Math.PI*2);ctx.fill();}
+for(const y of [220,780]){ctx.beginPath();ctx.arc(220,y,22,0,Math.PI*2);ctx.stroke();ctx.beginPath();ctx.arc(780,y,22,0,Math.PI*2);ctx.stroke();}
+ctx.fillStyle='#8b5a35';ctx.font='bold 16px system-ui';ctx.textAlign='center';ctx.fillText('ROYAL CARROM',500,130);ctx.fillStyle='#94643f';ctx.font='12px system-ui';ctx.fillText('TOURNAMENT BOARD',500,875);}
+function roundRect(x,y,w,h,r){ctx.beginPath();ctx.roundRect(x,y,w,h,r);}
+function drawPiece(p){if(p.pocketed)return;ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.rot);const sc=p.sinking?Math.max(.04,1-p.sinking):1;ctx.scale(sc,sc);ctx.globalAlpha=p.sinking?1-p.sinking:.99;
+ctx.beginPath();ctx.ellipse(2,4,p.r*1.02,p.r*.95,0,0,Math.PI*2);ctx.fillStyle='#543b24';ctx.fill();
+let grad=ctx.createRadialGradient(-p.r*.35,-p.r*.4,2,0,0,p.r*1.2);
+if(p.type==='white'){grad.addColorStop(0,'#fff9e8');grad.addColorStop(.65,'#e7d8b9');grad.addColorStop(1,'#a88c64');}
+else if(p.type==='black'){grad.addColorStop(0,'#72716a');grad.addColorStop(.55,'#282b27');grad.addColorStop(1,'#0d100e');}
+else if(p.type==='queen'){grad.addColorStop(0,'#ff9580');grad.addColorStop(.6,'#c44538');grad.addColorStop(1,'#74231e');}
+else{grad.addColorStop(0,'#fff0b7');grad.addColorStop(.6,'#d7b66d');grad.addColorStop(1,'#88642c');}
+ctx.beginPath();ctx.arc(0,0,p.r,0,Math.PI*2);ctx.fillStyle=grad;ctx.fill();ctx.strokeStyle=p.type==='striker'?'#f6df98':'#8e6b45';ctx.lineWidth=p.type==='striker'?4:2;ctx.stroke();ctx.beginPath();ctx.arc(0,0,p.r*.68,0,Math.PI*2);ctx.strokeStyle=p.type==='white'?'#b7a17c':p.type==='black'?'#a9a18b':p.type==='queen'?'#f5b3a1':'#806027';ctx.lineWidth=1.5;ctx.stroke();if(p.type==='queen'){ctx.fillStyle='#ffe0a5';ctx.beginPath();ctx.arc(0,0,5,0,Math.PI*2);ctx.fill();}else if(p.type==='striker'){ctx.beginPath();ctx.arc(0,0,p.r*.38,0,Math.PI*2);ctx.strokeStyle='#fff1bf';ctx.lineWidth=2;ctx.stroke();}else{for(let i=0;i<6;i++){let a=i*Math.PI/3;ctx.beginPath();ctx.arc(Math.cos(a)*p.r*.38,Math.sin(a)*p.r*.38,2.2,0,Math.PI*2);ctx.fillStyle=p.type==='white'?'#9b815b':'#c9c0a7';ctx.fill();}}
+ctx.restore();}
+function draw(){board();const s=striker();if(s&&!moving&&!dragging&&!s.pocketed){let a=+$('aim').value*Math.PI/180;ctx.save();ctx.setLineDash([11,10]);ctx.strokeStyle='#fff8d5aa';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(s.x,s.y);ctx.lineTo(s.x+Math.cos(a)*Math.min(270,+$('power').value*3),s.y-Math.sin(a)*Math.min(270,+$('power').value*3));ctx.stroke();ctx.restore();}
+pieces.forEach(drawPiece);if(dragging&&dragId===999){const s=striker();if(s){ctx.strokeStyle='#fff4c9';ctx.lineWidth=3;ctx.beginPath();ctx.arc(s.x,s.y,s.r+8,0,Math.PI*2);ctx.stroke();}}}
+function updateUi(){$('turn').textContent=turn===0?'White':'Black';$('whiteScore').textContent=whiteScore;$('blackScore').textContent=blackScore;$('angleText').textContent=$('aim').value+'°';$('powerText').textContent=$('power').value+'%';$('shoot').disabled=moving; if($('mode').value==='ai'&&turn===1)$('turn').textContent='AI (Black)';}
+function say(s){$('status').innerHTML=s;}
+function shot(angle,power){if(moving)return;const s=striker();if(!s)return;const p=power/100;s.vx=Math.cos(angle)* (4+p*17+p*p*35);s.vy=-Math.sin(angle)*(4+p*17+p*p*35);s.spin=0;moving=true;shotCount++;$('shoot').disabled=true;say('<strong>Shot in motion.</strong> Watching collision and friction response…');}
+function simulate(){if(!moving)return;let any=false;const dt=1;for(let sub=0;sub<4;sub++){for(const p of pieces){if(p.pocketed)continue;if(p.sinking){p.sinking+=.035;if(p.sinking>=1){p.pocketed=true;p.sinking=0;}continue;}const sp=Math.hypot(p.vx,p.vy);if(sp>.06){any=true;p.x+=p.vx/4;p.y+=p.vy/4;p.rot+=p.spin/4;const ns=Math.max(0,sp*.994-.085/4),f=ns/(sp||1);p.vx*=f;p.vy*=f;p.spin*=.97;}else{p.vx=0;p.vy=0;p.spin=0;}
+for(const po of pockets){const dx=po.x-p.x,dy=po.y-p.y,d=Math.hypot(dx,dy);if(d<po.r*1.35&&d>0){const pull=.018;p.vx+=dx/d*pull;p.vy+=dy/d*pull;if(d<po.r*.62&&Math.hypot(p.vx,p.vy)<8){if(p.type==='white')whiteScore++;if(p.type==='black')blackScore++;if(p.type==='queen')queenScore++;p.sinking=.02;p.vx*=.1;p.vy*=.1;}}}
+if(p.x-p.r<rail&&p.y>135&&p.y<865){p.x=rail+p.r;p.vx=Math.abs(p.vx)*.68;p.vy*=.91;any=true;}if(p.x+p.r>1000-rail&&p.y>135&&p.y<865){p.x=1000-rail-p.r;p.vx=-Math.abs(p.vx)*.68;p.vy*=.91;any=true;}if(p.y-p.r<rail&&p.x>135&&p.x<865){p.y=rail+p.r;p.vy=Math.abs(p.vy)*.68;p.vx*=.91;any=true;}if(p.y+p.r>1000-rail&&p.x>135&&p.x<865){p.y=1000-rail-p.r;p.vy=-Math.abs(p.vy)*.68;p.vx*=.91;any=true;}}
+for(let i=0;i<pieces.length;i++){const a=pieces[i];if(a.pocketed||a.sinking)continue;for(let j=i+1;j<pieces.length;j++){const b=pieces[j];if(b.pocketed||b.sinking)continue;let dx=b.x-a.x,dy=b.y-a.y,d2=dx*dx+dy*dy,min=a.r+b.r;if(d2>=min*min||d2<.001)continue;let d=Math.sqrt(d2),nx=dx/d,ny=dy/d,over=min-d,total=a.mass+b.mass;a.x-=nx*over*(b.mass/total);a.y-=ny*over*(b.mass/total);b.x+=nx*over*(a.mass/total);b.y+=ny*over*(a.mass/total);let rel=(b.vx-a.vx)*nx+(b.vy-a.vy)*ny;if(rel<0){let imp=-(1+.78)*rel/(1/a.mass+1/b.mass);a.vx-=imp*nx/a.mass;a.vy-=imp*ny/a.mass;b.vx+=imp*nx/b.mass;b.vy+=imp*ny/b.mass;}any=true;}}
+}
+moving=any||pieces.some(p=>!p.pocketed&&(Math.hypot(p.vx,p.vy)>.18||p.sinking>0));if(!moving){for(const p of pieces){if(!p.pocketed&&p.type!=='striker'){p.vx=0;p.vy=0;}}turn=1-turn;const s=striker();if(s){s.x=500;s.y=turn===0?815:185;s.vx=s.vy=0;}updateUi();say('<strong>All stopped.</strong> Adjust aim and power for the next turn.');if($('mode').value==='ai'&&turn===1)setTimeout(aiShot,550);}updateUi();}
+function aiShot(){if(!moving&&turn===1){const s=striker();if(!s)return;s.x=500;s.y=185;let targets=pieces.filter(p=>p.type==='white'||p.type==='black'||p.type==='queen').filter(p=>!p.pocketed&&!p.sinking);let target=targets.sort((a,b)=>Math.hypot(a.x-s.x,a.y-s.y)-Math.hypot(b.x-s.x,b.y-s.y))[0];if(target){let angle=Math.atan2(-(target.y-s.y),target.x-s.x);shot(angle*180/Math.PI,48+Math.random()*20);}}}
+function pointer(e){const r=canvas.getBoundingClientRect();return{x:(e.clientX-r.left)/r.width*N,y:(e.clientY-r.top)/r.height*N};}
+canvas.addEventListener('pointerdown',e=>{if(moving)return;const q=pointer(e),s=striker();if(!s)return;if(Math.hypot(q.x-s.x,q.y-s.y)<s.r+22){dragging=true;dragId=999;canvas.setPointerCapture(e.pointerId);e.preventDefault();}});
+canvas.addEventListener('pointermove',e=>{if(!dragging||dragId!==999)return;const q=pointer(e),s=striker();if(!s)return;s.x=clamp(q.x,minX,maxX);s.y=turn===0?baseY:185;draw();});
+canvas.addEventListener('pointerup',()=>{if(dragging){dragging=false;dragId=null;draw();}});
+$('aim').addEventListener('input',()=>{updateUi();draw();});$('power').addEventListener('input',updateUi);$('shoot').addEventListener('click',()=>shot(+$('aim').value*Math.PI/180,+$('power').value));$('reset').addEventListener('click',reset);$('mode').addEventListener('change',()=>{updateUi();if($('mode').value==='ai'&&turn===1&&!moving)setTimeout(aiShot,400);});
+function loop(now){const elapsed=Math.min(40,now-last);last=now;if(moving)simulate();draw();requestAnimationFrame(loop);}
+window.addEventListener('resize',resize);reset();resize();requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
