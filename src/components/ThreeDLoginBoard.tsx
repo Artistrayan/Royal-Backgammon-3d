@@ -83,7 +83,6 @@ export function ThreeDLoginBoard({ isOpening }: ThreeDLoginBoardProps) {
     const observer = new ResizeObserver(resize);
     observer.observe(container);
 
-    let frame = 0;
     let raf = 0;
     const animate = () => {
       raf = requestAnimationFrame(animate);
@@ -91,7 +90,6 @@ export function ThreeDLoginBoard({ isOpening }: ThreeDLoginBoardProps) {
       board.rotation.y += (targetY - board.rotation.y) * 0.045;
       board.position.y = Math.sin(performance.now() * 0.0007) * 0.025;
       renderer.render(scene, camera);
-      frame++;
     };
     animate();
 
