@@ -28,24 +28,14 @@ export function TelegramLoginScreen({ onLoginSuccess }: TelegramLoginScreenProps
   const [currentLang, setCurrentLang] = useState<SupportedLanguage>(getLanguage());
   const [showLangMenu, setShowLangMenu] = useState(false);
 
-  // Retrieve Telegram WebApp user context
   const [telegramUser] = useState(() => {
-    try {
-      const tgInit = initTelegramMiniApp();
-      return tgInit.user;
-    } catch {
-      return null;
-    }
+    try { return initTelegramMiniApp().user; } catch { return null; }
   });
 
   useEffect(() => {
-    const handleLangChange = (e: any) => {
-      if (e?.detail) setCurrentLang(e.detail);
-    };
+    const handleLangChange = (e: any) => { if (e?.detail) setCurrentLang(e.detail); };
     window.addEventListener('app_language_changed', handleLangChange);
-    return () => {
-      window.removeEventListener('app_language_changed', handleLangChange);
-    };
+    return () => window.removeEventListener('app_language_changed', handleLangChange);
   }, []);
 
   const handleSelectLanguage = (code: SupportedLanguage) => {
@@ -56,31 +46,24 @@ export function TelegramLoginScreen({ onLoginSuccess }: TelegramLoginScreenProps
     royalSound.playOptionClickSound();
   };
 
-  // ONLY tapping the Start button triggers the right-to-left board opening and login
   const handleStartLogin = async () => {
     if (isOpening || isDbConnecting) return;
     setIsDbConnecting(true);
-
     triggerTelegramHaptic('heavy');
     royalSound.playOptionClickSound();
 
     let authenticatedUser: any = null;
     let databaseStatus = true;
-
     try {
-      // Authenticate Telegram identity with production database
       const response = await fetch('/api/auth/telegram', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           user: telegramUser,
           id: telegramUser ? String(telegramUser.id) : undefined,
-          username: telegramUser?.username
-            ? `@${telegramUser.username}`
-            : telegramUser?.first_name || 'Masoud',
+          username: telegramUser?.username ? `@${telegramUser.username}` : telegramUser?.first_name || 'Masoud',
         }),
       });
-
       if (response.ok) {
         const data = await response.json();
         if (data.authenticated) {
@@ -94,22 +77,12 @@ export function TelegramLoginScreen({ onLoginSuccess }: TelegramLoginScreenProps
       setIsDbConnecting(false);
     }
 
-    // Begin 3D right-to-left unfolding across width
     setIsOpening(true);
     royalSound.playBoardOpenSound();
-
     setTimeout(() => {
       royalSound.playVictoryFanfareSound();
-
-      const finalId =
-        authenticatedUser?.id ||
-        (telegramUser ? String(telegramUser.id) : `tg-${Date.now().toString().slice(-6)}`);
-      const finalUsername =
-        authenticatedUser?.username ||
-        (telegramUser?.username
-          ? `@${telegramUser.username}`
-          : telegramUser?.first_name || 'Masoud');
-
+      const finalId = authenticatedUser?.id || (telegramUser ? String(telegramUser.id) : `tg-${Date.now().toString().slice(-6)}`);
+      const finalUsername = authenticatedUser?.username || (telegramUser?.username ? `@${telegramUser.username}` : telegramUser?.first_name || 'Masoud');
       const userPayload = {
         id: finalId,
         username: finalUsername,
@@ -118,117 +91,31 @@ export function TelegramLoginScreen({ onLoginSuccess }: TelegramLoginScreenProps
         isTelegram: Boolean(telegramUser),
         databaseConnected: databaseStatus,
       };
-
-      try {
-        localStorage.setItem('royal_tg_last_user', JSON.stringify(userPayload));
-      } catch {
-        // ignore
-      }
-
+      try { localStorage.setItem('royal_tg_last_user', JSON.stringify(userPayload)); } catch { /* ignore */ }
       onLoginSuccess(userPayload);
     }, 1300);
   };
 
-  const selectedLangObj =
-    SUPPORTED_LANGUAGES.find((l) => l.code === currentLang) || SUPPORTED_LANGUAGES[0];
+  const selectedLangObj = SUPPORTED_LANGUAGES.find((l) => l.code === currentLang) || SUPPORTED_LANGUAGES[0];
 
   return (
-    <div className="fixed inset-0 z-50 w-full h-full flex flex-col items-center justify-between bg-black text-[#e8dfd0] overflow-hidden select-none touch-none">
-      {/* 1. CINEMATIC BACKGROUND: NIGHT PALACE COURTYARD WITH TORCHES & PILLARS */}
+    <div className="fixed inset-0 z-50 flex h-[100dvh] w-full flex-col items-center overflow-hidden bg-[#020611] text-[#f5ead0] select-none">
       <div className="absolute inset-0 z-0 pointer-events-none">
-        <img
-          src={palaceNightStageBg}
-          alt="Palace Night Stage"
-          className="w-full h-full object-cover object-center scale-[1.03]"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-black/75" />
+        <img src={palaceNightStageBg} alt="Royal palace at night" className="h-full w-full object-cover object-center" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#020713]/45 via-[#020713]/15 to-black/90" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_54%,rgba(0,125,255,.22),transparent_48%)]" />
       </div>
 
-      {/* Ambient Lighting & Glows */}
-      <div className="absolute inset-0 pointer-events-none flex items-center justify-center overflow-hidden">
-        <div className="w-[520px] h-[520px] rounded-full bg-[#0284c7]/20 blur-[130px] transform -translate-y-12" />
-        <div className="w-[450px] h-[450px] rounded-full bg-[#eab308]/15 blur-[110px] transform translate-y-24" />
-      </div>
-
-      {/* 2. TOP HEADER: MINIMAL CROWN, TELEGRAM & DB BADGE, AND TOP 10 WORLD LANGUAGE SELECTOR */}
-      <header className="relative z-30 w-full flex items-center justify-between pt-3 sm:pt-5 px-3 sm:px-6">
-        {/* Telegram & DB Connection Status Badge */}
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-md border border-[#ffd700]/30 shadow-md">
-          <span className="w-2.5 h-2.5 rounded-full bg-[#22c55e] animate-pulse" />
-          <svg className="w-4 h-4 text-[#38bdf8]" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.52 2.77-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z" />
-          </svg>
-          <span className="text-[11px] font-semibold text-[#ffd700] tracking-wide">
-            {telegramUser?.first_name || 'Masoud'}
-          </span>
-          <span className="text-[10px] text-white/50">|</span>
-          <span className="text-[10px] font-mono text-[#22c55e]">DB ✓</span>
-        </div>
-
-        {/* Ornate Royal Crown */}
-        <div className="w-12 h-9 sm:w-16 sm:h-11 flex items-center justify-center drop-shadow-[0_4px_20px_rgba(234,179,8,0.7)]">
-          <svg viewBox="0 0 100 70" className="w-full h-full" fill="none">
-            <path
-              d="M50 8 L62 28 L84 16 L76 52 L24 52 L16 16 L38 28 Z"
-              fill="url(#goldCrownGradLg)"
-              stroke="#fff4cc"
-              strokeWidth="1.5"
-              filter="drop-shadow(0 2px 8px rgba(0,0,0,0.8))"
-            />
-            <ellipse cx="50" cy="54" rx="28" ry="6" fill="url(#goldCrownBandLg)" stroke="#ffe082" strokeWidth="1" />
-            <circle cx="50" cy="8" r="3" fill="#ffffff" />
-            <circle cx="16" cy="16" r="2.5" fill="#f43f5e" />
-            <circle cx="84" cy="16" r="2.5" fill="#f43f5e" />
-            <circle cx="38" cy="28" r="2" fill="#38bdf8" />
-            <circle cx="62" cy="28" r="2" fill="#38bdf8" />
-            <circle cx="50" cy="38" r="3" fill="#a855f7" />
-            <defs>
-              <linearGradient id="goldCrownGradLg" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0%" stopColor="#fff3b0" />
-                <stop offset="35%" stopColor="#ffd700" />
-                <stop offset="70%" stopColor="#b8860b" />
-                <stop offset="100%" stopColor="#7a5203" />
-              </linearGradient>
-              <linearGradient id="goldCrownBandLg" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%" stopColor="#b8860b" />
-                <stop offset="50%" stopColor="#ffe57f" />
-                <stop offset="100%" stopColor="#b8860b" />
-              </linearGradient>
-            </defs>
-          </svg>
-        </div>
-
-        {/* Top 10 Countries Language Selector */}
+      <header className="relative z-30 flex w-full items-center justify-end px-3 pt-3 sm:px-6 sm:pt-5">
         <div className="relative">
-          <button
-            type="button"
-            onClick={() => setShowLangMenu(!showLangMenu)}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-black/60 backdrop-blur-md border border-[#ffd700]/40 text-xs text-white hover:border-[#ffd700] transition-colors cursor-pointer"
-          >
-            <span className="text-sm">{selectedLangObj.flag}</span>
-            <span className="font-bold text-[11px] uppercase tracking-wider">{selectedLangObj.code}</span>
-            <span className="text-[9px] text-[#ffd700]">▼</span>
+          <button type="button" onClick={() => setShowLangMenu(!showLangMenu)} className="flex items-center gap-1.5 rounded-full border border-[#e7bf62]/45 bg-black/65 px-3 py-1.5 text-xs text-white backdrop-blur-md">
+            <span>{selectedLangObj.flag}</span><span className="font-bold uppercase tracking-wider">{selectedLangObj.code}</span><span className="text-[9px] text-[#ffd700]">▼</span>
           </button>
-
           {showLangMenu && (
-            <div className="absolute right-0 mt-2 w-48 rounded-2xl bg-[#140e06]/95 backdrop-blur-xl border border-[#ffd700]/50 shadow-[0_15px_40px_rgba(0,0,0,0.9)] py-2 z-50 max-h-64 overflow-y-auto">
-              <div className="px-3 py-1 text-[10px] uppercase font-bold text-[#ffd700] tracking-wider border-b border-white/10">
-                {t('selectLanguage')}
-              </div>
+            <div className="absolute right-0 z-50 mt-2 max-h-64 w-48 overflow-y-auto rounded-xl border border-[#ffd700]/50 bg-[#140e06]/95 py-2 shadow-2xl backdrop-blur-xl">
               {SUPPORTED_LANGUAGES.map((lang) => (
-                <button
-                  key={lang.code}
-                  type="button"
-                  onClick={() => handleSelectLanguage(lang.code)}
-                  className={`w-full flex items-center justify-between px-3 py-1.5 text-xs text-left transition-colors cursor-pointer hover:bg-[#ffd700]/15 ${
-                    currentLang === lang.code ? 'text-[#ffd700] font-bold bg-[#ffd700]/10' : 'text-white/85'
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm">{lang.flag}</span>
-                    <span>{lang.nativeName}</span>
-                  </div>
-                  {currentLang === lang.code && <span className="text-[#ffd700]">✓</span>}
+                <button key={lang.code} type="button" onClick={() => handleSelectLanguage(lang.code)} className={`flex w-full items-center gap-2 px-3 py-2 text-left text-xs hover:bg-[#ffd700]/15 ${currentLang === lang.code ? 'font-bold text-[#ffd700]' : 'text-white/85'}`}>
+                  <span>{lang.flag}</span><span>{lang.nativeName}</span>
                 </button>
               ))}
             </div>
@@ -236,39 +123,44 @@ export function TelegramLoginScreen({ onLoginSuccess }: TelegramLoginScreenProps
         </div>
       </header>
 
-      {/* 3. CENTER 3D WEBGL BOARD (REAL 3D THREE.JS BACKGAMMON MODEL OPENS 180° FROM RIGHT TO LEFT) */}
-      <ThreeDLoginBoard isOpening={isOpening} />
+      <main className="relative z-10 flex min-h-0 w-full flex-1 flex-col items-center">
+        <div className="relative z-30 mt-1 flex flex-col items-center text-center sm:mt-0">
+          <div className="relative mb-1 text-[#ffd36a] drop-shadow-[0_4px_12px_rgba(255,177,35,.65)]">
+            <svg viewBox="0 0 220 74" className="h-12 w-40 sm:h-[66px] sm:w-[190px]" fill="none" aria-hidden="true">
+              <path d="M110 8L121 25L145 14L139 39H81L75 14L99 25Z" fill="url(#royalGold)" stroke="#fff0b3" strokeWidth="2"/>
+              <path d="M82 43Q110 57 138 43L133 51Q110 63 87 51Z" fill="url(#royalGold)" stroke="#e4ad38"/>
+              <path d="M110 2V13M103 7H117" stroke="#ffe8a0" strokeWidth="2"/>
+              <path d="M28 55Q48 43 67 53M192 55Q172 43 153 53" stroke="#dca63d" strokeWidth="3" strokeLinecap="round"/>
+              <defs><linearGradient id="royalGold" x1="65" y1="5" x2="155" y2="60"><stop stopColor="#fff1a6"/><stop offset=".42" stopColor="#f4bd3f"/><stop offset=".72" stopColor="#b87514"/><stop offset="1" stopColor="#ffe58b"/></linearGradient></defs>
+            </svg>
+          </div>
+          <div className="font-cinzel text-[clamp(27px,5vw,48px)] font-black leading-[.9] tracking-[.08em] text-[#ffdc7c] drop-shadow-[0_4px_4px_rgba(0,0,0,.95)]" style={{ WebkitTextStroke: '0.5px #7b4b08' }}>ROYAL</div>
+          <div className="mt-1 rounded-md border-y border-[#b9872e]/70 px-3 py-0.5 font-cinzel text-[clamp(17px,3vw,27px)] font-black leading-none text-[#ffe4a0] drop-shadow-[0_3px_5px_black]">BACKGAMMON</div>
+          <div className="mt-1 flex items-center gap-2 font-cinzel text-sm font-black tracking-[.35em] text-[#ffcc5a] sm:text-lg"><span className="h-px w-8 bg-[#e4ad38]"/>3D<span className="h-px w-8 bg-[#e4ad38]"/></div>
+        </div>
 
-      {/* 4. BOTTOM ACTION: ONLY THE "Start" BUTTON (NO EXTRA TEXT!) */}
-      <footer className="relative z-30 w-full flex flex-col items-center pb-6 sm:pb-8 px-4">
+        <div className="relative flex min-h-0 w-full flex-1 flex-col items-center justify-center">
+          <div className="pointer-events-none absolute top-[3%] z-10 flex h-[clamp(78px,15vh,142px)] w-[clamp(78px,15vh,142px)] items-center justify-center rounded-full border-[5px] border-[#168eea] bg-gradient-to-br from-[#37c0ff] via-[#087be0] to-[#003caa] shadow-[0_0_30px_rgba(0,145,255,.9),inset_0_0_22px_rgba(255,255,255,.4)]">
+            <svg viewBox="0 0 24 24" className="ml-[-3px] h-[55%] w-[55%] text-white drop-shadow-lg" fill="currentColor"><path d="M21.7 2.3 2.9 9.6c-1.3.5-1.3 1.3-.2 1.6l4.8 1.5 1.8 5.5c.2.6.1.8.8.8.5 0 .7-.2 1-.5l2.3-2.2 4.8 3.5c.9.5 1.6.3 1.8-.8l3.1-14.9c.3-1.4-.5-2-1.4-1.3ZM9 12.4l9.5-6c.5-.3.9-.1.5.2l-7.8 7.1-.3 3.3L9 12.4Z"/></svg>
+          </div>
+          <div className="relative z-20 flex h-full max-h-[500px] w-full items-center justify-center px-1 pb-1 pt-2">
+            <ThreeDLoginBoard isOpening={isOpening} />
+          </div>
+          <div className="pointer-events-none absolute bottom-[2%] z-10 h-8 w-[78%] rounded-full bg-[#078dff]/35 blur-2xl sm:h-12" />
+        </div>
+      </main>
+
+      <footer className="relative z-30 flex w-full justify-center px-4 pb-[max(22px,env(safe-area-inset-bottom))] pt-2 sm:pb-8">
         <button
           type="button"
           onClick={handleStartLogin}
           disabled={isOpening || isDbConnecting}
-          className={`relative group w-full max-w-[280px] sm:max-w-[320px] py-4 px-8 rounded-2xl bg-gradient-to-b from-[#ffea9f] via-[#d4af37] to-[#8c6b12] border-2 border-[#fff5cc] shadow-[0_12px_35px_rgba(212,175,55,0.7)] font-cinzel font-black text-2xl sm:text-3xl text-[#2b1702] tracking-wider transition-all transform active:scale-95 cursor-pointer flex items-center justify-center overflow-hidden ${
-            isOpening || isDbConnecting
-              ? 'opacity-90 scale-95 brightness-110 cursor-not-allowed'
-              : 'hover:brightness-110 hover:shadow-[0_18px_50px_rgba(212,175,55,0.9)]'
-          }`}
+          className={`group relative flex w-full max-w-[330px] items-center justify-center gap-3 overflow-hidden rounded-[24px] border-[3px] border-[#ffe6a0] bg-gradient-to-b from-[#ffe49a] via-[#bd811f] to-[#432307] px-8 py-3.5 font-cinzel text-2xl font-black tracking-wide text-[#fff4d0] shadow-[0_0_0_2px_#8b5a17,0_10px_35px_rgba(0,145,255,.45),0_8px_30px_rgba(224,156,36,.5)] transition-all active:scale-[.98] sm:py-4 sm:text-3xl ${isOpening || isDbConnecting ? 'opacity-80' : 'hover:brightness-110'}`}
         >
-          {/* Internal bevel glow */}
-          <div className="absolute inset-[2px] rounded-xl border border-white/45 pointer-events-none" />
-
-          {isDbConnecting ? (
-            <div className="flex items-center gap-2">
-              <span className="w-5 h-5 border-2 border-[#2b1702] border-t-transparent rounded-full animate-spin" />
-              <span className="text-xl font-bold font-sans">Connecting...</span>
-            </div>
-          ) : isOpening ? (
-            <div className="flex items-center gap-2">
-              <span className="w-5 h-5 border-2 border-[#2b1702] border-t-transparent rounded-full animate-spin" />
-              <span className="text-xl font-bold font-sans">Start</span>
-            </div>
-          ) : (
-            <span className="drop-shadow-[0_2px_4px_rgba(255,255,255,0.6)]">
-              Start
-            </span>
-          )}
+          <span className="pointer-events-none absolute inset-[3px] rounded-[18px] border border-[#fff2c4]/60" />
+          {isDbConnecting || isOpening ? <span className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" /> : null}
+          <span className="relative drop-shadow-[0_2px_3px_rgba(0,0,0,.7)]">{isDbConnecting ? 'Connecting…' : isOpening ? 'Entering…' : 'ورود'}</span>
+          {!isDbConnecting && !isOpening && <span className="relative text-3xl leading-none text-[#ffe7a1]">›</span>}
         </button>
       </footer>
     </div>
