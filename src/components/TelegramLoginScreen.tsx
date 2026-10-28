@@ -124,26 +124,8 @@ export function TelegramLoginScreen({ onLoginSuccess }: TelegramLoginScreenProps
       </header>
 
       <main className="relative z-10 flex min-h-0 w-full flex-1 flex-col items-center">
-        <div className="relative z-30 mt-1 flex flex-col items-center text-center sm:mt-0">
-          <div className="relative mb-1 text-[#ffd36a] drop-shadow-[0_4px_12px_rgba(255,177,35,.65)]">
-            <svg viewBox="0 0 220 74" className="h-12 w-40 sm:h-[66px] sm:w-[190px]" fill="none" aria-hidden="true">
-              <path d="M110 8L121 25L145 14L139 39H81L75 14L99 25Z" fill="url(#royalGold)" stroke="#fff0b3" strokeWidth="2"/>
-              <path d="M82 43Q110 57 138 43L133 51Q110 63 87 51Z" fill="url(#royalGold)" stroke="#e4ad38"/>
-              <path d="M110 2V13M103 7H117" stroke="#ffe8a0" strokeWidth="2"/>
-              <path d="M28 55Q48 43 67 53M192 55Q172 43 153 53" stroke="#dca63d" strokeWidth="3" strokeLinecap="round"/>
-              <defs><linearGradient id="royalGold" x1="65" y1="5" x2="155" y2="60"><stop stopColor="#fff1a6"/><stop offset=".42" stopColor="#f4bd3f"/><stop offset=".72" stopColor="#b87514"/><stop offset="1" stopColor="#ffe58b"/></linearGradient></defs>
-            </svg>
-          </div>
-          <div className="font-cinzel text-[clamp(27px,5vw,48px)] font-black leading-[.9] tracking-[.08em] text-[#ffdc7c] drop-shadow-[0_4px_4px_rgba(0,0,0,.95)]" style={{ WebkitTextStroke: '0.5px #7b4b08' }}>ROYAL</div>
-          <div className="mt-1 rounded-md border-y border-[#b9872e]/70 px-3 py-0.5 font-cinzel text-[clamp(17px,3vw,27px)] font-black leading-none text-[#ffe4a0] drop-shadow-[0_3px_5px_black]">BACKGAMMON</div>
-          <div className="mt-1 flex items-center gap-2 font-cinzel text-sm font-black tracking-[.35em] text-[#ffcc5a] sm:text-lg"><span className="h-px w-8 bg-[#e4ad38]"/>3D<span className="h-px w-8 bg-[#e4ad38]"/></div>
-        </div>
-
         <div className="relative flex min-h-0 w-full flex-1 flex-col items-center justify-center">
-          <div className="pointer-events-none absolute top-[3%] z-10 flex h-[clamp(78px,15vh,142px)] w-[clamp(78px,15vh,142px)] items-center justify-center rounded-full border-[5px] border-[#168eea] bg-gradient-to-br from-[#37c0ff] via-[#087be0] to-[#003caa] shadow-[0_0_30px_rgba(0,145,255,.9),inset_0_0_22px_rgba(255,255,255,.4)]">
-            <svg viewBox="0 0 24 24" className="ml-[-3px] h-[55%] w-[55%] text-white drop-shadow-lg" fill="currentColor"><path d="M21.7 2.3 2.9 9.6c-1.3.5-1.3 1.3-.2 1.6l4.8 1.5 1.8 5.5c.2.6.1.8.8.8.5 0 .7-.2 1-.5l2.3-2.2 4.8 3.5c.9.5 1.6.3 1.8-.8l3.1-14.9c.3-1.4-.5-2-1.4-1.3ZM9 12.4l9.5-6c.5-.3.9-.1.5.2l-7.8 7.1-.3 3.3L9 12.4Z"/></svg>
-          </div>
-          <div className="relative z-20 flex h-full max-h-[500px] w-full items-center justify-center px-1 pb-1 pt-2">
+          <div className="relative z-20 flex h-full max-h-[620px] w-full items-center justify-center px-1 pb-1 pt-2">
             <ThreeDLoginBoard isOpening={isOpening} />
           </div>
           <div className="pointer-events-none absolute bottom-[2%] z-10 h-8 w-[78%] rounded-full bg-[#078dff]/35 blur-2xl sm:h-12" />
