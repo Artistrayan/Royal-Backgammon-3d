@@ -25,8 +25,9 @@ export function ThreeDLoginBoard({ isOpening }: ThreeDLoginBoardProps) {
 
       <div className="pointer-events-none absolute inset-0" aria-hidden="true">
         <div
-          className={`absolute inset-y-0 left-0 w-1/2 overflow-hidden ${isOpening ? 'animate-[royal-board-open-left_1050ms_cubic-bezier(.2,.7,.15,1)_forwards]' : 'opacity-0'}`}
+          className={`absolute inset-y-0 left-0 w-1/2 overflow-hidden ${isOpening ? 'opacity-100' : 'opacity-0'}`}
           style={{
+            animation: isOpening ? 'royal-board-open-left 1050ms cubic-bezier(0.2,0.7,0.15,1) forwards' : 'none',
             backgroundImage: `url(${boardClosedExactImg})`,
             backgroundRepeat: 'no-repeat',
             backgroundSize: '200% 100%',
@@ -36,8 +37,9 @@ export function ThreeDLoginBoard({ isOpening }: ThreeDLoginBoardProps) {
           }}
         />
         <div
-          className={`absolute inset-y-0 right-0 w-1/2 overflow-hidden ${isOpening ? 'animate-[royal-board-open-right_1050ms_cubic-bezier(.2,.7,.15,1)_forwards]' : 'opacity-0'}`}
+          className={`absolute inset-y-0 right-0 w-1/2 overflow-hidden ${isOpening ? 'opacity-100' : 'opacity-0'}`}
           style={{
+            animation: isOpening ? 'royal-board-open-right 1050ms cubic-bezier(0.2,0.7,0.15,1) forwards' : 'none',
             backgroundImage: `url(${boardClosedExactImg})`,
             backgroundRepeat: 'no-repeat',
             backgroundSize: '200% 100%',
