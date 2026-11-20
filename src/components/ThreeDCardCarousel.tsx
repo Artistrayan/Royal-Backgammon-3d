@@ -63,12 +63,12 @@ export function ThreeDCardCarousel({
                 triggerTelegramHaptic('heavy');
                 card.action();
               }}
-              className="absolute top-1/2 flex w-[min(54vw,285px)] max-h-[min(53vh,440px)] aspect-[.72] -translate-y-1/2 flex-col overflow-hidden rounded-[20px] border bg-[#090d13] text-white transition-all duration-500 ease-out sm:w-[min(29vw,310px)] sm:rounded-[24px]"
+              className="absolute top-1/2 flex w-[min(49vw,260px)] max-h-[min(49vh,400px)] aspect-[.72] -translate-y-1/2 flex-col overflow-hidden rounded-[20px] border bg-[#090d13] text-white transition-all duration-500 ease-out sm:w-[min(27vw,290px)] sm:rounded-[24px]"
               style={{
                 opacity: visible ? (center ? 1 : Math.max(.62, 1 - Math.abs(diff) * .14)) : 0,
                 pointerEvents: visible ? 'auto' : 'none',
                 zIndex: 20 - Math.abs(diff),
-                transform: `translate(calc(-50% + ${diff * (typeof window !== 'undefined' && window.innerWidth < 640 ? 75 : 82)}%), -50%) rotateY(${diff * -17}deg) rotateZ(${center ? 0 : diff * -2}deg) scale(${center ? 1 : Math.max(.72, 1 - Math.abs(diff) * .12)})`,
+                transform: `translate(calc(-50% + ${diff * (typeof window !== 'undefined' && window.innerWidth < 640 ? 75 : 82)}%), -50%) rotateY(${diff * -17}deg) rotateZ(${center ? 0 : diff * -2}deg) scale(${center ? .96 : Math.max(.70, .96 - Math.abs(diff) * .12)})`,
                 borderColor: center ? '#ffd36b' : card.tone === 'green' ? '#5cae9b' : '#8294aa',
                 boxShadow: center ? '0 0 0 1px #8b5b1c, 0 0 30px rgba(0,145,255,.55), 0 0 36px rgba(255,186,54,.28)' : '0 12px 24px rgba(0,0,0,.65)',
               }}
