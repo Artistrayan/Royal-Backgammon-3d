@@ -56,7 +56,7 @@ export function FriendsModal({
       <img src={palaceNightStageBg} alt="" aria-hidden="true" className="pointer-events-none absolute inset-0 h-full w-full object-cover object-center opacity-35" />
       <div className="pointer-events-none absolute inset-0 bg-[#020611]/90" />
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_35%,rgba(203,161,75,.18),transparent_55%)]" />
-      <div className="relative flex h-[100dvh] max-h-[100dvh] w-full max-w-none flex-col rounded-none border-0 border-[#d7b66d]/55 bg-gradient-to-b from-[#101b2d]/98 via-[#080f1c]/98 to-[#030812]/98 p-4 text-[#e8dfd0] shadow-[0_24px_90px_rgba(0,0,0,.72),inset_0_1px_0_rgba(255,225,160,.14)] backdrop-blur-2xl overflow-hidden sm:h-[min(94dvh,920px)] sm:max-h-[94dvh] sm:max-w-[min(96vw,760px)] sm:rounded-[26px] sm:border sm:p-5">>
+      <div className="relative flex h-[100dvh] max-h-[100dvh] w-full max-w-none flex-col rounded-none border-0 border-[#d7b66d]/55 bg-gradient-to-b from-[#101b2d]/98 via-[#080f1c]/98 to-[#030812]/98 p-4 text-[#e8dfd0] shadow-[0_24px_90px_rgba(0,0,0,.72),inset_0_1px_0_rgba(255,225,160,.14)] backdrop-blur-2xl overflow-hidden sm:h-[min(94dvh,920px)] sm:max-h-[94dvh] sm:max-w-[min(96vw,760px)] sm:rounded-[26px] sm:border sm:p-5">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-[#c8a668]/30 pb-2.5 mb-3">
           <div className="flex items-center gap-2">
