@@ -56,7 +56,9 @@ export function OnlineMatchmakingModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/85 backdrop-blur-sm animate-fade-in">
-      <div className="relative w-full max-w-[430px] rounded-xl border border-[#c8a668]/70 bg-gradient-to-b from-[#061911] via-[#04120c] to-[#020a06] p-5 shadow-2xl text-center text-[#e8dfd0]">
+      <div className="pointer-events-none absolute inset-0 bg-[#020611]/90" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_35%,rgba(203,161,75,.18),transparent_55%)]" />
+      <div className="relative w-full max-w-[min(94vw,560px)] rounded-[26px] border border-[#d7b66d]/55 bg-gradient-to-b from-[#101b2d]/98 via-[#080f1c]/98 to-[#030812]/98 shadow-[0_24px_90px_rgba(0,0,0,.72),inset_0_1px_0_rgba(255,225,160,.14)] backdrop-blur-2xl p-5 shadow-2xl text-center text-[#e8dfd0]">
         {/* Header */}
         <div className="flex items-center justify-center gap-2 mb-2">
           <RoyalCrownIcon className="w-5 h-4 text-[#c8a668]" />
@@ -72,7 +74,7 @@ export function OnlineMatchmakingModal({
         </div>
 
         {tier && (
-          <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded bg-[#020a06] border border-[#c8a668]/40 mb-3">
+          <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded bg-[#030812] border border-[#c8a668]/40 mb-3">
             <span
               style={{ color: tier.color }}
               className="font-cinzel text-[8.5px] font-bold tracking-wider"
@@ -97,17 +99,17 @@ export function OnlineMatchmakingModal({
         {/* Players Comparison Arena */}
         <div className="grid grid-cols-2 gap-3 mb-4 items-center">
           {/* Current Player Card */}
-          <div className="p-3 rounded-lg border border-[#c8a668]/40 bg-[#072015]/80 flex flex-col items-center">
+          <div className="p-3 rounded-lg border border-[#c8a668]/40 bg-[#101d31]/80 flex flex-col items-center">
             <span className="text-[9px] font-cinzel text-[#c8a668] tracking-widest mb-1">
               YOU
             </span>
-            <div className="w-10 h-10 rounded-full border border-[#c8a668] bg-[#020d08] flex items-center justify-center font-cinzel text-xs font-bold text-[#f5dca8] mb-1">
+            <div className="w-10 h-10 rounded-full border border-[#c8a668] bg-[#060d18] flex items-center justify-center font-cinzel text-xs font-bold text-[#f5dca8] mb-1">
               {player.username.slice(0, 2).toUpperCase()}
             </div>
             <span className="font-cinzel text-[11px] font-semibold text-[#f5dca8] truncate max-w-full">
               {player.username}
             </span>
-            <span className="text-[9px] font-cinzel text-[#52f29c] font-medium tracking-wide">
+            <span className="text-[9px] font-cinzel text-[#d9b96f] font-medium tracking-wide">
               LEVEL {player.level} • {player.rating ?? 1200} ELO
             </span>
             <span className="text-[8px] font-cormorant text-[#a39e93]">
@@ -116,19 +118,19 @@ export function OnlineMatchmakingModal({
           </div>
 
           {/* Opponent Card or Search Radar */}
-          <div className="p-3 rounded-lg border border-[#c8a668]/40 bg-[#072015]/80 flex flex-col items-center min-h-[120px] justify-center">
+          <div className="p-3 rounded-lg border border-[#c8a668]/40 bg-[#101d31]/80 flex flex-col items-center min-h-[120px] justify-center">
             {matchedOpponent ? (
               <>
-                <span className="text-[9px] font-cinzel text-[#52f29c] tracking-widest mb-1">
+                <span className="text-[9px] font-cinzel text-[#d9b96f] tracking-widest mb-1">
                   OPPONENT
                 </span>
-                <div className="w-10 h-10 rounded-full border border-[#52f29c] bg-[#020d08] flex items-center justify-center font-cinzel text-xs font-bold text-[#52f29c] mb-1 animate-pulse">
+                <div className="w-10 h-10 rounded-full border border-[#d9b96f] bg-[#060d18] flex items-center justify-center font-cinzel text-xs font-bold text-[#d9b96f] mb-1 animate-pulse">
                   {matchedOpponent.username.slice(0, 2).toUpperCase()}
                 </div>
                 <span className="font-cinzel text-[11px] font-semibold text-[#f5dca8] truncate max-w-full">
                   {matchedOpponent.username}
                 </span>
-                <span className="text-[9px] font-cinzel text-[#52f29c] font-medium tracking-wide">
+                <span className="text-[9px] font-cinzel text-[#d9b96f] font-medium tracking-wide">
                   LEVEL {matchedOpponent.level} • {matchedOpponent.rating ?? 1200} ELO
                 </span>
                 <span className="text-[8px] font-cormorant text-[#a39e93]">
