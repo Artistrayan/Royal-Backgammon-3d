@@ -99,29 +99,38 @@ export function TelegramLoginScreen({ onLoginSuccess }: TelegramLoginScreenProps
   const selectedLangObj = SUPPORTED_LANGUAGES.find((l) => l.code === currentLang) || SUPPORTED_LANGUAGES[0];
 
   return (
-    <div className="fixed inset-0 z-50 flex h-[100dvh] w-full flex-col items-center overflow-hidden bg-[#020611] text-[#f5ead0] select-none">
-      <div className="absolute inset-0 z-0 pointer-events-none">
-        <img src={palaceNightStageBg} alt="Royal palace at night" className="h-full w-full object-cover object-center" />
-        <div className="absolute inset-0 bg-gradient-to-b from-[#020713]/45 via-[#020713]/15 to-black/90" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_54%,rgba(0,125,255,.22),transparent_48%)]" />
-        <div className="royal-login-aura absolute left-1/2 top-[47%] h-[min(78vw,520px)] w-[min(78vw,520px)] -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#e6bd65]/20" />
-        <div className="royal-login-aura royal-login-aura-delayed absolute left-1/2 top-[47%] h-[min(92vw,620px)] w-[min(92vw,620px)] -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#4aa8e8]/15" />
-        <div className="royal-login-light absolute inset-x-[-30%] top-[42%] h-px bg-gradient-to-r from-transparent via-[#ffe4a0]/65 to-transparent" />
-        <span className="royal-login-token royal-login-token-left absolute left-[9%] top-[34%]" aria-hidden="true" />
-        <span className="royal-login-token royal-login-token-right absolute right-[10%] top-[62%]" aria-hidden="true" />
-        <span className="royal-login-spark royal-login-spark-one absolute left-[18%] top-[19%]" aria-hidden="true" />
-        <span className="royal-login-spark royal-login-spark-two absolute right-[17%] top-[27%]" aria-hidden="true" />
+    <div className="fixed inset-0 z-50 flex h-[100dvh] w-full flex-col overflow-hidden bg-[#03070d] text-[#f5ead0] select-none">
+      <div className="pointer-events-none absolute inset-0">
+        <img src={palaceNightStageBg} alt="" className="h-full w-full object-cover object-center opacity-35" />
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(2,7,15,.78)_0%,rgba(3,8,16,.36)_38%,rgba(1,4,9,.88)_100%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_48%,rgba(14,93,145,.24),transparent_52%)]" />
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#d9ad59]/65 to-transparent" />
       </div>
 
-      <header className="relative z-30 flex w-full items-center justify-end px-3 pt-3 sm:px-6 sm:pt-5">
+      <header className="relative z-30 flex w-full shrink-0 items-center justify-between px-5 pt-[max(16px,env(safe-area-inset-top))] sm:px-8 sm:pt-6">
+        <div className="flex items-center gap-3">
+          <div className="relative flex h-11 w-11 items-center justify-center rounded-full border border-[#d8ad61]/65 bg-[#100d08]/80 shadow-[0_0_22px_rgba(218,169,78,.16),inset_0_0_12px_rgba(255,222,155,.08)]">
+            <svg viewBox="0 0 40 40" className="h-7 w-7 text-[#f4d58f]" fill="none" stroke="currentColor" strokeWidth="1.25" aria-hidden="true">
+              <circle cx="20" cy="20" r="13.5" />
+              <circle cx="20" cy="20" r="8.5" />
+              <path d="M20 3v5M20 32v5M3 20h5M32 20h5M8 8l3.5 3.5M28.5 28.5 32 32M32 8l-3.5 3.5M11.5 28.5 8 32" />
+              <path d="m20 13 2.1 4.8 5.2.5-3.9 3.4 1.1 5.1-4.5-2.6-4.5 2.6 1.1-5.1-3.9-3.4 5.2-.5L20 13Z" fill="currentColor" fillOpacity=".18" />
+            </svg>
+          </div>
+          <div className="leading-none">
+            <div className="font-cinzel text-[15px] font-black tracking-[.2em] text-[#f4dfb0] sm:text-lg">ROYAL</div>
+            <div className="mt-1.5 text-[9px] font-semibold tracking-[.28em] text-[#c69a50] sm:text-[10px]">BACKGAMMON</div>
+          </div>
+        </div>
+
         <div className="relative">
-          <button type="button" onClick={() => setShowLangMenu(!showLangMenu)} className="flex items-center gap-1.5 rounded-full border border-[#e7bf62]/45 bg-black/65 px-3 py-1.5 text-xs text-white backdrop-blur-md">
-            <span>{selectedLangObj.flag}</span><span className="font-bold uppercase tracking-wider">{selectedLangObj.code}</span><span className="text-[9px] text-[#ffd700]">▼</span>
+          <button type="button" onClick={() => setShowLangMenu(!showLangMenu)} aria-label="Change language" className="flex items-center gap-2 rounded-full border border-[#d8ad61]/35 bg-[#080d14]/80 px-3.5 py-2 text-xs text-[#f4e6c9] shadow-[0_5px_18px_rgba(0,0,0,.28)] backdrop-blur-xl transition-colors hover:border-[#eac77d]/70">
+            <span>{selectedLangObj.flag}</span><span className="font-bold uppercase tracking-wider">{selectedLangObj.code}</span><span className="text-[9px] text-[#dcb766]">▾</span>
           </button>
           {showLangMenu && (
-            <div className="absolute right-0 z-50 mt-2 max-h-64 w-48 overflow-y-auto rounded-xl border border-[#ffd700]/50 bg-[#140e06]/95 py-2 shadow-2xl backdrop-blur-xl">
+            <div className="absolute right-0 z-50 mt-2 max-h-64 w-48 overflow-y-auto rounded-2xl border border-[#d8ad61]/45 bg-[#090d13]/95 py-2 shadow-2xl backdrop-blur-xl">
               {SUPPORTED_LANGUAGES.map((lang) => (
-                <button key={lang.code} type="button" onClick={() => handleSelectLanguage(lang.code)} className={`flex w-full items-center gap-2 px-3 py-2 text-left text-xs hover:bg-[#ffd700]/15 ${currentLang === lang.code ? 'font-bold text-[#ffd700]' : 'text-white/85'}`}>
+                <button key={lang.code} type="button" onClick={() => handleSelectLanguage(lang.code)} className={`flex w-full items-center gap-2 px-3 py-2.5 text-left text-xs transition-colors hover:bg-[#d8ad61]/10 ${currentLang === lang.code ? 'font-bold text-[#f3d58e]' : 'text-white/80'}`}>
                   <span>{lang.flag}</span><span>{lang.nativeName}</span>
                 </button>
               ))}
@@ -130,41 +139,39 @@ export function TelegramLoginScreen({ onLoginSuccess }: TelegramLoginScreenProps
         </div>
       </header>
 
-      <main className="relative z-10 flex min-h-0 w-full flex-1 flex-col items-center">
-        <div className="relative flex min-h-0 w-full flex-1 flex-col items-center justify-center">
-          <div className="relative z-20 flex h-full max-h-[620px] w-full items-center justify-center px-1 pb-1 pt-2">
+      <main className="relative z-10 flex min-h-0 w-full flex-1 flex-col items-center justify-center px-3 pt-2">
+        <div className="mb-1 shrink-0 text-center">
+          <div className="text-[9px] font-semibold tracking-[.34em] text-[#b58c4a] sm:text-[10px]">THE ROYAL TABLE AWAITS</div>
+          <div className="mt-1 h-px w-24 bg-gradient-to-r from-transparent via-[#d4aa61]/70 to-transparent" />
+        </div>
+
+        <div className="relative flex min-h-0 w-full max-w-[760px] flex-1 items-center justify-center">
+          <div className="pointer-events-none absolute left-1/2 top-1/2 h-[min(88vw,560px)] w-[min(88vw,560px)] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#0879c9]/12 blur-3xl" />
+          <div className="pointer-events-none absolute inset-x-[7%] bottom-[7%] h-8 rounded-[50%] bg-[#d6a64e]/10 blur-2xl" />
+          <div className="relative z-10 h-full max-h-[min(64vh,650px)] w-full overflow-visible">
             <ThreeDLoginBoard isOpening={isOpening} />
           </div>
-          <div className="pointer-events-none absolute bottom-[2%] z-10 h-8 w-[78%] rounded-full bg-[#078dff]/35 blur-2xl sm:h-12" />
         </div>
       </main>
 
-      <style>{`
-        .royal-login-aura { box-shadow: 0 0 45px rgba(225,174,79,.08), inset 0 0 45px rgba(56,151,224,.07); animation: royal-aura-turn 24s linear infinite; }
-        .royal-login-aura-delayed { border-style: dashed; animation-duration: 34s; animation-direction: reverse; }
-        .royal-login-light { transform: rotate(-24deg); filter: blur(2px); animation: royal-light-pass 7s ease-in-out infinite; }
-        .royal-login-token { width: 27px; height: 27px; border-radius: 50%; border: 2px solid rgba(255,220,145,.78); background: radial-gradient(circle at 32% 25%, #fff0c0, #bd842e 42%, #201407 76%); box-shadow: 0 0 18px rgba(255,190,78,.3), inset 0 0 0 3px rgba(20,13,5,.75); animation: royal-token-float 5s ease-in-out infinite; }
-        .royal-login-token-right { width: 20px; height: 20px; animation-delay: -2.3s; }
-        .royal-login-spark { width: 5px; height: 5px; border-radius: 50%; background: #ffe8a8; box-shadow: 0 0 12px 4px rgba(255,208,106,.55); animation: royal-spark 3s ease-in-out infinite; }
-        .royal-login-spark-two { animation-delay: -1.4s; }
-        @keyframes royal-aura-turn { to { transform: translate(-50%,-50%) rotate(360deg); } }
-        @keyframes royal-light-pass { 0%,100% { opacity: 0; translate: -12% 0; } 45%,60% { opacity: .8; } }
-        @keyframes royal-token-float { 0%,100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-17px) rotate(16deg); } }
-        @keyframes royal-spark { 0%,100% { opacity: .25; transform: scale(.65); } 50% { opacity: 1; transform: scale(1.25); } }
-        @media (prefers-reduced-motion: reduce) { .royal-login-aura, .royal-login-light, .royal-login-token, .royal-login-spark { animation: none !important; } }
-      `}</style>
-      <footer className="relative z-30 flex w-full justify-center px-4 pb-[max(22px,env(safe-area-inset-bottom))] pt-2 sm:pb-8">
+      <footer className="relative z-30 flex w-full shrink-0 flex-col items-center px-5 pb-[max(20px,env(safe-area-inset-bottom))] pt-1 sm:pb-8">
+        <div className="mb-3 flex items-center gap-2 text-[9px] font-medium tracking-[.22em] text-[#a88a5b]">
+          <span className="h-px w-7 bg-gradient-to-r from-transparent to-[#b98c43]/70" />
+          STRATEGY • HONOUR • TRADITION
+          <span className="h-px w-7 bg-gradient-to-l from-transparent to-[#b98c43]/70" />
+        </div>
         <button
           type="button"
           onClick={handleStartLogin}
           disabled={isOpening || isDbConnecting}
-          className={`group relative flex w-full max-w-[330px] items-center justify-center gap-3 overflow-hidden rounded-[24px] border-[3px] border-[#ffe6a0] bg-gradient-to-b from-[#ffe49a] via-[#bd811f] to-[#432307] px-8 py-3.5 font-cinzel text-2xl font-black tracking-wide text-[#fff4d0] shadow-[0_0_0_2px_#8b5a17,0_10px_35px_rgba(0,145,255,.45),0_8px_30px_rgba(224,156,36,.5)] transition-all active:scale-[.98] sm:py-4 sm:text-3xl ${isOpening || isDbConnecting ? 'opacity-80' : 'hover:brightness-110'}`}
+          className={`group relative flex w-full max-w-[350px] items-center justify-center gap-3 overflow-hidden rounded-2xl border border-[#f0d18d] bg-[linear-gradient(180deg,#f1d89d_0%,#c28b38_48%,#805019_100%)] px-8 py-4 font-cinzel text-xl font-black tracking-[.12em] text-[#211505] shadow-[0_0_0_3px_rgba(91,58,19,.72),0_12px_34px_rgba(0,0,0,.55),0_0_34px_rgba(211,159,68,.2)] transition-all active:scale-[.985] sm:py-[18px] sm:text-2xl ${isOpening || isDbConnecting ? 'opacity-80' : 'hover:brightness-110'}`}
         >
-          <span className="pointer-events-none absolute inset-[3px] rounded-[18px] border border-[#fff2c4]/60" />
-          {isDbConnecting || isOpening ? <span className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" /> : null}
-          <span className="relative drop-shadow-[0_2px_3px_rgba(0,0,0,.7)]">{isDbConnecting ? 'Connecting…' : isOpening ? 'Entering…' : 'ورود'}</span>
-          {!isDbConnecting && !isOpening && <span className="relative text-3xl leading-none text-[#ffe7a1]">›</span>}
+          <span className="pointer-events-none absolute inset-[3px] rounded-[11px] border border-[#fff3ce]/45" />
+          {isDbConnecting || isOpening ? <span className="h-5 w-5 animate-spin rounded-full border-2 border-[#39240a] border-t-transparent" /> : null}
+          <span className="relative">{isDbConnecting ? 'Connecting…' : isOpening ? 'Entering…' : 'ورود به بازی'}</span>
+          {!isDbConnecting && !isOpening && <span className="relative text-2xl leading-none">↗</span>}
         </button>
+        <div className="mt-3 text-[9px] tracking-[.12em] text-white/35">ROYAL BACKGAMMON 3D</div>
       </footer>
     </div>
   );
