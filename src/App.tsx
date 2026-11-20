@@ -2839,6 +2839,7 @@ export default function App() {
         } : undefined}
       >
         <RoyalBackgammonHomeLobby
+          isRotatedLayout={isRotatedView && isPortrait}
           onlineCount={onlineCount}
           userCoins={realState.coins}
           userUsdt={usdtBalance}
