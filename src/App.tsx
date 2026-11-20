@@ -568,6 +568,87 @@ export default function App() {
     });
   }, [activeScreen]);
 
+  // Request true landscape orientation only while the home lobby is visible.
+  // If the host blocks the Screen Orientation API, render the lobby in a landscape
+  // viewport rotated with CSS so the game remains usable on portrait-only hosts.
+  useEffect(() => {
+    let disposed = false;
+    let usedFullscreen = false;
+
+    const applyLandscape = async () => {
+      if (activeScreen !== 'home') {
+        setIsRotatedView(false);
+        try {
+          const tg = getTelegramWebApp();
+          tg?.unlockOrientation?.();
+          if (usedFullscreen) tg?.exitFullscreen?.();
+          const orientation = window.screen.orientation as ScreenOrientation & {
+            unlock?: () => void;
+          };
+          orientation.unlock?.();
+        } catch {
+          // Orientation restoration is best-effort on unsupported hosts.
+        }
+        return;
+      }
+
+      try {
+        const tg = getTelegramWebApp();
+        if (tg?.requestFullscreen) {
+          tg.requestFullscreen();
+          usedFullscreen = true;
+        } else if (document.fullscreenEnabled && !document.fullscreenElement) {
+          await document.documentElement.requestFullscreen();
+          usedFullscreen = true;
+        }
+
+        const orientation = window.screen.orientation as ScreenOrientation & {
+          lock?: (orientation: 'landscape') => Promise<void>;
+        };
+        if (typeof orientation.lock === 'function') {
+          await orientation.lock('landscape');
+        } else {
+          throw new Error('Screen orientation lock is unavailable');
+        }
+        if (!disposed) setIsRotatedView(false);
+      } catch {
+        if (!disposed) {
+          const portrait = window.innerHeight > window.innerWidth;
+          setIsRotatedView(portrait);
+        }
+      }
+    };
+
+    void applyLandscape();
+
+    const handleOrientationChange = () => {
+      if (activeScreen === 'home' && window.innerWidth > window.innerHeight) {
+        setIsRotatedView(false);
+      }
+    };
+    window.addEventListener('orientationchange', handleOrientationChange);
+    window.addEventListener('resize', handleOrientationChange);
+
+    return () => {
+      disposed = true;
+      window.removeEventListener('orientationchange', handleOrientationChange);
+      window.removeEventListener('resize', handleOrientationChange);
+      if (activeScreen === 'home') {
+        try {
+          const tg = getTelegramWebApp();
+          tg?.unlockOrientation?.();
+          const orientation = window.screen.orientation as ScreenOrientation & {
+            unlock?: () => void;
+          };
+          orientation.unlock?.();
+          if (usedFullscreen) tg?.exitFullscreen?.();
+        } catch {
+          // Ignore host-specific orientation cleanup failures.
+        }
+      }
+    };
+  }, [activeScreen]);
+
   // Sync sound engine mute state
   useEffect(() => {
     royalSound.muted = !realState.sfxEnabled;
@@ -2745,7 +2826,18 @@ export default function App() {
   // 1. SOVEREIGN FULL-SCREEN HOME SCREEN (EXACTLY AS IN IMAGE 2)
   if (isHomeScreen) {
     return (
-      <div className="fixed inset-0 w-full h-full bg-black overflow-hidden select-none touch-none">
+      <div
+        className="fixed inset-0 w-full h-full bg-black overflow-hidden select-none touch-none"
+        style={isRotatedView && isPortrait ? {
+          position: 'fixed',
+          width: '100dvh',
+          height: '100dvw',
+          left: '50%',
+          top: '50%',
+          transform: 'translate(-50%, -50%) rotate(90deg)',
+          transformOrigin: 'center center',
+        } : undefined}
+      >
         <RoyalBackgammonHomeLobby
           onlineCount={onlineCount}
           userCoins={realState.coins}
