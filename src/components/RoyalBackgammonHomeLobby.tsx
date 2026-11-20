@@ -8,6 +8,7 @@ import { ThreeDCardCarousel } from './ThreeDCardCarousel';
 
 export interface RoyalBackgammonHomeLobbyProps {
   onlineCount: number;
+  isRotatedLayout?: boolean;
   userCoins: number;
   userUsdt: number;
   playerLevel: number;
@@ -29,7 +30,7 @@ export interface RoyalBackgammonHomeLobbyProps {
 }
 
 export function RoyalBackgammonHomeLobby({
-  onlineCount, userCoins, userUsdt, playerLevel, playerRating, playerName,
+  onlineCount, isRotatedLayout = false, userCoins, userUsdt, playerLevel, playerRating, playerName,
   onPlayOneOnOne, onOpenTournaments, onOpenPractice, onOpenFriends,
   onOpenProvablyFair, onOpenLeaderboard, onOpenVariants, onOpenProfile,
   onOpenWallet, onOpenStore, onOpenSettings, onOpenSupport, onClaimDailyReward,
@@ -101,7 +102,7 @@ export function RoyalBackgammonHomeLobby({
         </div>
       </header>
 
-      <main className="relative z-10 flex min-h-0 flex-1 flex-col">
+      <main className="relative z-10 flex min-h-0 flex-1 flex-col" style={isRotatedLayout ? { transform: 'translateX(36px)' } : undefined}>
         <div className="flex min-h-0 flex-1 items-stretch justify-center overflow-hidden">
           <ThreeDCardCarousel onPlayOneOnOne={onPlayOneOnOne} onOpenTournaments={onOpenTournaments} onOpenPractice={onOpenPractice} onOpenFriends={onOpenFriends} onOpenVariants={onOpenVariants} />
         </div>
