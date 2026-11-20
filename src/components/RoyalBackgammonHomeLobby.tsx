@@ -54,7 +54,7 @@ export function RoyalBackgammonHomeLobby({
   );
 
   return (
-    <div className="fixed inset-0 z-40 flex h-[100dvh] w-full flex-col overflow-hidden bg-[#020611] font-sans text-white select-none">
+    <div className="absolute inset-0 z-40 flex h-full w-full flex-col overflow-hidden bg-[#020611] font-sans text-white select-none">
       <div className="pointer-events-none absolute inset-0 z-0">
         <img src={palaceNightStageBg} alt="Royal palace at night" className="h-full w-full object-cover object-center" />
         <div className="absolute inset-0 bg-gradient-to-b from-[#020713]/65 via-[#020713]/15 to-black/80" />
