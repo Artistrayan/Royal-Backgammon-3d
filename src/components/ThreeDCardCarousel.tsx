@@ -83,30 +83,6 @@ export function ThreeDCardCarousel({
               <img src={card.image} alt="" draggable={false} className="absolute inset-0 h-full w-full rounded-[20px] object-cover sm:rounded-[24px]" />
               <div className="absolute inset-0 rounded-[20px] bg-gradient-to-b from-white/10 via-transparent to-black/20 sm:rounded-[24px]" />
               <div className="absolute inset-[5px] rounded-[15px] border border-[#ffe5a0]/65 shadow-[inset_0_0_24px_rgba(255,210,115,.12)] sm:inset-2 sm:rounded-[19px]" />
-              {card.id === 'play' && (
-                <div className="pointer-events-none absolute inset-x-[8%] top-[18%] z-10 flex flex-col items-center">
-                  <div className="flex items-center gap-2 rounded-full border border-[#f5d58b]/65 bg-[#070b12]/75 px-3 py-1 shadow-[0_0_18px_rgba(255,190,70,.18)] backdrop-blur-sm">
-                    <span className="h-1.5 w-1.5 rounded-full bg-[#f2cf83] shadow-[0_0_8px_rgba(255,205,110,.9)]" />
-                    <span className="text-[8px] font-bold tracking-[.24em] text-[#f8e4b5]">ONLINE DUEL</span>
-                  </div>
-                  <div className="mt-5 flex items-center justify-center gap-2.5">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-full border border-[#f1d18a]/80 bg-[radial-gradient(circle_at_35%_25%,#fff0bd,#a9752c_52%,#211506_100%)] shadow-[0_0_18px_rgba(226,176,82,.34),inset_0_0_0_3px_rgba(24,15,5,.72)] sm:h-12 sm:w-12">
-                      <svg viewBox="0 0 32 32" className="h-6 w-6 text-[#fff0c7]" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <circle cx="16" cy="10" r="5" />
-                        <path d="M6 27c.8-6 4.2-9 10-9s9.2 3 10 9" />
-                      </svg>
-                    </div>
-                    <span className="font-cinzel text-[11px] font-black italic tracking-wider text-[#ffe8ad] drop-shadow-[0_0_9px_rgba(255,192,75,.9)] sm:text-xs">VS</span>
-                    <div className="flex h-11 w-11 items-center justify-center rounded-full border border-[#9fc8dc]/75 bg-[radial-gradient(circle_at_35%_25%,#e4f5ff,#527c99_52%,#101d2b_100%)] shadow-[0_0_18px_rgba(95,174,220,.3),inset_0_0_0_3px_rgba(5,15,25,.72)] sm:h-12 sm:w-12">
-                      <svg viewBox="0 0 32 32" className="h-6 w-6 text-[#e8f6ff]" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <circle cx="16" cy="10" r="5" />
-                        <path d="M6 27c.8-6 4.2-9 10-9s9.2 3 10 9" />
-                      </svg>
-                    </div>
-                  </div>
-                  <span className="mt-3 rounded-full border border-[#e9c77e]/35 bg-[#070b12]/65 px-3 py-1 text-[8px] font-semibold tracking-[.2em] text-[#f2d9a0] shadow-[0_4px_12px_rgba(0,0,0,.4)]">{t(card.sub).toUpperCase()}</span>
-                </div>
-              )}
               <div className="pointer-events-none absolute inset-x-[12%] top-0 h-px bg-gradient-to-r from-transparent via-[#ffe7a5]/90 to-transparent" />
               <div className={`pointer-events-none absolute bottom-[13%] left-1/2 z-20 flex h-12 w-12 -translate-x-1/2 items-center justify-center rounded-full border border-[#f5d58b]/90 bg-[radial-gradient(circle_at_35%_25%,rgba(255,240,190,.3),rgba(5,10,18,.94)_65%)] shadow-[0_0_0_3px_rgba(12,17,25,.72),0_0_18px_rgba(255,194,74,.42),inset_0_0_12px_rgba(255,217,135,.22)] sm:h-14 sm:w-14 ${center ? 'opacity-100' : 'opacity-85'}`}>
                 <svg viewBox="0 0 48 48" className="h-7 w-7 text-[#ffe4a0] drop-shadow-[0_0_5px_rgba(255,190,70,.8)] sm:h-8 sm:w-8" fill="none" stroke="currentColor" strokeWidth="1.65" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
