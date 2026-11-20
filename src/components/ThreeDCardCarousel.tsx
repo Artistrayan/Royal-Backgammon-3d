@@ -69,7 +69,7 @@ export function ThreeDCardCarousel({
                 triggerTelegramHaptic('heavy');
                 card.action();
               }}
-              className="absolute left-1/2 top-[68%] flex w-[min(42vw,222px)] max-h-[min(43vh,350px)] aspect-[.72] -translate-y-1/2 flex-col overflow-hidden rounded-[20px] border bg-[#090d13] text-white transition-all duration-500 ease-out disabled:cursor-default sm:w-[min(23vw,250px)] sm:rounded-[24px]"
+              className="absolute left-1/2 top-[68%] flex w-[min(42vw,222px)] max-h-[min(43vh,350px)] aspect-[.72] -translate-y-1/2 flex-col overflow-visible rounded-[20px] border bg-[#090d13] text-white transition-all duration-500 ease-out disabled:cursor-default sm:w-[min(23vw,250px)] sm:rounded-[24px]"
               style={{
                 opacity: visible ? (center ? 1 : Math.max(.48, 1 - Math.abs(diff) * .22)) : 0,
                 pointerEvents: center ? 'auto' : 'none',
@@ -80,8 +80,8 @@ export function ThreeDCardCarousel({
                 boxShadow: center ? '0 0 0 2px #ffe08a, 0 0 0 7px rgba(255,190,70,.16), 0 0 42px rgba(0,145,255,.72), 0 0 62px rgba(255,186,54,.62), 0 22px 38px rgba(0,0,0,.82)' : '0 12px 24px rgba(0,0,0,.65)',
               }}
             >
-              <img src={card.image} alt="" draggable={false} className="absolute inset-0 h-full w-full object-cover" />
-              <div className="absolute inset-0 bg-gradient-to-b from-white/10 via-transparent to-black/20" />
+              <img src={card.image} alt="" draggable={false} className="absolute inset-0 h-full w-full rounded-[20px] object-cover sm:rounded-[24px]" />
+              <div className="absolute inset-0 rounded-[20px] bg-gradient-to-b from-white/10 via-transparent to-black/20 sm:rounded-[24px]" />
               <div className="absolute inset-[5px] rounded-[15px] border border-[#ffe5a0]/65 shadow-[inset_0_0_24px_rgba(255,210,115,.12)] sm:inset-2 sm:rounded-[19px]" />
               <div className="pointer-events-none absolute inset-x-[12%] top-0 h-px bg-gradient-to-r from-transparent via-[#ffe7a5]/90 to-transparent" />
               <div className={`pointer-events-none absolute bottom-[13%] left-1/2 z-20 flex h-12 w-12 -translate-x-1/2 items-center justify-center rounded-full border border-[#f5d58b]/90 bg-[radial-gradient(circle_at_35%_25%,rgba(255,240,190,.3),rgba(5,10,18,.94)_65%)] shadow-[0_0_0_3px_rgba(12,17,25,.72),0_0_18px_rgba(255,194,74,.42),inset_0_0_12px_rgba(255,217,135,.22)] sm:h-14 sm:w-14 ${center ? 'opacity-100' : 'opacity-85'}`}>
@@ -94,7 +94,7 @@ export function ThreeDCardCarousel({
                 </svg>
                 <span className="absolute inset-[3px] rounded-full border border-[#ffe9b2]/30" />
               </div>
-              <span className={`pointer-events-none absolute bottom-[2.5%] left-1/2 z-30 -translate-x-1/2 whitespace-nowrap text-[10px] font-bold tracking-[0.12em] text-[#ffe3a0] drop-shadow-[0_0_7px_rgba(255,190,70,.95)] sm:text-xs ${center ? 'opacity-100' : 'opacity-90'}`}>{t(card.title)}</span>
+              <span className={`pointer-events-none absolute bottom-[-30px] left-1/2 z-30 -translate-x-1/2 whitespace-nowrap text-[11px] font-bold tracking-[0.12em] text-[#ffe3a0] drop-shadow-[0_0_7px_rgba(255,190,70,.95)] sm:text-xs ${center ? 'opacity-100' : 'opacity-90'}`}>{t(card.title)}</span>
               <div className={`pointer-events-none absolute inset-0 transition-opacity duration-500 ${center ? 'opacity-100' : 'opacity-35'} bg-[radial-gradient(ellipse_at_50%_0%,rgba(255,213,120,.22),transparent_62%)]`} />
             </button>
           );
