@@ -74,10 +74,10 @@ export function ThreeDCardCarousel({
                 opacity: visible ? (center ? 1 : Math.max(.48, 1 - Math.abs(diff) * .22)) : 0,
                 pointerEvents: center ? 'auto' : 'none',
                 zIndex: 20 - Math.abs(diff),
-                transform: `translate(calc(-50% + ${diff * (typeof window !== 'undefined' && window.innerWidth < 640 ? 106 : 102)}%), -50%) rotateY(${diff * -13}deg) rotateZ(${center ? 0 : diff * -1.5}deg) scale(${center ? 1.045 : Math.max(.76, 1 - Math.abs(diff) * .17)})`,
+                transform: `translate(calc(-50% + ${diff * (typeof window !== 'undefined' && window.innerWidth < 640 ? 106 : 102)}%), -50%) rotateY(${diff * -13}deg) rotateZ(${center ? 0 : diff * -1.5}deg) scale(${center ? 1.16 : Math.max(.76, 1 - Math.abs(diff) * .17)})`,
                 filter: center ? 'none' : `blur(${Math.min(2.2, Math.abs(diff) * 1.1)}px)`,
                 borderColor: center ? '#ffe08a' : card.tone === 'green' ? '#5cae9b' : '#8294aa',
-                boxShadow: center ? '0 0 0 1.5px #b9822c, 0 0 34px rgba(0,145,255,.62), 0 0 44px rgba(255,186,54,.42)' : '0 12px 24px rgba(0,0,0,.65)',
+                boxShadow: center ? '0 0 0 2px #ffe08a, 0 0 0 7px rgba(255,190,70,.16), 0 0 42px rgba(0,145,255,.72), 0 0 62px rgba(255,186,54,.62), 0 22px 38px rgba(0,0,0,.82)' : '0 12px 24px rgba(0,0,0,.65)',
               }}
             >
               <img src={card.image} alt="" draggable={false} className="absolute inset-0 h-full w-full object-cover" />
@@ -94,6 +94,7 @@ export function ThreeDCardCarousel({
                 </svg>
                 <span className="absolute inset-[3px] rounded-full border border-[#ffe9b2]/30" />
               </div>
+              <span className={`pointer-events-none absolute bottom-[2.5%] left-1/2 z-30 -translate-x-1/2 whitespace-nowrap text-[10px] font-bold tracking-[0.12em] text-[#ffe3a0] drop-shadow-[0_0_7px_rgba(255,190,70,.95)] sm:text-xs ${center ? 'opacity-100' : 'opacity-90'}`}>{t(card.title)}</span>
               <div className={`pointer-events-none absolute inset-0 transition-opacity duration-500 ${center ? 'opacity-100' : 'opacity-35'} bg-[radial-gradient(ellipse_at_50%_0%,rgba(255,213,120,.22),transparent_62%)]`} />
             </button>
           );
