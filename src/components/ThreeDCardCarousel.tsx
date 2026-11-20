@@ -59,31 +59,31 @@ export function ThreeDCardCarousel({
             <button
               key={card.id}
               type="button"
-              aria-label={t(card.title)}
+              aria-label={center ? t(card.title) : undefined}
+              aria-hidden={!center}
+              tabIndex={center ? 0 : -1}
+              disabled={!center}
               onClick={() => {
+                if (!center) return;
                 royalSound.playOptionClickSound();
                 triggerTelegramHaptic('heavy');
                 card.action();
               }}
-              className="absolute top-1/2 flex w-[min(45vw,238px)] max-h-[min(45vh,365px)] aspect-[.72] -translate-y-1/2 flex-col overflow-hidden rounded-[20px] border bg-[#090d13] text-white transition-all duration-500 ease-out sm:w-[min(25vw,270px)] sm:rounded-[24px]"
+              className="absolute left-1/2 top-1/2 flex w-[min(45vw,238px)] max-h-[min(45vh,365px)] aspect-[.72] -translate-y-1/2 flex-col overflow-hidden rounded-[20px] border bg-[#090d13] text-white transition-all duration-500 ease-out disabled:cursor-default sm:w-[min(25vw,270px)] sm:rounded-[24px]"
               style={{
                 opacity: visible ? (center ? 1 : Math.max(.62, 1 - Math.abs(diff) * .14)) : 0,
-                pointerEvents: visible ? 'auto' : 'none',
+                pointerEvents: center ? 'auto' : 'none',
                 zIndex: 20 - Math.abs(diff),
-                transform: `translate(calc(-50% + ${diff * (typeof window !== 'undefined' && window.innerWidth < 640 ? 75 : 82)}%), -50%) rotateY(${diff * -17}deg) rotateZ(${center ? 0 : diff * -2}deg) scale(${center ? .92 : Math.max(.68, .92 - Math.abs(diff) * .12)})`,
+                transform: `translate(calc(-50% + ${diff * (typeof window !== 'undefined' && window.innerWidth < 640 ? 92 : 88)}%), -50%) rotateY(${diff * -13}deg) rotateZ(${center ? 0 : diff * -1.5}deg) scale(${center ? 1 : Math.max(.72, 1 - Math.abs(diff) * .13)})`,
                 borderColor: center ? '#ffd36b' : card.tone === 'green' ? '#5cae9b' : '#8294aa',
                 boxShadow: center ? '0 0 0 1px #8b5b1c, 0 0 30px rgba(0,145,255,.55), 0 0 36px rgba(255,186,54,.28)' : '0 12px 24px rgba(0,0,0,.65)',
               }}
             >
               <img src={card.image} alt="" draggable={false} className="absolute inset-0 h-full w-full object-cover" />
-              <div className="absolute inset-0 bg-gradient-to-b from-black/5 via-transparent to-black/95" />
-              <div className="absolute inset-2 rounded-[14px] border border-[#ffe5a0]/55 sm:inset-3 sm:rounded-[18px]" />
-              <div className="relative z-10 mt-auto flex flex-col items-center gap-1 px-2 pb-4 pt-12 sm:pb-5">
-                <span className="text-2xl drop-shadow sm:text-3xl">{card.icon}</span>
-                <span className="font-cinzel text-lg font-black uppercase tracking-wide drop-shadow-[0_2px_5px_black] sm:text-2xl">{t(card.title)}</span>
-                <span className="text-[10px] font-semibold text-white/90 sm:text-sm">{t(card.sub)}</span>
-
-              </div>
+              <div className="absolute inset-0 bg-gradient-to-b from-white/10 via-transparent to-black/20" />
+              <div className="absolute inset-[5px] rounded-[15px] border border-[#ffe5a0]/65 shadow-[inset_0_0_24px_rgba(255,210,115,.12)] sm:inset-2 sm:rounded-[19px]" />
+              <div className="pointer-events-none absolute inset-x-[12%] top-0 h-px bg-gradient-to-r from-transparent via-[#ffe7a5]/90 to-transparent" />
+              <div className={`pointer-events-none absolute inset-0 transition-opacity duration-500 ${center ? 'opacity-100' : 'opacity-35'} bg-[radial-gradient(ellipse_at_50%_0%,rgba(255,213,120,.22),transparent_62%)]`} />
             </button>
           );
         })}
