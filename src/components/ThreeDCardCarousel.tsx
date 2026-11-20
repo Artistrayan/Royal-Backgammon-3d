@@ -29,13 +29,12 @@ export function ThreeDCardCarousel({
   ];
 
   const move = (next: number) => {
-    setActiveIndex(Math.max(0, Math.min(cards.length - 1, next)));
+    setActiveIndex(((next % cards.length) + cards.length) % cards.length);
     royalSound.playDiceRollSound();
     triggerTelegramHaptic('light');
   };
 
   let touchStartX = 0;
-  const activeCard = cards[activeIndex];
 
   return (
     <section
@@ -50,7 +49,10 @@ export function ThreeDCardCarousel({
       <div className="pointer-events-none absolute bottom-[8%] h-10 w-[82%] rounded-[50%] border border-[#b88632]/80 bg-[#06111c]/70 shadow-[0_0_32px_rgba(0,145,255,.25),inset_0_0_25px_rgba(255,190,65,.15)]" />
       <div className="relative z-10 flex min-h-0 w-full flex-1 max-w-[940px] items-center justify-center [perspective:1200px] translate-y-[clamp(120px,14dvh,220px)] sm:translate-y-0">
         {cards.map((card, index) => {
-          const diff = index - activeIndex;
+          // Wrap each card around the carousel so the sequence is continuous.
+          // The shortest signed distance places adjacent cards behind the active card.
+          const half = Math.floor(cards.length / 2);
+          const diff = ((index - activeIndex + half + cards.length) % cards.length) - half;
           const center = diff === 0;
           const visible = Math.abs(diff) <= 2;
           return (
@@ -87,8 +89,8 @@ export function ThreeDCardCarousel({
         })}
       </div>
 
-      <button type="button" aria-label="Previous game mode" onClick={() => move(activeIndex - 1)} disabled={activeIndex === 0} className="absolute left-3 top-[43%] z-30 flex h-11 w-11 items-center justify-center rounded-full border border-[#e4bb55]/70 bg-black/75 text-2xl text-[#ffdb69] shadow-[0_0_18px_rgba(0,0,0,.7)] disabled:opacity-25 sm:left-6 sm:h-14 sm:w-14">‹</button>
-      <button type="button" aria-label="Next game mode" onClick={() => move(activeIndex + 1)} disabled={activeIndex === cards.length - 1} className="absolute right-3 top-[43%] z-30 flex h-11 w-11 items-center justify-center rounded-full border border-[#e4bb55]/70 bg-black/75 text-2xl text-[#ffdb69] shadow-[0_0_18px_rgba(0,0,0,.7)] disabled:opacity-25 sm:right-6 sm:h-14 sm:w-14">›</button>
+      <button type="button" aria-label="Previous game mode" onClick={() => move(activeIndex - 1)} className="absolute left-3 top-[43%] z-30 flex h-11 w-11 items-center justify-center rounded-full border border-[#e4bb55]/70 bg-black/75 text-2xl text-[#ffdb69] shadow-[0_0_18px_rgba(0,0,0,.7)] sm:left-6 sm:h-14 sm:w-14">‹</button>
+      <button type="button" aria-label="Next game mode" onClick={() => move(activeIndex + 1)} className="absolute right-3 top-[43%] z-30 flex h-11 w-11 items-center justify-center rounded-full border border-[#e4bb55]/70 bg-black/75 text-2xl text-[#ffdb69] shadow-[0_0_18px_rgba(0,0,0,.7)] sm:right-6 sm:h-14 sm:w-14">›</button>
 
     </section>
   );
