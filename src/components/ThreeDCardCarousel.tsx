@@ -47,7 +47,7 @@ export function ThreeDCardCarousel({
       }}
     >
       <div className="pointer-events-none absolute bottom-[8%] h-10 w-[82%] rounded-[50%] border border-[#b88632]/80 bg-[#06111c]/70 shadow-[0_0_32px_rgba(0,145,255,.25),inset_0_0_25px_rgba(255,190,65,.15)]" />
-      <div className="relative z-10 flex min-h-0 w-full flex-1 max-w-[940px] items-center justify-center [perspective:1200px] translate-y-[clamp(120px,14dvh,220px)] sm:translate-y-0">
+      <div className="relative z-10 flex min-h-0 w-full flex-1 max-w-[940px] items-center justify-center [perspective:1200px] ">
         {cards.map((card, index) => {
           // Wrap each card around the carousel so the sequence is continuous.
           // The shortest signed distance places adjacent cards behind the active card.
