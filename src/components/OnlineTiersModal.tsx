@@ -25,7 +25,9 @@ export function OnlineTiersModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/85 backdrop-blur-sm animate-fade-in">
-      <div className="relative w-full max-w-[540px] max-h-[92vh] rounded-xl border border-[#c8a668]/70 bg-gradient-to-b from-[#061911] via-[#04120c] to-[#020a06] p-4 shadow-2xl flex flex-col text-[#e8dfd0] overflow-hidden">
+      <div className="pointer-events-none absolute inset-0 bg-[#020611]/90" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_35%,rgba(203,161,75,.18),transparent_55%)]" />
+      <div className="relative w-full max-w-[540px] max-h-[92vh] rounded-[26px] border border-[#d7b66d]/55 bg-gradient-to-b from-[#101b2d]/98 via-[#080f1c]/98 to-[#030812]/98 shadow-[0_24px_90px_rgba(0,0,0,.72),inset_0_1px_0_rgba(255,225,160,.14)] backdrop-blur-2xl p-4 shadow-2xl flex flex-col text-[#e8dfd0] overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-[#c8a668]/30 pb-2.5 mb-3 shrink-0">
           <div className="flex items-center gap-2">
@@ -49,13 +51,13 @@ export function OnlineTiersModal({
         </div>
 
         {/* Player Status Bar */}
-        <div className="mb-3 px-3 py-2 rounded-lg bg-[#020a06] border border-[#c8a668]/30 flex items-center justify-between shrink-0">
+        <div className="mb-3 px-3 py-2 rounded-lg bg-[#030812] border border-[#c8a668]/30 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
             <div>
               <span className="font-cinzel text-[7px] tracking-wider text-[#8e8a80] block">
                 YOUR LEVEL
               </span>
-              <span className="font-cinzel text-[11px] font-bold text-[#52f29c] tabular-nums">
+              <span className="font-cinzel text-[11px] font-bold text-[#d9b96f] tabular-nums">
                 LEVEL {playerLevel}
               </span>
             </div>
@@ -85,7 +87,7 @@ export function OnlineTiersModal({
                 onClose();
                 onOpenWallet();
               }}
-              className="px-2 py-1 rounded bg-[#0a271b] border border-[#c8a668]/50 hover:bg-[#113828] text-[#e3c485] font-cinzel text-[7.5px] font-semibold tracking-wider flex items-center gap-1 cursor-pointer transition-colors"
+              className="px-2 py-1 rounded bg-[#172840] border border-[#c8a668]/50 hover:bg-[#113828] text-[#e3c485] font-cinzel text-[7.5px] font-semibold tracking-wider flex items-center gap-1 cursor-pointer transition-colors"
             >
               <WalletIcon className="w-2.5 h-2.5" />
               DEPOSIT
@@ -115,7 +117,7 @@ export function OnlineTiersModal({
                   <div className="flex items-center gap-3 min-w-0">
                     <div
                       style={{ borderColor: tier.color }}
-                      className="w-10 h-10 rounded-full border-2 bg-[#020a06] flex flex-col items-center justify-center shrink-0 shadow-md"
+                      className="w-10 h-10 rounded-full border-2 bg-[#030812] flex flex-col items-center justify-center shrink-0 shadow-md"
                     >
                       <span
                         style={{ color: tier.color }}
@@ -144,7 +146,7 @@ export function OnlineTiersModal({
                       </div>
                       <p className="font-cormorant text-[9.5px] text-[#a39e93] leading-tight mt-0.5">
                         Levels {tier.minLevel} – {tier.maxLevel === 999 ? '∞' : tier.maxLevel}{' '}
-                        • Prize: <span className="text-[#52f29c] font-semibold">{tier.prizePoolUsdt} USDT</span>
+                        • Prize: <span className="text-[#d9b96f] font-semibold">{tier.prizePoolUsdt} USDT</span>
                       </p>
                       <div className="mt-1 flex items-center gap-1.5">
                         <span className="text-[8px] font-cinzel text-[#d4b26f] bg-[#030e08] px-1.5 py-0.5 rounded border border-[#c8a668]/20">
