@@ -52,7 +52,9 @@ export function FriendsModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/85 backdrop-blur-sm animate-fade-in">
-      <div className="relative w-full max-w-[460px] max-h-[88vh] rounded-lg border border-[#c8a668]/70 bg-gradient-to-b from-[#061911] via-[#04120c] to-[#020a06] p-4 shadow-2xl flex flex-col text-[#e8dfd0]">
+      <div className="pointer-events-none absolute inset-0 bg-[#020611]/90" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_35%,rgba(203,161,75,.18),transparent_55%)]" />
+      <div className="relative w-full max-w-[min(94vw,760px)] max-h-[88vh] rounded-[26px] border border-[#d7b66d]/55 bg-gradient-to-b from-[#101b2d]/98 via-[#080f1c]/98 to-[#030812]/98 shadow-[0_24px_90px_rgba(0,0,0,.72),inset_0_1px_0_rgba(255,225,160,.14)] backdrop-blur-2xl p-4 shadow-2xl flex flex-col text-[#e8dfd0]">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-[#c8a668]/30 pb-2.5 mb-3">
           <div className="flex items-center gap-2">
@@ -76,13 +78,13 @@ export function FriendsModal({
         </div>
 
         {/* Tab Buttons */}
-        <div className="grid grid-cols-3 gap-1 mb-3 bg-[#020906] p-1 rounded border border-[#c8a668]/20">
+        <div className="grid grid-cols-3 gap-1 mb-3 bg-[#030812] p-1 rounded border border-[#c8a668]/20">
           <button
             type="button"
             onClick={() => setActiveTab('friends')}
             className={`py-1 rounded font-cinzel text-[8.5px] font-medium tracking-wider transition-all cursor-pointer ${
               activeTab === 'friends'
-                ? 'bg-[#0a271b] border border-[#c8a668]/50 text-[#f5dca8]'
+                ? 'bg-[#172840] border border-[#c8a668]/50 text-[#f5dca8]'
                 : 'text-[#8e8a80] hover:text-[#d0c7b6]'
             }`}
           >
@@ -93,7 +95,7 @@ export function FriendsModal({
             onClick={() => setActiveTab('search')}
             className={`py-1 rounded font-cinzel text-[8.5px] font-medium tracking-wider transition-all cursor-pointer ${
               activeTab === 'search'
-                ? 'bg-[#0a271b] border border-[#c8a668]/50 text-[#f5dca8]'
+                ? 'bg-[#172840] border border-[#c8a668]/50 text-[#f5dca8]'
                 : 'text-[#8e8a80] hover:text-[#d0c7b6]'
             }`}
           >
@@ -104,13 +106,13 @@ export function FriendsModal({
             onClick={() => setActiveTab('requests')}
             className={`py-1 rounded font-cinzel text-[8.5px] font-medium tracking-wider transition-all cursor-pointer relative ${
               activeTab === 'requests'
-                ? 'bg-[#0a271b] border border-[#c8a668]/50 text-[#f5dca8]'
+                ? 'bg-[#172840] border border-[#c8a668]/50 text-[#f5dca8]'
                 : 'text-[#8e8a80] hover:text-[#d0c7b6]'
             }`}
           >
             REQUESTS {incomingRequests.length > 0 && `(${incomingRequests.length})`}
             {incomingRequests.length > 0 && (
-              <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#f7d774] ml-1 align-middle" />
+              <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#e7c879] ml-1 align-middle" />
             )}
           </button>
         </div>
@@ -120,11 +122,11 @@ export function FriendsModal({
           {/* TAB 1: FRIENDS LIST */}
           {activeTab === 'friends' && (
             <div className="space-y-2">
-              <div className="rounded border border-[#c8a668]/35 bg-[#020b07]/80 p-2.5">
+              <div className="rounded border border-[#c8a668]/35 bg-[#060d18]/80 p-2.5">
                 <label htmlFor="friend-challenge-amount" className="block font-cinzel text-[8.5px] tracking-wider text-[#f5dca8] mb-1.5">
                   MATCH AMOUNT (USDT) • 0 = FREE
                 </label>
-                <input id="friend-challenge-amount" type="number" min="0" step="0.01" inputMode="decimal" value={challengeAmount} onChange={(e) => setChallengeAmount(e.target.value)} className="w-full rounded bg-[#061810] border border-[#c8a668]/45 px-2.5 py-2 font-cinzel text-[11px] text-[#f5dca8] focus:outline-none focus:border-[#f5dca8]" aria-describedby="friend-challenge-amount-note" />
+                <input id="friend-challenge-amount" type="number" min="0" step="0.01" inputMode="decimal" value={challengeAmount} onChange={(e) => setChallengeAmount(e.target.value)} className="w-full rounded bg-[#0d192b] border border-[#c8a668]/45 px-2.5 py-2 font-cinzel text-[11px] text-[#f5dca8] focus:outline-none focus:border-[#f5dca8]" aria-describedby="friend-challenge-amount-note" />
                 <p id="friend-challenge-amount-note" className="font-cormorant text-[10px] text-[#a39e93] mt-1.5">Free matches can start now. Paid matches are not enabled until secure deposits and stake settlement are implemented.</p>
               </div>
               {friends.length === 0 ? (
@@ -140,21 +142,21 @@ export function FriendsModal({
                 friends.map((f) => (
                   <div
                     key={f.id}
-                    className="flex items-center justify-between p-2 rounded border border-[#c8a668]/25 bg-[#061810]/70 hover:border-[#c8a668]/50 transition-colors"
+                    className="flex items-center justify-between p-2 rounded border border-[#c8a668]/25 bg-[#0d192b]/70 hover:border-[#c8a668]/50 transition-colors"
                   >
                     <div className="flex items-center gap-2.5">
                       {/* Online Status Indicator */}
                       <div className="relative">
-                        <div className="w-7 h-7 rounded-full border border-[#c8a668]/50 bg-[#020a06] flex items-center justify-center font-cinzel text-[10px] font-bold text-[#f5dca8]">
+                        <div className="w-7 h-7 rounded-full border border-[#c8a668]/50 bg-[#030812] flex items-center justify-center font-cinzel text-[10px] font-bold text-[#f5dca8]">
                           {f.username.slice(0, 2).toUpperCase()}
                         </div>
                         <span
                           title={f.status}
-                          className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-[#020a06] ${
+                          className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-[#030812] ${
                             f.status === 'online'
-                              ? 'bg-[#52f29c]'
+                              ? 'bg-[#d9b96f]'
                               : f.status === 'in_game'
-                              ? 'bg-[#f7d774]'
+                              ? 'bg-[#e7c879]'
                               : 'bg-[#55524c]'
                           }`}
                         />
@@ -165,7 +167,7 @@ export function FriendsModal({
                           <span className="font-cinzel text-[9.5px] font-semibold text-[#f5dca8]">
                             {f.username}
                           </span>
-                          <span className="text-[7.5px] font-cinzel px-1 py-0.2 rounded bg-[#092217] text-[#52f29c] border border-[#52f29c]/30">
+                          <span className="text-[7.5px] font-cinzel px-1 py-0.2 rounded bg-[#182a43] text-[#d9b96f] border border-[#d9b96f]/30">
                             LVL {f.level}
                           </span>
                         </div>
@@ -214,7 +216,7 @@ export function FriendsModal({
                     }
                   }}
                   placeholder="Enter username to search..."
-                  className="flex-1 px-2.5 py-1.5 rounded bg-[#020b07] border border-[#c8a668]/40 font-cinzel text-[9px] text-[#f5dca8] placeholder-[#6e6a60] focus:outline-none focus:border-[#f5dca8]"
+                  className="flex-1 px-2.5 py-1.5 rounded bg-[#060d18] border border-[#c8a668]/40 font-cinzel text-[9px] text-[#f5dca8] placeholder-[#6e6a60] focus:outline-none focus:border-[#f5dca8]"
                 />
                 <button
                   type="submit"
@@ -241,10 +243,10 @@ export function FriendsModal({
                     return (
                       <div
                         key={u.id}
-                        className="flex items-center justify-between p-2 rounded border border-[#c8a668]/25 bg-[#061810]/70"
+                        className="flex items-center justify-between p-2 rounded border border-[#c8a668]/25 bg-[#0d192b]/70"
                       >
                         <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded-full border border-[#c8a668]/40 bg-[#020a06] flex items-center justify-center font-cinzel text-[9px] text-[#f5dca8]">
+                          <div className="w-6 h-6 rounded-full border border-[#c8a668]/40 bg-[#030812] flex items-center justify-center font-cinzel text-[9px] text-[#f5dca8]">
                             {u.username.slice(0, 2).toUpperCase()}
                           </div>
                           <div>
@@ -252,7 +254,7 @@ export function FriendsModal({
                               <span className="font-cinzel text-[9px] font-semibold text-[#f5dca8]">
                                 {u.username}
                               </span>
-                              <span className="text-[7.5px] font-cinzel px-1 py-0.2 rounded bg-[#092217] text-[#52f29c] border border-[#52f29c]/30">
+                              <span className="text-[7.5px] font-cinzel px-1 py-0.2 rounded bg-[#182a43] text-[#d9b96f] border border-[#d9b96f]/30">
                                 LVL {u.level}
                               </span>
                             </div>
@@ -263,18 +265,18 @@ export function FriendsModal({
                         </div>
 
                         {isAlreadyFriend ? (
-                          <span className="font-cinzel text-[7.5px] text-[#52f29c] font-semibold tracking-wider">
+                          <span className="font-cinzel text-[7.5px] text-[#d9b96f] font-semibold tracking-wider">
                             FRIEND ✓
                           </span>
                         ) : isRequested ? (
-                          <span className="font-cinzel text-[7.5px] text-[#f7d774] font-semibold tracking-wider">
+                          <span className="font-cinzel text-[7.5px] text-[#e7c879] font-semibold tracking-wider">
                             PENDING...
                           </span>
                         ) : (
                           <button
                             type="button"
                             onClick={() => handleSendRequest(u.id)}
-                            className="px-2 py-0.8 rounded bg-[#0a271b] hover:bg-[#113a29] border border-[#c8a668]/50 font-cinzel text-[7.5px] font-semibold text-[#f5dca8] cursor-pointer"
+                            className="px-2 py-0.8 rounded bg-[#172840] hover:bg-[#113a29] border border-[#c8a668]/50 font-cinzel text-[7.5px] font-semibold text-[#f5dca8] cursor-pointer"
                           >
                             + ADD FRIEND
                           </button>
@@ -303,7 +305,7 @@ export function FriendsModal({
                     {incomingRequests.map((req) => (
                       <div
                         key={req.id}
-                        className="flex items-center justify-between p-2 rounded border border-[#f7d774]/40 bg-[#072015]"
+                        className="flex items-center justify-between p-2 rounded border border-[#e7c879]/40 bg-[#101d31]"
                       >
                         <div>
                           <span className="font-cinzel text-[9px] font-semibold text-[#f5dca8] block">
@@ -317,14 +319,14 @@ export function FriendsModal({
                           <button
                             type="button"
                             onClick={() => onAcceptFriendRequest(req.id)}
-                            className="px-2 py-0.8 rounded bg-[#104229] hover:bg-[#185938] border border-[#52f29c]/60 font-cinzel text-[7.5px] font-semibold text-[#52f29c] cursor-pointer"
+                            className="px-2 py-0.8 rounded bg-[#243957] hover:bg-[#304766] border border-[#d9b96f]/60 font-cinzel text-[7.5px] font-semibold text-[#d9b96f] cursor-pointer"
                           >
                             ACCEPT
                           </button>
                           <button
                             type="button"
                             onClick={() => onRejectFriendRequest(req.id)}
-                            className="px-2 py-0.8 rounded bg-[#200a06] hover:bg-[#33110a] border border-[#d66852]/50 font-cinzel text-[7.5px] font-semibold text-[#e89080] cursor-pointer"
+                            className="px-2 py-0.8 rounded bg-[#171b25] hover:bg-[#252b37] border border-[#c89c65]/50 font-cinzel text-[7.5px] font-semibold text-[#e4cfa8] cursor-pointer"
                           >
                             DECLINE
                           </button>
@@ -347,7 +349,7 @@ export function FriendsModal({
                         className="flex items-center justify-between p-1.5 rounded bg-[#030d07] border border-[#c8a668]/15 text-[8.5px] font-cormorant text-[#a39e93]"
                       >
                         <span>Friend request sent</span>
-                        <span className="text-[#f7d774] font-cinzel text-[7.5px]">AWAITING APPROVAL</span>
+                        <span className="text-[#e7c879] font-cinzel text-[7.5px]">AWAITING APPROVAL</span>
                       </div>
                     ))}
                   </div>
