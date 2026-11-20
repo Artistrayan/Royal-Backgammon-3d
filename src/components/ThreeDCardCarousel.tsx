@@ -69,7 +69,7 @@ export function ThreeDCardCarousel({
                 triggerTelegramHaptic('heavy');
                 card.action();
               }}
-              className="absolute left-1/2 top-[51%] flex w-[min(45vw,238px)] max-h-[min(45vh,365px)] aspect-[.72] -translate-y-1/2 flex-col overflow-hidden rounded-[20px] border bg-[#090d13] text-white transition-all duration-500 ease-out disabled:cursor-default sm:w-[min(25vw,270px)] sm:rounded-[24px]"
+              className="absolute left-1/2 top-[56%] flex w-[min(45vw,238px)] max-h-[min(45vh,365px)] aspect-[.72] -translate-y-1/2 flex-col overflow-hidden rounded-[20px] border bg-[#090d13] text-white transition-all duration-500 ease-out disabled:cursor-default sm:w-[min(25vw,270px)] sm:rounded-[24px]"
               style={{
                 opacity: visible ? (center ? 1 : Math.max(.62, 1 - Math.abs(diff) * .14)) : 0,
                 pointerEvents: center ? 'auto' : 'none',
@@ -99,8 +99,7 @@ export function ThreeDCardCarousel({
         })}
       </div>
 
-      <button type="button" aria-label="Previous game mode" onClick={() => move(activeIndex - 1)} className="absolute left-3 top-[43%] z-30 flex h-11 w-11 items-center justify-center rounded-full border border-[#e4bb55]/70 bg-black/75 text-2xl text-[#ffdb69] shadow-[0_0_18px_rgba(0,0,0,.7)] sm:left-6 sm:h-14 sm:w-14">‹</button>
-      <button type="button" aria-label="Next game mode" onClick={() => move(activeIndex + 1)} className="absolute right-3 top-[43%] z-30 flex h-11 w-11 items-center justify-center rounded-full border border-[#e4bb55]/70 bg-black/75 text-2xl text-[#ffdb69] shadow-[0_0_18px_rgba(0,0,0,.7)] sm:right-6 sm:h-14 sm:w-14">›</button>
+
 
     </section>
   );
