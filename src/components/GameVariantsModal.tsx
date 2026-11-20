@@ -8,6 +8,7 @@
  */
 
 import React from 'react';
+import palaceNightStageBg from '../assets/images/royal_palace_night_stage_1792268375096.jpg';
 import { GAME_VARIANTS, GameVariantId } from '../engine/gameRules';
 
 interface GameVariantsModalProps {
@@ -27,6 +28,7 @@ export function GameVariantsModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/85 backdrop-blur-md animate-fade-in">
+      <img src={palaceNightStageBg} alt="" aria-hidden="true" className="pointer-events-none absolute inset-0 h-full w-full object-cover object-center opacity-35" />
       <div className="pointer-events-none absolute inset-0 bg-[#020611]/90" />
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_35%,rgba(203,161,75,.18),transparent_55%)]" />
       <div className="relative w-full max-w-[min(94vw,780px)] max-h-[92vh] rounded-[26px] border border-[#d7b66d]/55 bg-gradient-to-b from-[#101b2d]/98 via-[#080f1c]/98 to-[#030812]/98 shadow-[0_24px_90px_rgba(0,0,0,.72),inset_0_1px_0_rgba(255,225,160,.14)] backdrop-blur-2xl p-4 sm:p-5 shadow-2xl flex flex-col text-[#e8dfd0] overflow-hidden">
