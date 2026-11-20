@@ -112,7 +112,9 @@ export function TournamentLobbyModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-md animate-fade-in">
-      <div className="relative w-full max-w-[820px] max-h-[94vh] rounded-xl border border-[#c8a668]/70 bg-gradient-to-b from-[#061911] via-[#04120c] to-[#020a06] p-4 sm:p-5 shadow-2xl flex flex-col text-[#e8dfd0] overflow-hidden">
+      <div className="pointer-events-none absolute inset-0 bg-[#020611]/90" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_35%,rgba(203,161,75,.18),transparent_55%)]" />
+      <div className="relative w-full max-w-[min(96vw,1120px)] max-h-[94vh] rounded-[26px] border border-[#d7b66d]/55 bg-gradient-to-b from-[#101b2d]/98 via-[#080f1c]/98 to-[#030812]/98 shadow-[0_24px_90px_rgba(0,0,0,.72),inset_0_1px_0_rgba(255,225,160,.14)] backdrop-blur-2xl p-4 sm:p-5 shadow-2xl flex flex-col text-[#e8dfd0] overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-[#c8a668]/30 pb-3 mb-3 shrink-0">
           <div className="flex items-center gap-2.5">
@@ -122,7 +124,7 @@ export function TournamentLobbyModal({
                 <h2 className="font-cinzel text-xs sm:text-sm font-bold tracking-[0.16em] text-[#f5dca8] uppercase">
                   ROYAL SWISS + KNOCKOUT CHAMPIONSHIP
                 </h2>
-                <span className="px-1.5 py-0.2 rounded bg-[#0b291d] border border-[#52f29c]/40 font-cinzel text-[7px] text-[#52f29c] font-bold">
+                <span className="px-1.5 py-0.2 rounded bg-[#172840] border border-[#d9b96f]/40 font-cinzel text-[7px] text-[#d9b96f] font-bold">
                   USDT ESCROW
                 </span>
               </div>
@@ -152,15 +154,15 @@ export function TournamentLobbyModal({
                 onClick={() => setSelectedTier(tId)}
                 className={`p-2 rounded-lg border text-left transition-all cursor-pointer ${
                   active
-                    ? 'bg-[#0f2e20] border-[#f5dca8] shadow-md'
-                    : 'bg-[#04120c]/70 border-[#c8a668]/30 hover:border-[#c8a668]/60 opacity-80'
+                    ? 'bg-[#1a2a43] border-[#f5dca8] shadow-md'
+                    : 'bg-[#070f1c]/70 border-[#c8a668]/30 hover:border-[#c8a668]/60 opacity-80'
                 }`}
               >
                 <div className="flex items-center justify-between mb-1">
                   <span className="font-cinzel text-[9px] font-bold tracking-wider text-[#f5dca8]">
                     {conf.title}
                   </span>
-                  <span className="font-cinzel text-[8px] font-bold text-[#52f29c]">
+                  <span className="font-cinzel text-[8px] font-bold text-[#d9b96f]">
                     ENTRY: {conf.entryFeeUsdt} USDT
                   </span>
                 </div>
@@ -176,7 +178,7 @@ export function TournamentLobbyModal({
         </div>
 
         {/* Live Status & Financial Banner */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 p-2.5 rounded-lg bg-[#020a06] border border-[#c8a668]/35 mb-3 shrink-0">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 p-2.5 rounded-lg bg-[#030812] border border-[#c8a668]/35 mb-3 shrink-0">
           <div>
             <span className="font-cinzel text-[7px] text-[#8e8a80] block">PARTICIPANTS (شرکت‌کنندگان)</span>
             <span className="font-cinzel text-[11px] font-bold text-white tabular-nums">
@@ -185,7 +187,7 @@ export function TournamentLobbyModal({
           </div>
           <div>
             <span className="font-cinzel text-[7px] text-[#8e8a80] block">PRIZE POOL (۸۵٪ جوایز)</span>
-            <span className="font-cinzel text-[11px] font-bold text-[#52f29c] tabular-nums">
+            <span className="font-cinzel text-[11px] font-bold text-[#d9b96f] tabular-nums">
               {currentTourn.prizePoolUsdt.toFixed(2)} USDT
             </span>
           </div>
@@ -198,13 +200,13 @@ export function TournamentLobbyModal({
           <div>
             <span className="font-cinzel text-[7px] text-[#8e8a80] block">YOUR USDT BALANCE</span>
             <div className="flex items-center justify-between">
-              <span className="font-cinzel text-[11px] font-bold text-[#ffe4a0] tabular-nums">
+              <span className="font-cinzel text-[11px] font-bold text-[#f5dfaa] tabular-nums">
                 {userUsdtBalance.toFixed(2)} USDT
               </span>
               <button
                 type="button"
                 onClick={onOpenWallet}
-                className="text-[7.5px] text-[#52f29c] underline font-cinzel hover:text-white"
+                className="text-[7.5px] text-[#d9b96f] underline font-cinzel hover:text-white"
               >
                 + DEPOSIT
               </button>
@@ -213,7 +215,7 @@ export function TournamentLobbyModal({
         </div>
 
         {/* Registration CTA & Action Bar */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-2 p-2.5 rounded-lg bg-[#0b291d]/60 border border-[#52f29c]/40 mb-3 shrink-0">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-2 p-2.5 rounded-lg bg-[#172840]/60 border border-[#d9b96f]/40 mb-3 shrink-0">
           <div className="text-left w-full sm:w-auto">
             <span className="font-cinzel text-[9px] font-bold text-[#f5dca8] block">
               {isUserRegistered ? '✓ YOU ARE REGISTERED IN THIS TOURNAMENT' : 'JOIN OFFICIAL TOURNAMENT'}
@@ -231,7 +233,7 @@ export function TournamentLobbyModal({
                 type="button"
                 disabled={currentTourn.status !== 'registering'}
                 onClick={() => onUnregisterTournament(currentTourn.id)}
-                className="px-3 py-1 rounded bg-[#2e120d] hover:bg-[#4a1c14] border border-[#f87171]/50 font-cinzel text-[8px] font-bold text-[#fca5a5] cursor-pointer transition-colors"
+                className="px-3 py-1 rounded bg-[#2e120d] hover:bg-[#4a1c14] border border-[#c89c65]/50 font-cinzel text-[8px] font-bold text-[#e4cfa8] cursor-pointer transition-colors"
               >
                 CANCEL &amp; REFUND ({entryFee} USDT)
               </button>
@@ -286,10 +288,10 @@ export function TournamentLobbyModal({
                 <span>TOP 8 ADVANCE TO SINGLE ELIMINATION FINALS</span>
                 <span>BUCHHOLZ TIEBREAK APPLIED</span>
               </div>
-              <div className="rounded-lg border border-[#c8a668]/30 overflow-hidden bg-[#020a06]/80">
+              <div className="rounded-lg border border-[#c8a668]/30 overflow-hidden bg-[#030812]/80">
                 <table className="w-full text-left border-collapse text-[8.5px]">
                   <thead>
-                    <tr className="border-b border-[#c8a668]/30 bg-[#061911] font-cinzel text-[#c8a668]">
+                    <tr className="border-b border-[#c8a668]/30 bg-[#091426] font-cinzel text-[#c8a668]">
                       <th className="p-2">#</th>
                       <th className="p-2">PLAYER</th>
                       <th className="p-2">ELO</th>
@@ -308,19 +310,19 @@ export function TournamentLobbyModal({
                           key={p.userId}
                           className={`border-b border-white/5 transition-colors ${
                             isMe
-                              ? 'bg-[#0f2e20] text-white font-bold'
+                              ? 'bg-[#1a2a43] text-white font-bold'
                               : isTop8
-                              ? 'hover:bg-[#061911]/60'
+                              ? 'hover:bg-[#091426]/60'
                               : 'opacity-70'
                           }`}
                         >
                           <td className="p-2 font-cinzel tabular-nums">{idx + 1}</td>
                           <td className="p-2 font-medium">
                             <span className="text-[#f5dca8]">{p.username}</span>
-                            {isMe && <span className="ml-1 text-[7px] text-[#52f29c]">(YOU)</span>}
+                            {isMe && <span className="ml-1 text-[7px] text-[#d9b96f]">(YOU)</span>}
                           </td>
                           <td className="p-2 font-cinzel tabular-nums text-[#a39e93]">{p.rating}</td>
-                          <td className="p-2 font-cinzel font-bold text-[#52f29c] tabular-nums">
+                          <td className="p-2 font-cinzel font-bold text-[#d9b96f] tabular-nums">
                             {p.swissPoints}W
                           </td>
                           <td className="p-2 font-cinzel tabular-nums text-[#e2c285]">{p.buchholz}</td>
@@ -330,7 +332,7 @@ export function TournamentLobbyModal({
                           </td>
                           <td className="p-2 font-cinzel">
                             {isTop8 ? (
-                              <span className="px-1.5 py-0.5 rounded bg-[#0b291d] border border-[#52f29c]/40 text-[#52f29c] text-[7px]">
+                              <span className="px-1.5 py-0.5 rounded bg-[#172840] border border-[#d9b96f]/40 text-[#d9b96f] text-[7px]">
                                 TOP 8 QUALIFIED
                               </span>
                             ) : (
@@ -359,7 +361,7 @@ export function TournamentLobbyModal({
                     className={`px-3 py-1 rounded font-cinzel text-[8px] font-bold cursor-pointer transition-colors ${
                       selectedRound === rnd
                         ? 'bg-[#c8a668] text-[#140e05]'
-                        : 'bg-[#061911] text-[#a39e93] hover:text-white border border-[#c8a668]/30'
+                        : 'bg-[#091426] text-[#a39e93] hover:text-white border border-[#c8a668]/30'
                     }`}
                   >
                     ROUND {rnd} (MATCH TO 5)
@@ -377,19 +379,19 @@ export function TournamentLobbyModal({
                   matchesForSelectedRound.map((m) => (
                     <div
                       key={m.matchId}
-                      className="p-2.5 rounded-lg border border-[#c8a668]/30 bg-[#04120c] flex flex-col justify-between"
+                      className="p-2.5 rounded-lg border border-[#c8a668]/30 bg-[#070f1c] flex flex-col justify-between"
                     >
                       <div className="flex items-center justify-between text-[7.5px] text-[#8e8a80] font-cinzel mb-1.5">
                         <span>MATCH #{m.roundIndex} • TO {m.targetPoints} PTS</span>
                         {m.isCrawfordGame && (
-                          <span className="text-[#e89080] font-bold">CRAWFORD GAME</span>
+                          <span className="text-[#e4cfa8] font-bold">CRAWFORD GAME</span>
                         )}
                         <span
                           className={`font-bold ${
                             m.status === 'completed'
-                              ? 'text-[#52f29c]'
+                              ? 'text-[#d9b96f]'
                               : m.status === 'in_progress'
-                              ? 'text-[#ffe4a0]'
+                              ? 'text-[#f5dfaa]'
                               : 'text-[#8e8a80]'
                           }`}
                         >
@@ -402,13 +404,13 @@ export function TournamentLobbyModal({
                           <span
                             className={
                               m.winnerUserId === m.player1.userId
-                                ? 'font-bold text-[#52f29c]'
+                                ? 'font-bold text-[#d9b96f]'
                                 : 'text-[#f5dca8]'
                             }
                           >
                             {m.player1.username}
                           </span>
-                          <span className="font-cinzel font-bold text-[#ffe4a0] tabular-nums">
+                          <span className="font-cinzel font-bold text-[#f5dfaa] tabular-nums">
                             {m.player1.score}
                           </span>
                         </div>
@@ -416,13 +418,13 @@ export function TournamentLobbyModal({
                           <span
                             className={
                               m.winnerUserId === m.player2.userId
-                                ? 'font-bold text-[#52f29c]'
+                                ? 'font-bold text-[#d9b96f]'
                                 : 'text-[#f5dca8]'
                             }
                           >
                             {m.player2.username}
                           </span>
-                          <span className="font-cinzel font-bold text-[#ffe4a0] tabular-nums">
+                          <span className="font-cinzel font-bold text-[#f5dfaa] tabular-nums">
                             {m.player2.score}
                           </span>
                         </div>
@@ -435,7 +437,7 @@ export function TournamentLobbyModal({
                         <button
                           type="button"
                           onClick={() => onSpectateMatch(m)}
-                          className="px-2 py-0.5 rounded bg-[#0b291d] hover:bg-[#124230] border border-[#52f29c]/40 font-cinzel text-[7px] text-[#52f29c] font-bold cursor-pointer transition-colors"
+                          className="px-2 py-0.5 rounded bg-[#172840] hover:bg-[#124230] border border-[#d9b96f]/40 font-cinzel text-[7px] text-[#d9b96f] font-bold cursor-pointer transition-colors"
                         >
                           SPECTATE (تماشا)
                         </button>
@@ -450,7 +452,7 @@ export function TournamentLobbyModal({
           {/* TAB 3: KNOCKOUT BRACKET */}
           {activeTab === 'bracket' && (
             <div className="space-y-3">
-              <div className="p-2 rounded bg-[#061911] border border-[#c8a668]/30 flex items-center justify-between text-[8px] font-cinzel">
+              <div className="p-2 rounded bg-[#091426] border border-[#c8a668]/30 flex items-center justify-between text-[8px] font-cinzel">
                 <span>QUARTERFINALS: TO 7 PTS</span>
                 <span>SEMIFINALS: TO 9 PTS</span>
                 <span className="text-[#f5dca8] font-bold">FINALS: TO 11 PTS</span>
@@ -466,15 +468,15 @@ export function TournamentLobbyModal({
                   {(currentTourn.bracket?.quarters || [1, 2, 3, 4]).map((q: any, i: number) => (
                     <div
                       key={i}
-                      className="p-2 rounded bg-[#04120c] border border-[#c8a668]/25 text-[8px] space-y-1"
+                      className="p-2 rounded bg-[#070f1c] border border-[#c8a668]/25 text-[8px] space-y-1"
                     >
                       <div className="flex items-center justify-between">
                         <span className="truncate max-w-[80px]">{q.player1?.username || `Seed ${i + 1}`}</span>
-                        <span className="font-cinzel font-bold text-[#52f29c]">{q.player1?.score ?? 0}</span>
+                        <span className="font-cinzel font-bold text-[#d9b96f]">{q.player1?.score ?? 0}</span>
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="truncate max-w-[80px]">{q.player2?.username || `Seed ${8 - i}`}</span>
-                        <span className="font-cinzel font-bold text-[#52f29c]">{q.player2?.score ?? 0}</span>
+                        <span className="font-cinzel font-bold text-[#d9b96f]">{q.player2?.score ?? 0}</span>
                       </div>
                     </div>
                   ))}
@@ -488,15 +490,15 @@ export function TournamentLobbyModal({
                   {(currentTourn.bracket?.semis || [1, 2]).map((s: any, i: number) => (
                     <div
                       key={i}
-                      className="p-2.5 rounded bg-[#04120c] border border-[#c8a668]/35 text-[8.5px] space-y-1.5 my-3"
+                      className="p-2.5 rounded bg-[#070f1c] border border-[#c8a668]/35 text-[8.5px] space-y-1.5 my-3"
                     >
                       <div className="flex items-center justify-between">
                         <span className="truncate max-w-[90px]">{s.player1?.username || `Winner QF${i * 2 + 1}`}</span>
-                        <span className="font-cinzel font-bold text-[#52f29c]">{s.player1?.score ?? 0}</span>
+                        <span className="font-cinzel font-bold text-[#d9b96f]">{s.player1?.score ?? 0}</span>
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="truncate max-w-[90px]">{s.player2?.username || `Winner QF${i * 2 + 2}`}</span>
-                        <span className="font-cinzel font-bold text-[#52f29c]">{s.player2?.score ?? 0}</span>
+                        <span className="font-cinzel font-bold text-[#d9b96f]">{s.player2?.score ?? 0}</span>
                       </div>
                     </div>
                   ))}
@@ -504,15 +506,15 @@ export function TournamentLobbyModal({
 
                 {/* Finals (1 match) */}
                 <div className="space-y-2">
-                  <span className="font-cinzel text-[7.5px] font-bold text-[#ffe4a0] block">
+                  <span className="font-cinzel text-[7.5px] font-bold text-[#f5dfaa] block">
                     CHAMPIONSHIP FINAL (فینال)
                   </span>
-                  <div className="p-3 rounded-lg bg-gradient-to-b from-[#0f2e20] to-[#04120c] border-2 border-[#f5dca8] text-[9px] space-y-2 my-5 shadow-lg">
+                  <div className="p-3 rounded-lg bg-gradient-to-b from-[#1a2a43] to-[#070f1c] border-2 border-[#f5dca8] text-[9px] space-y-2 my-5 shadow-lg">
                     <div className="flex items-center justify-between">
                       <span className="font-bold text-[#f5dca8]">
                         {currentTourn.bracket?.final?.player1?.username || 'Finalist 1'}
                       </span>
-                      <span className="font-cinzel font-bold text-[#52f29c] text-xs">
+                      <span className="font-cinzel font-bold text-[#d9b96f] text-xs">
                         {currentTourn.bracket?.final?.player1?.score ?? 0}
                       </span>
                     </div>
@@ -520,11 +522,11 @@ export function TournamentLobbyModal({
                       <span className="font-bold text-[#f5dca8]">
                         {currentTourn.bracket?.final?.player2?.username || 'Finalist 2'}
                       </span>
-                      <span className="font-cinzel font-bold text-[#52f29c] text-xs">
+                      <span className="font-cinzel font-bold text-[#d9b96f] text-xs">
                         {currentTourn.bracket?.final?.player2?.score ?? 0}
                       </span>
                     </div>
-                    <div className="pt-2 border-t border-[#f5dca8]/30 flex items-center justify-between text-[7.5px] text-[#52f29c] font-cinzel font-bold">
+                    <div className="pt-2 border-t border-[#f5dca8]/30 flex items-center justify-between text-[7.5px] text-[#d9b96f] font-cinzel font-bold">
                       <span>CHAMPION: 40% USDT</span>
                       <span>RUNNER-UP: 22%</span>
                     </div>
@@ -536,7 +538,7 @@ export function TournamentLobbyModal({
 
           {/* TAB 4: RULES & PROVABLY FAIR */}
           {activeTab === 'rules' && (
-            <div className="space-y-2.5 text-[8.5px] text-[#a39e93] font-cormorant leading-relaxed p-2 rounded-lg bg-[#020a06] border border-[#c8a668]/30">
+            <div className="space-y-2.5 text-[8.5px] text-[#a39e93] font-cormorant leading-relaxed p-2 rounded-lg bg-[#030812] border border-[#c8a668]/30">
               <h4 className="font-cinzel text-[9.5px] text-[#f5dca8] font-bold">
                 قوانین رسمی و ساختار مالی تورنمنت‌های سوئیسی رویال
               </h4>
