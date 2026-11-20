@@ -56,11 +56,11 @@ export function OnlineMatchmakingModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/85 backdrop-blur-sm animate-fade-in">
+    <div className="fixed inset-0 z-50 flex items-stretch justify-center p-0 bg-[#020611]/90 sm:items-center sm:p-4 backdrop-blur-sm animate-fade-in">
       <img src={palaceNightStageBg} alt="" aria-hidden="true" className="pointer-events-none absolute inset-0 h-full w-full object-cover object-center opacity-35" />
       <div className="pointer-events-none absolute inset-0 bg-[#020611]/90" />
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_35%,rgba(203,161,75,.18),transparent_55%)]" />
-      <div className="relative w-full max-w-[min(94vw,560px)] rounded-[26px] border border-[#d7b66d]/55 bg-gradient-to-b from-[#101b2d]/98 via-[#080f1c]/98 to-[#030812]/98 shadow-[0_24px_90px_rgba(0,0,0,.72),inset_0_1px_0_rgba(255,225,160,.14)] backdrop-blur-2xl p-5 shadow-2xl text-center text-[#e8dfd0]">
+      <div className="relative flex h-[100dvh] max-h-[100dvh] w-full max-w-none flex-col rounded-none border-0 border-[#d7b66d]/55 bg-gradient-to-b from-[#101b2d]/98 via-[#080f1c]/98 to-[#030812]/98 p-4 text-[#e8dfd0] shadow-[0_24px_90px_rgba(0,0,0,.72),inset_0_1px_0_rgba(255,225,160,.14)] backdrop-blur-2xl overflow-hidden sm:h-[min(94dvh,920px)] sm:max-h-[94dvh] sm:max-w-[min(96vw,560px)] sm:rounded-[26px] sm:border sm:p-5">>
         {/* Header */}
         <div className="flex items-center justify-center gap-2 mb-2">
           <RoyalCrownIcon className="w-5 h-4 text-[#c8a668]" />
