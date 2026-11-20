@@ -21,11 +21,11 @@ export function ThreeDCardCarousel({
 }: ThreeDCardCarouselProps) {
   const [activeIndex, setActiveIndex] = useState(2);
   const cards = [
-    { id: 'practice', title: 'practice', sub: 'practiceSub', icon: '♟', image: cardPracticeSapphireImg, action: onOpenPractice, tone: 'blue' },
-    { id: 'tournaments', title: 'tournaments', sub: 'tournamentsSub', icon: '♜', image: cardTournamentsSilverImg, action: onOpenTournaments, tone: 'silver' },
-    { id: 'play', title: 'play', sub: 'playSub', icon: '♟', image: cardPlayGoldImg, action: onPlayOneOnOne, tone: 'gold' },
-    { id: 'friends', title: 'friends', sub: 'friendsSub', icon: '♟', image: cardFriendsEmeraldImg, action: onOpenFriends, tone: 'green' },
-    { id: 'special', title: 'special', sub: 'specialSub', icon: '★', image: cardSpecialRubyImg, action: onOpenVariants, tone: 'red' },
+    { id: 'practice', title: 'practice', sub: 'practiceSub', icon: 'practice', image: cardPracticeSapphireImg, action: onOpenPractice, tone: 'blue' },
+    { id: 'tournaments', title: 'tournaments', sub: 'tournamentsSub', icon: 'tournament', image: cardTournamentsSilverImg, action: onOpenTournaments, tone: 'silver' },
+    { id: 'play', title: 'play', sub: 'playSub', icon: 'play', image: cardPlayGoldImg, action: onPlayOneOnOne, tone: 'gold' },
+    { id: 'friends', title: 'friends', sub: 'friendsSub', icon: 'friends', image: cardFriendsEmeraldImg, action: onOpenFriends, tone: 'green' },
+    { id: 'special', title: 'special', sub: 'specialSub', icon: 'special', image: cardSpecialRubyImg, action: onOpenVariants, tone: 'red' },
   ];
 
   const move = (next: number) => {
@@ -38,7 +38,7 @@ export function ThreeDCardCarousel({
 
   return (
     <section
-      className="relative flex min-h-0 w-full flex-1 flex-col items-center justify-center overflow-hidden px-1 pb-3 sm:pb-0"
+      className="relative flex min-h-0 w-full flex-1 flex-col items-center justify-center overflow-hidden px-1 pb-0"
       aria-label="Game modes"
       onTouchStart={(e) => { touchStartX = e.touches[0]?.clientX ?? 0; }}
       onTouchEnd={(e) => {
@@ -69,7 +69,7 @@ export function ThreeDCardCarousel({
                 triggerTelegramHaptic('heavy');
                 card.action();
               }}
-              className="absolute left-1/2 top-1/2 flex w-[min(45vw,238px)] max-h-[min(45vh,365px)] aspect-[.72] -translate-y-1/2 flex-col overflow-hidden rounded-[20px] border bg-[#090d13] text-white transition-all duration-500 ease-out disabled:cursor-default sm:w-[min(25vw,270px)] sm:rounded-[24px]"
+              className="absolute left-1/2 top-[51%] flex w-[min(45vw,238px)] max-h-[min(45vh,365px)] aspect-[.72] -translate-y-1/2 flex-col overflow-hidden rounded-[20px] border bg-[#090d13] text-white transition-all duration-500 ease-out disabled:cursor-default sm:w-[min(25vw,270px)] sm:rounded-[24px]"
               style={{
                 opacity: visible ? (center ? 1 : Math.max(.62, 1 - Math.abs(diff) * .14)) : 0,
                 pointerEvents: center ? 'auto' : 'none',
@@ -83,6 +83,16 @@ export function ThreeDCardCarousel({
               <div className="absolute inset-0 bg-gradient-to-b from-white/10 via-transparent to-black/20" />
               <div className="absolute inset-[5px] rounded-[15px] border border-[#ffe5a0]/65 shadow-[inset_0_0_24px_rgba(255,210,115,.12)] sm:inset-2 sm:rounded-[19px]" />
               <div className="pointer-events-none absolute inset-x-[12%] top-0 h-px bg-gradient-to-r from-transparent via-[#ffe7a5]/90 to-transparent" />
+              <div className={`pointer-events-none absolute left-1/2 top-[9%] z-20 flex h-12 w-12 -translate-x-1/2 items-center justify-center rounded-full border border-[#f5d58b]/90 bg-[radial-gradient(circle_at_35%_25%,rgba(255,240,190,.3),rgba(5,10,18,.94)_65%)] shadow-[0_0_0_3px_rgba(12,17,25,.72),0_0_18px_rgba(255,194,74,.42),inset_0_0_12px_rgba(255,217,135,.22)] sm:h-14 sm:w-14 ${center ? 'opacity-100' : 'opacity-85'}`}>
+                <svg viewBox="0 0 48 48" className="h-7 w-7 text-[#ffe4a0] drop-shadow-[0_0_5px_rgba(255,190,70,.8)] sm:h-8 sm:w-8" fill="none" stroke="currentColor" strokeWidth="1.65" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  {card.id === 'play' && <><path d="M10 25 24 8l14 17-14 15L10 25Z"/><path d="m19 25 5-7 5 7-5 7-5-7Z"/><path d="M24 4v4M7 25h4M37 25h4"/></>}
+                  {card.id === 'tournaments' && <><path d="M16 9h16v8c0 7-3.5 11-8 11s-8-4-8-11V9Z"/><path d="M16 13H9v4c0 5 3 8 8 8M32 13h7v4c0 5-3 8-8 8M24 28v8M17 40h14M20 36h8"/><path d="m24 12 1.8 3.7 4.1.6-3 2.9.7 4.1-3.6-1.9-3.6 1.9.7-4.1-3-2.9 4.1-.6L24 12Z"/></>}
+                  {card.id === 'practice' && <><path d="M24 7 37 13v10c0 9-5.5 14-13 18-7.5-4-13-9-13-18V13L24 7Z"/><path d="m17 24 5 5 10-11"/><path d="M24 3v4"/></>}
+                  {card.id === 'friends' && <><circle cx="18" cy="17" r="6"/><circle cx="32" cy="19" r="5"/><path d="M6 38c1-7 5-11 12-11s11 4 12 11M28 29c7-2 12 2 14 8"/><path d="m24 10 2-4 2 4"/></>}
+                  {card.id === 'special' && <><path d="m24 5 5.2 11 12 1.7-8.7 8.4 2.1 11.9L24 32.4l-10.6 5.6 2.1-11.9-8.7-8.4 12-1.7L24 5Z"/><circle cx="24" cy="23" r="4"/></>}
+                </svg>
+                <span className="absolute inset-[3px] rounded-full border border-[#ffe9b2]/30" />
+              </div>
               <div className={`pointer-events-none absolute inset-0 transition-opacity duration-500 ${center ? 'opacity-100' : 'opacity-35'} bg-[radial-gradient(ellipse_at_50%_0%,rgba(255,213,120,.22),transparent_62%)]`} />
             </button>
           );
