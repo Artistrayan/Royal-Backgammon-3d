@@ -48,7 +48,7 @@ export function ThreeDCardCarousel({
       }}
     >
       <div className="pointer-events-none absolute bottom-[8%] h-10 w-[82%] rounded-[50%] border border-[#b88632]/80 bg-[#06111c]/70 shadow-[0_0_32px_rgba(0,145,255,.25),inset_0_0_25px_rgba(255,190,65,.15)]" />
-      <div className="relative z-10 flex min-h-0 w-full flex-1 max-w-[940px] items-center justify-center [perspective:1200px] translate-y-[3%] sm:translate-y-0">
+      <div className="relative z-10 flex min-h-0 w-full flex-1 max-w-[940px] items-center justify-center [perspective:1200px] translate-y-[clamp(120px,14dvh,220px)] sm:translate-y-0">
         {cards.map((card, index) => {
           const diff = index - activeIndex;
           const center = diff === 0;
@@ -59,7 +59,6 @@ export function ThreeDCardCarousel({
               type="button"
               aria-label={t(card.title)}
               onClick={() => {
-                if (!center) { move(index); return; }
                 royalSound.playOptionClickSound();
                 triggerTelegramHaptic('heavy');
                 card.action();
@@ -81,7 +80,7 @@ export function ThreeDCardCarousel({
                 <span className="text-2xl drop-shadow sm:text-3xl">{card.icon}</span>
                 <span className="font-cinzel text-lg font-black uppercase tracking-wide drop-shadow-[0_2px_5px_black] sm:text-2xl">{t(card.title)}</span>
                 <span className="text-[10px] font-semibold text-white/90 sm:text-sm">{t(card.sub)}</span>
-                {center && <span className="mt-1 rounded-full border border-[#ffe18a] bg-gradient-to-b from-[#9a641c]/95 to-[#1a1008]/95 px-5 py-1 text-xs font-black uppercase tracking-[.18em] text-[#ffe6a0] shadow-[0_0_18px_rgba(255,190,55,.35)] sm:px-7 sm:py-1.5 sm:text-sm">Play</span>}
+
               </div>
             </button>
           );
@@ -91,11 +90,6 @@ export function ThreeDCardCarousel({
       <button type="button" aria-label="Previous game mode" onClick={() => move(activeIndex - 1)} disabled={activeIndex === 0} className="absolute left-3 top-[43%] z-30 flex h-11 w-11 items-center justify-center rounded-full border border-[#e4bb55]/70 bg-black/75 text-2xl text-[#ffdb69] shadow-[0_0_18px_rgba(0,0,0,.7)] disabled:opacity-25 sm:left-6 sm:h-14 sm:w-14">‹</button>
       <button type="button" aria-label="Next game mode" onClick={() => move(activeIndex + 1)} disabled={activeIndex === cards.length - 1} className="absolute right-3 top-[43%] z-30 flex h-11 w-11 items-center justify-center rounded-full border border-[#e4bb55]/70 bg-black/75 text-2xl text-[#ffdb69] shadow-[0_0_18px_rgba(0,0,0,.7)] disabled:opacity-25 sm:right-6 sm:h-14 sm:w-14">›</button>
 
-      <button type="button" onClick={() => { royalSound.playOptionClickSound(); triggerTelegramHaptic('heavy'); activeCard.action(); }} className="absolute bottom-1 z-40 flex min-w-[190px] max-w-[82%] items-center justify-between gap-4 rounded-full border border-[#f4d37c] bg-gradient-to-r from-[#271809] via-[#6d4a1e] to-[#17100a] px-5 py-2.5 text-[#fff0bd] shadow-[0_0_25px_rgba(255,183,46,.32)] sm:bottom-2 sm:min-w-[280px] sm:px-7 sm:py-3">
-        <span className="text-lg text-[#ffe5a0]">{activeCard.icon}</span>
-        <span className="min-w-0 text-center"><span className="block font-cinzel text-xs font-black uppercase tracking-[.18em] sm:text-base">{t(activeCard.title)}</span><span className="block text-[10px] text-white/75 sm:text-xs">{t(activeCard.sub)}</span></span>
-        <span className="rounded-full border border-[#ffe5a0]/65 px-3 py-1 text-[10px] uppercase sm:text-xs">Play</span>
-      </button>
     </section>
   );
 }
