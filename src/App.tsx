@@ -2758,6 +2758,8 @@ export default function App() {
     </>
   );
 
+  // Lobby card destinations: PLAY -> live quick matchmaking; TOURNAMENT -> tournament lobby;
+  // PRACTICE -> AI difficulty; FRIENDS -> friend search/challenges; SPECIAL -> game variants.
   // 1. SOVEREIGN FULL-SCREEN HOME SCREEN (EXACTLY AS IN IMAGE 2)
   if (isHomeScreen) {
     return (
