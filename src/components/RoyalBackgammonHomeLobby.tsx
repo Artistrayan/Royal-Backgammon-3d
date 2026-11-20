@@ -102,7 +102,7 @@ export function RoyalBackgammonHomeLobby({
         </div>
       </header>
 
-      <main className="relative z-10 flex min-h-0 flex-1 flex-col" style={isRotatedLayout ? { transform: 'translateX(-80px)' } : undefined}>
+      <main className="relative z-10 flex min-h-0 flex-1 flex-col">
         <div className="flex min-h-0 flex-1 items-stretch justify-center overflow-hidden">
           <ThreeDCardCarousel onPlayOneOnOne={onPlayOneOnOne} onOpenTournaments={onOpenTournaments} onOpenPractice={onOpenPractice} onOpenFriends={onOpenFriends} onOpenVariants={onOpenVariants} />
         </div>
