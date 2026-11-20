@@ -27,7 +27,9 @@ export function GameVariantsModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/85 backdrop-blur-md animate-fade-in">
-      <div className="relative w-full max-w-[620px] max-h-[92vh] rounded-xl border border-[#c8a668]/70 bg-gradient-to-b from-[#061911] via-[#04120c] to-[#020a06] p-4 sm:p-5 shadow-2xl flex flex-col text-[#e8dfd0] overflow-hidden">
+      <div className="pointer-events-none absolute inset-0 bg-[#020611]/90" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_35%,rgba(203,161,75,.18),transparent_55%)]" />
+      <div className="relative w-full max-w-[min(94vw,780px)] max-h-[92vh] rounded-[26px] border border-[#d7b66d]/55 bg-gradient-to-b from-[#101b2d]/98 via-[#080f1c]/98 to-[#030812]/98 shadow-[0_24px_90px_rgba(0,0,0,.72),inset_0_1px_0_rgba(255,225,160,.14)] backdrop-blur-2xl p-4 sm:p-5 shadow-2xl flex flex-col text-[#e8dfd0] overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-[#c8a668]/30 pb-3 mb-3 shrink-0">
           <div>
@@ -61,8 +63,8 @@ export function GameVariantsModal({
                 }}
                 className={`p-3.5 rounded-lg border text-left transition-all cursor-pointer ${
                   isSelected
-                    ? 'bg-[#0f2e20] border-[#f5dca8] shadow-lg ring-1 ring-[#f5dca8]'
-                    : 'bg-[#04120c] border-[#c8a668]/30 hover:border-[#c8a668]/60 hover:bg-[#061911]'
+                    ? 'bg-[#1a2a43] border-[#f5dca8] shadow-lg ring-1 ring-[#f5dca8]'
+                    : 'bg-[#070f1c] border-[#c8a668]/30 hover:border-[#c8a668]/60 hover:bg-[#091426]'
                 }`}
               >
                 <div className="flex items-center justify-between mb-1.5">
@@ -71,7 +73,7 @@ export function GameVariantsModal({
                       {v.name}
                     </span>
                     {isSelected && (
-                      <span className="px-1.5 py-0.5 rounded bg-[#52f29c]/20 border border-[#52f29c]/60 font-cinzel text-[7px] text-[#52f29c] font-bold">
+                      <span className="px-1.5 py-0.5 rounded bg-[#d9b96f]/20 border border-[#d9b96f]/60 font-cinzel text-[7px] text-[#d9b96f] font-bold">
                         ACTIVE VARIANT
                       </span>
                     )}
@@ -81,7 +83,7 @@ export function GameVariantsModal({
                   </span>
                 </div>
 
-                <div className="text-[9.5px] font-cormorant text-[#ffe4a0] mb-2 font-medium">
+                <div className="text-[9.5px] font-cormorant text-[#f5dfaa] mb-2 font-medium">
                   {v.persianName} • {v.tagline}
                 </div>
 
@@ -94,8 +96,8 @@ export function GameVariantsModal({
                   <span
                     className={`px-1.5 py-0.5 rounded border ${
                       v.allowHitting
-                        ? 'bg-[#0b291d] border-[#52f29c]/40 text-[#52f29c]'
-                        : 'bg-[#2b100d] border-[#f87171]/40 text-[#fca5a5]'
+                        ? 'bg-[#172840] border-[#d9b96f]/40 text-[#d9b96f]'
+                        : 'bg-[#171b25] border-[#c89c65]/40 text-[#e4cfa8]'
                     }`}
                   >
                     {v.allowHitting ? '✓ HITTING ALLOWED (زدن تک‌مهره)' : '✕ NO HITTING (بدون زدن)'}
@@ -104,7 +106,7 @@ export function GameVariantsModal({
                   <span
                     className={`px-1.5 py-0.5 rounded border ${
                       v.allowDoublingCube
-                        ? 'bg-[#0b291d] border-[#52f29c]/40 text-[#52f29c]'
+                        ? 'bg-[#172840] border-[#d9b96f]/40 text-[#d9b96f]'
                         : 'bg-[#181a19] border-white/20 text-[#8e8a80]'
                     }`}
                   >
