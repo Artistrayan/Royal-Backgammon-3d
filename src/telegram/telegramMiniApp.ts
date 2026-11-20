@@ -63,7 +63,8 @@ export interface TelegramWebAppInstance {
   close: () => void;
   requestFullscreen?: () => void;
   exitFullscreen?: () => void;
-  lockOrientation?: (orientation?: string) => void;
+  lockOrientation?: () => void;
+  unlockOrientation?: () => void;
   disableVerticalSwipes?: () => void;
   setHeaderColor?: (color: string) => void;
   setBackgroundColor?: (color: string) => void;
@@ -118,7 +119,6 @@ export function initTelegramMiniApp(): {
     tg.setBackgroundColor?.('#020705');
     if (!tg.isVersionAtLeast || tg.isVersionAtLeast('7.7')) {
       tg.disableVerticalSwipes?.();
-      tg.lockOrientation?.('landscape');
     }
   } catch {
     // Ignore unsupported methods on older Telegram clients
