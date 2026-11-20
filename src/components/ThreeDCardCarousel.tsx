@@ -94,6 +94,7 @@ export function ThreeDCardCarousel({
                 <span className="absolute inset-[3px] rounded-full border border-[#ffe9b2]/30" />
               </div>
               <span className={`pointer-events-none absolute bottom-[5%] left-1/2 z-20 -translate-x-1/2 whitespace-nowrap text-[10px] font-semibold tracking-[0.16em] text-[#ffe6ad] drop-shadow-[0_0_6px_rgba(255,190,70,.75)] sm:text-xs ${center ? 'opacity-100' : 'opacity-85'}`}>{t(card.title)}</span>
+              <span className="pointer-events-none absolute bottom-[2.5%] left-1/2 z-20 -translate-x-1/2 whitespace-nowrap text-[10px] font-semibold tracking-[0.16em] text-[#ffe3a0] drop-shadow-[0_0_6px_rgba(255,190,70,.8)] sm:text-xs">{t(card.title)}</span>
               <div className={`pointer-events-none absolute inset-0 transition-opacity duration-500 ${center ? 'opacity-100' : 'opacity-35'} bg-[radial-gradient(ellipse_at_50%_0%,rgba(255,213,120,.22),transparent_62%)]`} />
             </button>
           );
