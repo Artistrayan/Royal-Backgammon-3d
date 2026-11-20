@@ -104,6 +104,13 @@ export function TelegramLoginScreen({ onLoginSuccess }: TelegramLoginScreenProps
         <img src={palaceNightStageBg} alt="Royal palace at night" className="h-full w-full object-cover object-center" />
         <div className="absolute inset-0 bg-gradient-to-b from-[#020713]/45 via-[#020713]/15 to-black/90" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_54%,rgba(0,125,255,.22),transparent_48%)]" />
+        <div className="royal-login-aura absolute left-1/2 top-[47%] h-[min(78vw,520px)] w-[min(78vw,520px)] -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#e6bd65]/20" />
+        <div className="royal-login-aura royal-login-aura-delayed absolute left-1/2 top-[47%] h-[min(92vw,620px)] w-[min(92vw,620px)] -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#4aa8e8]/15" />
+        <div className="royal-login-light absolute inset-x-[-30%] top-[42%] h-px bg-gradient-to-r from-transparent via-[#ffe4a0]/65 to-transparent" />
+        <span className="royal-login-token royal-login-token-left absolute left-[9%] top-[34%]" aria-hidden="true" />
+        <span className="royal-login-token royal-login-token-right absolute right-[10%] top-[62%]" aria-hidden="true" />
+        <span className="royal-login-spark royal-login-spark-one absolute left-[18%] top-[19%]" aria-hidden="true" />
+        <span className="royal-login-spark royal-login-spark-two absolute right-[17%] top-[27%]" aria-hidden="true" />
       </div>
 
       <header className="relative z-30 flex w-full items-center justify-end px-3 pt-3 sm:px-6 sm:pt-5">
@@ -132,6 +139,20 @@ export function TelegramLoginScreen({ onLoginSuccess }: TelegramLoginScreenProps
         </div>
       </main>
 
+      <style>{`
+        .royal-login-aura { box-shadow: 0 0 45px rgba(225,174,79,.08), inset 0 0 45px rgba(56,151,224,.07); animation: royal-aura-turn 24s linear infinite; }
+        .royal-login-aura-delayed { border-style: dashed; animation-duration: 34s; animation-direction: reverse; }
+        .royal-login-light { transform: rotate(-24deg); filter: blur(2px); animation: royal-light-pass 7s ease-in-out infinite; }
+        .royal-login-token { width: 27px; height: 27px; border-radius: 50%; border: 2px solid rgba(255,220,145,.78); background: radial-gradient(circle at 32% 25%, #fff0c0, #bd842e 42%, #201407 76%); box-shadow: 0 0 18px rgba(255,190,78,.3), inset 0 0 0 3px rgba(20,13,5,.75); animation: royal-token-float 5s ease-in-out infinite; }
+        .royal-login-token-right { width: 20px; height: 20px; animation-delay: -2.3s; }
+        .royal-login-spark { width: 5px; height: 5px; border-radius: 50%; background: #ffe8a8; box-shadow: 0 0 12px 4px rgba(255,208,106,.55); animation: royal-spark 3s ease-in-out infinite; }
+        .royal-login-spark-two { animation-delay: -1.4s; }
+        @keyframes royal-aura-turn { to { transform: translate(-50%,-50%) rotate(360deg); } }
+        @keyframes royal-light-pass { 0%,100% { opacity: 0; translate: -12% 0; } 45%,60% { opacity: .8; } }
+        @keyframes royal-token-float { 0%,100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-17px) rotate(16deg); } }
+        @keyframes royal-spark { 0%,100% { opacity: .25; transform: scale(.65); } 50% { opacity: 1; transform: scale(1.25); } }
+        @media (prefers-reduced-motion: reduce) { .royal-login-aura, .royal-login-light, .royal-login-token, .royal-login-spark { animation: none !important; } }
+      `}</style>
       <footer className="relative z-30 flex w-full justify-center px-4 pb-[max(22px,env(safe-area-inset-bottom))] pt-2 sm:pb-8">
         <button
           type="button"
