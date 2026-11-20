@@ -52,13 +52,13 @@ export function FriendsModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-stretch justify-center p-0 bg-[#020611]/90 sm:items-center sm:p-4 backdrop-blur-sm animate-fade-in">
-      <img src={palaceNightStageBg} alt="" aria-hidden="true" className="pointer-events-none absolute inset-0 h-full w-full object-cover object-center opacity-35" />
-      <div className="pointer-events-none absolute inset-0 bg-[#020611]/90" />
+    <div className="fixed inset-0 z-50 flex items-stretch justify-center p-0 bg-[#020611]/55 sm:items-center sm:p-4 backdrop-blur-[2px] animate-fade-in">
+      <img src={palaceNightStageBg} alt="" aria-hidden="true" className="pointer-events-none absolute inset-0 h-full w-full object-cover object-center opacity-85" />
+      <div className="pointer-events-none absolute inset-0 bg-[#020611]/45" />
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_35%,rgba(203,161,75,.18),transparent_55%)]" />
-      <div className="relative flex h-[100dvh] max-h-[100dvh] w-full max-w-none flex-col rounded-none border-0 border-[#d7b66d]/55 bg-gradient-to-b from-[#101b2d]/98 via-[#080f1c]/98 to-[#030812]/98 p-4 text-[#e8dfd0] shadow-[0_24px_90px_rgba(0,0,0,.72),inset_0_1px_0_rgba(255,225,160,.14)] backdrop-blur-2xl overflow-hidden sm:h-[min(94dvh,920px)] sm:max-h-[94dvh] sm:max-w-[min(96vw,760px)] sm:rounded-[26px] sm:border sm:p-5">
+      <div className="relative flex h-[100dvh] max-h-[100dvh] w-full max-w-none flex-col rounded-none border-0 bg-[linear-gradient(180deg,rgba(8,17,31,.78),rgba(3,8,18,.58))] p-4 text-[#e8dfd0] shadow-[0_24px_90px_rgba(0,0,0,.55)] backdrop-blur-md overflow-hidden sm:h-[min(94dvh,920px)] sm:max-h-[94dvh] sm:max-w-[min(96vw,760px)] sm:rounded-[26px] sm:border sm:border-[#d7b66d]/55 sm:p-5">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-[#c8a668]/30 pb-2.5 mb-3">
+        <div className="flex items-center justify-between border-b border-[#d7b66d]/45 pb-3 mb-4">
           <div className="flex items-center gap-2">
             <RoyalCrownIcon className="w-4 h-3.5 text-[#c8a668]" />
             <div>
@@ -80,13 +80,13 @@ export function FriendsModal({
         </div>
 
         {/* Tab Buttons */}
-        <div className="grid grid-cols-3 gap-1 mb-3 bg-[#030812] p-1 rounded border border-[#c8a668]/20">
+        <div className="grid grid-cols-3 gap-1.5 mb-4 rounded-2xl border border-[#d7b66d]/40 bg-[#07101d]/80 p-1.5 shadow-[0_10px_25px_rgba(0,0,0,.35)]">
           <button
             type="button"
             onClick={() => setActiveTab('friends')}
-            className={`py-1 rounded font-cinzel text-[8.5px] font-medium tracking-wider transition-all cursor-pointer ${
+            className={`py-3 rounded-xl font-cinzel text-[9px] font-semibold tracking-[.12em] transition-all cursor-pointer ${
               activeTab === 'friends'
-                ? 'bg-[#172840] border border-[#c8a668]/50 text-[#f5dca8]'
+                ? 'bg-[linear-gradient(180deg,#806034,#302316)] border border-[#e5c77f] text-[#fff0c7] shadow-[inset_0_1px_0_rgba(255,235,190,.3),0_4px_12px_rgba(0,0,0,.35)]'
                 : 'text-[#8e8a80] hover:text-[#d0c7b6]'
             }`}
           >
@@ -95,9 +95,9 @@ export function FriendsModal({
           <button
             type="button"
             onClick={() => setActiveTab('search')}
-            className={`py-1 rounded font-cinzel text-[8.5px] font-medium tracking-wider transition-all cursor-pointer ${
+            className={`py-3 rounded-xl font-cinzel text-[9px] font-semibold tracking-[.12em] transition-all cursor-pointer ${
               activeTab === 'search'
-                ? 'bg-[#172840] border border-[#c8a668]/50 text-[#f5dca8]'
+                ? 'bg-[linear-gradient(180deg,#806034,#302316)] border border-[#e5c77f] text-[#fff0c7] shadow-[inset_0_1px_0_rgba(255,235,190,.3),0_4px_12px_rgba(0,0,0,.35)]'
                 : 'text-[#8e8a80] hover:text-[#d0c7b6]'
             }`}
           >
@@ -106,9 +106,9 @@ export function FriendsModal({
           <button
             type="button"
             onClick={() => setActiveTab('requests')}
-            className={`py-1 rounded font-cinzel text-[8.5px] font-medium tracking-wider transition-all cursor-pointer relative ${
+            className={`py-3 rounded-xl font-cinzel text-[9px] font-semibold tracking-[.12em] transition-all cursor-pointer relative ${
               activeTab === 'requests'
-                ? 'bg-[#172840] border border-[#c8a668]/50 text-[#f5dca8]'
+                ? 'bg-[linear-gradient(180deg,#806034,#302316)] border border-[#e5c77f] text-[#fff0c7] shadow-[inset_0_1px_0_rgba(255,235,190,.3),0_4px_12px_rgba(0,0,0,.35)]'
                 : 'text-[#8e8a80] hover:text-[#d0c7b6]'
             }`}
           >
@@ -132,13 +132,14 @@ export function FriendsModal({
                 <p id="friend-challenge-amount-note" className="font-cormorant text-[10px] text-[#a39e93] mt-1.5">Free matches can start now. Paid matches are not enabled until secure deposits and stake settlement are implemented.</p>
               </div>
               {friends.length === 0 ? (
-                <div className="text-center py-8">
-                  <p className="font-cinzel text-[10px] text-[#a39e93] mb-1">
-                    NO FRIENDS ADDED YET
-                  </p>
-                  <p className="font-cormorant text-[10px] text-[#78746c]">
-                    Use the "Search Players" tab to find and add real opponents by name!
-                  </p>
+                <div className="relative mx-auto mt-5 flex min-h-[300px] max-w-md flex-col items-center justify-center overflow-hidden rounded-[26px] border border-[#d7b66d]/45 bg-[radial-gradient(ellipse_at_50%_35%,rgba(205,165,88,.22),transparent_58%),linear-gradient(145deg,rgba(17,31,48,.9),rgba(4,10,20,.94))] px-6 py-8 text-center shadow-[0_22px_55px_rgba(0,0,0,.48),inset_0_1px_0_rgba(255,230,180,.15)]">
+                  <div className="absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-[#e6c77f] to-transparent" />
+                  <div className="relative mb-5 flex h-28 w-28 items-center justify-center rounded-full border border-[#d9b96f]/65 bg-[radial-gradient(circle_at_35%_25%,#78603b,#1a1b20_65%,#080d16)] shadow-[0_0_0_8px_rgba(217,185,111,.07),0_18px_34px_rgba(0,0,0,.55)]">
+                    <RoyalCrownIcon className="h-12 w-12 text-[#e4c47d] drop-shadow-[0_0_14px_rgba(230,195,120,.45)]" />
+                  </div>
+                  <h3 className="font-cinzel text-[13px] font-semibold tracking-[.18em] text-[#f5dca8]">YOUR ROYAL TABLE</h3>
+                  <p className="mt-2 max-w-[260px] font-cormorant text-[14px] leading-relaxed text-[#c5b99f]">Your friends list is waiting for its first challenger.</p>
+                  <button type="button" onClick={() => setActiveTab('search')} className="mt-6 rounded-xl border border-[#ead4a4]/80 bg-[linear-gradient(180deg,#b28a49,#65451f)] px-6 py-3 font-cinzel text-[9px] font-bold tracking-[.16em] text-[#170f06] shadow-[0_8px_20px_rgba(0,0,0,.4)] transition hover:brightness-110 active:scale-[.98]">FIND PLAYERS</button>
                 </div>
               ) : (
                 friends.map((f) => (
