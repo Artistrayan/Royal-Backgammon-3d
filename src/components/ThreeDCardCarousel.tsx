@@ -69,14 +69,15 @@ export function ThreeDCardCarousel({
                 triggerTelegramHaptic('heavy');
                 card.action();
               }}
-              className="absolute left-1/2 top-[68%] flex w-[min(45vw,238px)] max-h-[min(45vh,365px)] aspect-[.72] -translate-y-1/2 flex-col overflow-hidden rounded-[20px] border bg-[#090d13] text-white transition-all duration-500 ease-out disabled:cursor-default sm:w-[min(25vw,270px)] sm:rounded-[24px]"
+              className="absolute left-1/2 top-[68%] flex w-[min(42vw,222px)] max-h-[min(43vh,350px)] aspect-[.72] -translate-y-1/2 flex-col overflow-hidden rounded-[20px] border bg-[#090d13] text-white transition-all duration-500 ease-out disabled:cursor-default sm:w-[min(23vw,250px)] sm:rounded-[24px]"
               style={{
-                opacity: visible ? (center ? 1 : Math.max(.62, 1 - Math.abs(diff) * .14)) : 0,
+                opacity: visible ? (center ? 1 : Math.max(.48, 1 - Math.abs(diff) * .22)) : 0,
                 pointerEvents: center ? 'auto' : 'none',
                 zIndex: 20 - Math.abs(diff),
-                transform: `translate(calc(-50% + ${diff * (typeof window !== 'undefined' && window.innerWidth < 640 ? 92 : 88)}%), -50%) rotateY(${diff * -13}deg) rotateZ(${center ? 0 : diff * -1.5}deg) scale(${center ? 1 : Math.max(.72, 1 - Math.abs(diff) * .13)})`,
-                borderColor: center ? '#ffd36b' : card.tone === 'green' ? '#5cae9b' : '#8294aa',
-                boxShadow: center ? '0 0 0 1px #8b5b1c, 0 0 30px rgba(0,145,255,.55), 0 0 36px rgba(255,186,54,.28)' : '0 12px 24px rgba(0,0,0,.65)',
+                transform: `translate(calc(-50% + ${diff * (typeof window !== 'undefined' && window.innerWidth < 640 ? 106 : 102)}%), -50%) rotateY(${diff * -13}deg) rotateZ(${center ? 0 : diff * -1.5}deg) scale(${center ? 1.045 : Math.max(.76, 1 - Math.abs(diff) * .17)})`,
+                filter: center ? 'none' : `blur(${Math.min(2.2, Math.abs(diff) * 1.1)}px)`,
+                borderColor: center ? '#ffe08a' : card.tone === 'green' ? '#5cae9b' : '#8294aa',
+                boxShadow: center ? '0 0 0 1.5px #b9822c, 0 0 34px rgba(0,145,255,.62), 0 0 44px rgba(255,186,54,.42)' : '0 12px 24px rgba(0,0,0,.65)',
               }}
             >
               <img src={card.image} alt="" draggable={false} className="absolute inset-0 h-full w-full object-cover" />
