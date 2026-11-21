@@ -204,7 +204,7 @@ export function CollectionStoreView({
           </h1>
           <p className="font-cormorant text-[9.5px] text-[#b9b09f] tracking-[0.04em] mt-0.5 leading-none">
             Owned items: {ownedIds.length} / {STORE_ITEMS.length} • Balance:{' '}
-            {coins.toLocaleString()} Coins
+            {coins.toLocaleString('en-US')} Coins
           </p>
         </div>
 
@@ -316,7 +316,7 @@ export function CollectionStoreView({
                   ) : (
                     <>
                       <WalletIcon className="w-2.5 h-2.5 text-[#d4b26f]" filled />
-                      <span>UNLOCK • {item.price.toLocaleString()} COINS</span>
+                      <span>UNLOCK • {item.price.toLocaleString('en-US')} COINS</span>
                     </>
                   )}
                 </button>
@@ -711,7 +711,7 @@ export function WalletView({
                 : 'text-[#8e8a80] hover:text-[#d0c7b6]'
             }`}
           >
-            🪙 ROYAL CLUB COINS ({coins.toLocaleString()})
+            🪙 ROYAL CLUB COINS ({coins.toLocaleString('en-US')})
           </button>
         </div>
 
@@ -1094,7 +1094,7 @@ export function WalletView({
                     CURRENT BALANCE
                   </span>
                   <span className="font-cinzel text-[15px] font-bold tracking-[0.1em] text-[#f5dca8] tabular-nums leading-tight">
-                    {coins.toLocaleString()}
+                    {coins.toLocaleString('en-US')}
                   </span>
                   <span className="font-cinzel text-[7px] tracking-[0.2em] text-[#c8a668] block">
                     ROYAL COINS
@@ -1168,7 +1168,7 @@ export function WalletView({
                       {pack.title}
                     </h3>
                     <div className="font-cinzel text-[11px] font-bold tracking-[0.08em] text-[#f5dca8] tabular-nums">
-                      +{pack.amount.toLocaleString()}
+                      +{pack.amount.toLocaleString('en-US')}
                     </div>
                   </div>
 
@@ -1177,7 +1177,7 @@ export function WalletView({
                     onClick={() => onAcquireCoins(pack.amount, pack.title)}
                     className="mt-1.5 w-full h-[20px] rounded-[2px] brass-button-surface border border-[#ead4a4]/70 font-cinzel text-[7px] font-semibold tracking-[0.14em] text-[#140e05] cursor-pointer"
                   >
-                    ADD +{pack.amount.toLocaleString()}
+                    ADD +{pack.amount.toLocaleString('en-US')}
                   </button>
                 </div>
               ))}
@@ -1188,7 +1188,7 @@ export function WalletView({
                 {transactions.length > 0 ? `${transactions[0].timestamp} • ${transactions[0].label}` : 'LEDGER ACTIVE'}
               </span>
               <span className="text-[#e3c485] font-bold">
-                {coins.toLocaleString()} TOTAL COINS
+                {coins.toLocaleString('en-US')} TOTAL COINS
               </span>
             </div>
           </div>
