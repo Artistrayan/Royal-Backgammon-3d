@@ -293,7 +293,7 @@ export function TournamentLobbyModal({
                   {[
                     { title: 'QUARTERFINALS', fa: 'Quarterfinals', rows: currentTourn.bracket?.quarters || [], count: 4, target: 7 },
                     { title: 'SEMIFINALS', fa: 'Semifinals', rows: currentTourn.bracket?.semis || [], count: 2, target: 9 },
-                    { title: 'GRAND FINAL', fa: 'FINALS قهرمانی', rows: currentTourn.bracket?.final ? [currentTourn.bracket.final] : [], count: 1, target: 11 },
+                    { title: 'GRAND FINAL', subtitle: 'Championship Final', rows: currentTourn.bracket?.final ? [currentTourn.bracket.final] : [], count: 1, target: 11 },
                   ].map((stage) => <div key={stage.title} className="rounded-xl border border-[#5ddbd2]/20 bg-[#091a28] p-2.5">
                     <p className="font-cinzel text-[8px] font-bold tracking-wider text-[#e2c27e]">{stage.title}</p><p className="mb-2 font-cormorant text-[10px] text-[#92958f]">{stage.fa} · First to {stage.target} points</p>
                     {Array.from({ length: stage.count }, (_, i) => {
@@ -314,10 +314,10 @@ export function TournamentLobbyModal({
               <div className="space-y-3">
                 <div><h3 className="font-cinzel text-[10px] font-bold tracking-wider text-[#f2d99f]">RULES</h3></div>
                 {[
-                  ['Tournament Format', '۵ راند سوئیسی برگزار می‌شود. هشت PLAYERS برتر جدول به Knockout Stage تک‌حذفی راه پیدا می‌کنند.'],
-                  ['Match Targets', 'راندهای سوئیسی تا ۵، Quarterfinals تا ۷، Semifinals تا ۹ و FINALS تا ۱۱ امتیاز است.'],
-                  ['Crawford Rule', 'در شرایط کرافورد، مکعب دوبرابر طبق قانون MATCHES غیرفعال خواهد بود.'],
-                  ['Prize Distribution', 'طبق ساختار تعریف‌شده تورنمنت، ۸۵٪ استخر جوایز برای PLAYERSان و ۱۵٪ PLATFORM FEE پلتفرم در نظر گرفته شده است.'],
+                  ['Tournament Format', 'Five Swiss rounds are played. The top eight players advance to a single-elimination knockout.'],
+                  ['Match Targets', 'Swiss rounds are played to 5 points, quarterfinals to 7, semifinals to 9, and the final to 11.'],
+                  ['Crawford Rule', 'The doubling cube is disabled during a Crawford game.'],
+                  ['Prize Distribution', '85% of the prize pool goes to players; 15% is the platform fee.'],
                   ['Fair Dice', 'Dice results can be verified through the server-side Provably Fair system.'],
                 ].map(([title, desc], i) => <div key={title} className="flex gap-3 rounded-xl border border-white/8 bg-[#101a28] p-3"><span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-[#c9a45f]/35 bg-[#12363e] font-cinzel text-[9px] text-[#9af4ec]">{i + 1}</span><div><h4 className="font-cinzel text-[8px] font-bold text-[#e8d3a6]">{title}</h4><p className="mt-1 font-cormorant text-[12px] leading-relaxed text-[#b6ad9b]">{desc}</p></div></div>)}
               </div>
