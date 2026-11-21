@@ -155,7 +155,7 @@ export function TournamentLobbyModal({
                   <span className="h-1.5 w-1.5 rounded-full bg-[#e7c47d] shadow-[0_0_10px_#e7c47d]" />
                   <span className="font-cinzel text-[8px] font-bold tracking-[.25em] text-[#8be9e2]">THE ROAD TO THE CROWN</span>
                 </div>
-                <h3 className="font-cinzel text-[17px] font-black leading-tight text-[#e8fbff] sm:text-2xl">قهرمانی فقط یک برنده دارد</h3>
+                <h3 className="font-cinzel text-[17px] font-black leading-tight text-[#e8fbff] sm:text-2xl">ONE CROWN. ONE CHAMPION.</h3>
                 <p className="mt-1 font-cinzel text-[10px] tracking-[.18em] text-[#c9bea8]">5 ROUNDS <span className="px-2 text-[#65dcd4]">✦</span> TOP 8 <span className="px-2 text-[#65dcd4]">✦</span> FINAL</p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <span className="rounded-full border border-[#c9a45f]/35 bg-black/25 px-3 py-1 font-cinzel text-[8px] text-[#e8d3a6]">CRAWFORD</span>
@@ -178,8 +178,8 @@ export function TournamentLobbyModal({
                   {active && <span className="absolute right-0 top-0 rounded-bl-xl bg-[#e4c783] px-2 py-1 font-cinzel text-[7px] font-black tracking-wider text-[#201707]">SELECTED</span>}
                   <span className="block font-cinzel text-[8px] tracking-[.16em] text-[#65dcd4]">{tId === 'swiss_5' ? 'ROYAL CUP' : 'ELITE SERIES'}</span>
                   <span className="mt-1 block font-cinzel text-[13px] font-black text-[#e8fbff] sm:text-base">{conf.entryFeeUsdt} USDT <span className="text-[8px] font-medium text-[#c9bea8]">ENTRY</span></span>
-                  <span className="mt-1 block font-cormorant text-[10px] text-[#c8bda7]">{conf.persianTitle}</span>
-                  <span className="mt-2 flex items-center justify-between border-t border-white/10 pt-2 font-cinzel text-[8px] text-[#d9bd80]"><span>ظرفیت</span><b>{conf.maxParticipants} نفر</b></span>
+                  <span className="mt-1 block font-cormorant text-[10px] text-[#c8bda7]">{tId === 'swiss_5' ? 'Five-round Swiss tournament' : 'Ten-round Swiss tournament'}</span>
+                  <span className="mt-2 flex items-center justify-between border-t border-white/10 pt-2 font-cinzel text-[8px] text-[#d9bd80]"><span>CAPACITY</span><b>{conf.maxParticipants} PLAYERS</b></span>
                 </button>
               );
             })}
@@ -189,17 +189,17 @@ export function TournamentLobbyModal({
             <div className="rounded-2xl border border-[#5ddbd2]/15 bg-[linear-gradient(145deg,#102433,#091522)] p-3 shadow-[inset_0_1px_0_rgba(180,255,248,.06)]">
               <span className="block font-cinzel text-[7px] tracking-wider text-[#8f958f]">PLAYERS</span>
               <strong className="mt-1 block font-cinzel text-lg text-[#f4dfb0] tabular-nums">{currentTourn.participants.length}<small className="ml-1 text-[9px] text-[#8f958f]">/ {currentTourn.config.maxParticipants}</small></strong>
-              <span className="font-cormorant text-[9px] text-[#a9a18f]">بازیکن</span>
+              <span className="font-cormorant text-[9px] text-[#a9a18f]">PLAYERS</span>
             </div>
             <div className="rounded-xl border border-[#5ddbd2]/20 bg-[#10232d]/95 p-3">
               <span className="block font-cinzel text-[7px] tracking-wider text-[#b89a61]">PRIZE POOL</span>
               <strong className="mt-1 block font-cinzel text-lg text-[#e8c77f] tabular-nums">{currentTourn.prizePoolUsdt.toFixed(2)}</strong>
-              <span className="font-cormorant text-[9px] text-[#b9ad96]">جایزه · USDT</span>
+              <span className="font-cormorant text-[9px] text-[#b9ad96]">TOTAL REWARDS · USDT</span>
             </div>
             <div className="rounded-xl border border-white/10 bg-[#0a1826]/95 p-3">
               <span className="block font-cinzel text-[7px] tracking-wider text-[#8f958f]">YOUR BALANCE</span>
               <strong className="mt-1 block font-cinzel text-lg text-[#f4dfb0] tabular-nums">{userUsdtBalance.toFixed(2)}</strong>
-              <span className="font-cormorant text-[9px] text-[#a9a18f]">موجودی</span>
+              <span className="font-cormorant text-[9px] text-[#a9a18f]">BALANCE</span>
             </div>
             <div className="rounded-xl border border-white/10 bg-[#0a1826]/95 p-3">
               <span className="block font-cinzel text-[7px] tracking-wider text-[#8f958f]">PLATFORM FEE</span>
@@ -212,14 +212,14 @@ export function TournamentLobbyModal({
             <div className="min-w-0">
               <span className="font-cinzel text-[9px] font-bold tracking-[.12em] text-[#f3d99e]">{isUserRegistered ? 'YOUR SEAT IS RESERVED' : 'CLAIM YOUR PLACE IN THE ARENA'}</span>
               <p className="mt-1 font-cormorant text-[10px] text-[#c6baa2]">{isUserRegistered ? 'ثبت‌نام فعال' : `ورودی: ${entryFee} USDT`}</p>
-              {!isUserRegistered && !hasEnoughBalance && <p className="mt-1 font-cormorant text-[10px] text-[#e2a88f]">موجودی ناکافی</p>}
+              {!isUserRegistered && !hasEnoughBalance && <p className="mt-1 font-cormorant text-[10px] text-[#e2a88f]">BALANCE ناکافی</p>}
             </div>
             <div className="flex shrink-0 gap-2">
               {!hasEnoughBalance && !isUserRegistered && <button type="button" onClick={onOpenWallet} className="rounded-xl border border-[#c9a45f]/55 bg-[#102431] px-3 py-2 font-cinzel text-[8px] font-bold text-[#e9d39f]">کیف پول</button>}
               {isUserRegistered ? (
                 <button type="button" disabled={currentTourn.status !== 'registering'} onClick={() => onUnregisterTournament(currentTourn.id)} className="rounded-xl border border-[#b97963]/55 bg-[#351b19] px-4 py-2.5 font-cinzel text-[8px] font-bold text-[#f0c8b8] disabled:opacity-40">لغو ثبت‌نام و بازگشت وجه</button>
               ) : (
-                <button type="button" disabled={!hasEnoughBalance || currentTourn.participants.length >= currentTourn.config.maxParticipants} onClick={() => onRegisterTournament(selectedTier)} className="rounded-xl border border-[#8df1e8] bg-[linear-gradient(180deg,#8af0e6,#23878a)] px-5 py-2.5 font-cinzel text-[9px] font-black tracking-wider text-[#041a20] shadow-[0_5px_20px_rgba(203,163,82,.22)] transition hover:brightness-110 disabled:cursor-not-allowed disabled:grayscale disabled:opacity-20">{hasEnoughBalance ? `ورود به مسابقات · ${entryFee} USDT` : 'موجودی ناکافی'}</button>
+                <button type="button" disabled={!hasEnoughBalance || currentTourn.participants.length >= currentTourn.config.maxParticipants} onClick={() => onRegisterTournament(selectedTier)} className="rounded-xl border border-[#8df1e8] bg-[linear-gradient(180deg,#8af0e6,#23878a)] px-5 py-2.5 font-cinzel text-[9px] font-black tracking-wider text-[#041a20] shadow-[0_5px_20px_rgba(203,163,82,.22)] transition hover:brightness-110 disabled:cursor-not-allowed disabled:grayscale disabled:opacity-20">{hasEnoughBalance ? `ورود به مسابقات · ${entryFee} USDT` : 'BALANCE ناکافی'}</button>
               )}
             </div>
           </section>
@@ -248,7 +248,7 @@ export function TournamentLobbyModal({
                   <div className="flex min-h-[190px] flex-col items-center justify-center text-center">
                     <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-full border border-[#c9a45f]/35 bg-[radial-gradient(circle,#5d4726,#121722_72%)] shadow-[0_0_25px_rgba(201,164,95,.12)]"><RoyalCrownIcon className="h-8 w-8 text-[#d9bd80]" /></div>
                     <p className="font-cinzel text-[9px] font-bold tracking-wider text-[#e8d3a6]">THE TABLE IS WAITING</p>
-                    <p className="mt-1 font-cormorant text-[11px] text-[#969487]">در انتظار بازیکنان</p>
+                    <p className="mt-1 font-cormorant text-[11px] text-[#969487]">در انتظار PLAYERSان</p>
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -314,10 +314,10 @@ export function TournamentLobbyModal({
               <div className="space-y-3">
                 <div><h3 className="font-cinzel text-[10px] font-bold tracking-wider text-[#f2d99f]">RULES</h3></div>
                 {[
-                  ['ساختار مسابقات', '۵ راند سوئیسی برگزار می‌شود. هشت بازیکن برتر جدول به مرحله حذفی تک‌حذفی راه پیدا می‌کنند.'],
+                  ['ساختار مسابقات', '۵ راند سوئیسی برگزار می‌شود. هشت PLAYERS برتر جدول به مرحله حذفی تک‌حذفی راه پیدا می‌کنند.'],
                   ['امتیاز هر مرحله', 'راندهای سوئیسی تا ۵، یک‌چهارم نهایی تا ۷، نیمه‌نهایی تا ۹ و فینال تا ۱۱ امتیاز است.'],
                   ['قانون کرافورد', 'در شرایط کرافورد، مکعب دوبرابر طبق قانون مسابقه غیرفعال خواهد بود.'],
-                  ['توزیع جوایز', 'طبق ساختار تعریف‌شده تورنمنت، ۸۵٪ استخر جوایز برای بازیکنان و ۱۵٪ کارمزد پلتفرم در نظر گرفته شده است.'],
+                  ['توزیع جوایز', 'طبق ساختار تعریف‌شده تورنمنت، ۸۵٪ استخر جوایز برای PLAYERSان و ۱۵٪ کارمزد پلتفرم در نظر گرفته شده است.'],
                   ['تاس منصفانه', 'نتایج تاس باید از سازوکار Provably Fair سمت سرور قابل بررسی باشند.'],
                 ].map(([title, desc], i) => <div key={title} className="flex gap-3 rounded-xl border border-white/8 bg-[#101a28] p-3"><span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-[#c9a45f]/35 bg-[#12363e] font-cinzel text-[9px] text-[#9af4ec]">{i + 1}</span><div><h4 className="font-cinzel text-[8px] font-bold text-[#e8d3a6]">{title}</h4><p className="mt-1 font-cormorant text-[12px] leading-relaxed text-[#b6ad9b]">{desc}</p></div></div>)}
               </div>
