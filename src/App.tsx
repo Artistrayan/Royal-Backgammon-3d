@@ -613,6 +613,14 @@ export default function App() {
     }
   }, [glbReady, realState.equipped.checkers, realState.equipped.dice]);
 
+  // Open the 3D board after the GLB finishes loading, including matches entered before model readiness.
+  useEffect(() => {
+    if (activeScreen === 'game' && glbReady && boardState === 'closed' && engineRef.current) {
+      engineRef.current.openBoard();
+      setBoardState('opening');
+    }
+  }, [activeScreen, glbReady, boardState]);
+
   // Sync 3D Board Zoom Level ('max' | 'xl')
   useEffect(() => {
     if (engineRef.current) {
@@ -2843,7 +2851,7 @@ export default function App() {
           </div>
 
           {/* 2. TOP BAR (Shown on inner screens and game table) */}
-          {!isHomeScreen && (
+          {!isHomeScreen && !isGameScreen && (
             <header
               className={`relative z-30 w-full flex items-center justify-between shrink-0 ${
                 isGameScreen
@@ -3173,6 +3181,46 @@ export default function App() {
 
           {/* 3. CENTER LANDSCAPE BODY (ROYAL BACKGAMMON 3D LOBBY ON HOME, 3D TABLE IN GAME) */}
           <div className="relative z-10 flex-1 min-h-0 w-full flex flex-row items-center overflow-hidden">
+            {/* Minimal in-game controls: keep the board unobstructed and remove global navigation. */}
+            {isGameScreen && (
+              <div className="absolute top-2 left-2 right-2 z-40 flex items-center justify-between pointer-events-none">
+                <button
+                  type="button"
+                  onClick={() => navigateToScreen('home')}
+                  aria-label="Leave match"
+                  className="pointer-events-auto h-9 min-w-9 px-3 rounded-full bg-[#061810]/90 border border-[#c8a668]/55 text-[#f5dca8] font-cinzel text-[10px] tracking-wider shadow-lg"
+                >
+                  ‹
+                </button>
+                <div className="pointer-events-none rounded-full bg-[#061810]/88 border border-[#c8a668]/35 px-3 py-1.5 text-center shadow-lg">
+                  <div className="font-cinzel text-[9px] font-semibold tracking-[0.12em] text-[#f5dca8]">
+                    {turn === 'light' ? 'YOUR TURN' : gameMode === 'practice' ? 'OPPONENT TURN' : 'WAITING'}
+                  </div>
+                  <div className="font-cinzel text-[8px] tabular-nums text-[#c8b995]">{turnTimeLeft}s · {turn === 'light' ? lightPipCount : darkPipCount} PIP</div>
+                </div>
+                <div className="pointer-events-auto flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={handleOfferDouble}
+                    disabled={hasRolledThisTurn || Boolean(winner) || doublingCubeValue >= 64 || (doublingCubeOwner !== 'center' && doublingCubeOwner !== turn)}
+                    aria-label="Offer doubling cube"
+                    className="h-9 px-3 rounded-full bg-[#061810]/90 border border-[#c8a668]/55 text-[#f5dca8] font-cinzel text-[9px] tracking-wider disabled:opacity-40"
+                  >
+                    {doublingCubeValue}×
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleUndoMove}
+                    disabled={moveHistory.length === 0 || Boolean(winner)}
+                    aria-label="Undo move"
+                    className="h-9 w-9 rounded-full bg-[#061810]/90 border border-[#c8a668]/55 text-[#f5dca8] text-base disabled:opacity-35"
+                  >
+                    ↶
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* 3D GLB BACKGAMMON BOARD STAGE (Active and visible when on Game Screen) */}
             <div
               className={`h-full flex items-center justify-center transition-all duration-300 ${
@@ -3324,7 +3372,7 @@ export default function App() {
           </div>
 
           {/* 4. BOTTOM NAVIGATION BAR (Shown on inner screens and game table) */}
-          {!isHomeScreen && (
+          {!isHomeScreen && !isGameScreen && (
             <footer
               className={`relative z-30 w-full flex items-center justify-between shrink-0 border-t border-[#c8a668]/25 bg-[#040d09]/92 transition-opacity duration-300 ${
                 isGameScreen ? 'h-[42px] min-h-[42px] px-2 sm:px-4' : 'h-[34px] px-5'
