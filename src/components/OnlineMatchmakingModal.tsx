@@ -38,7 +38,12 @@ export function OnlineMatchmakingModal({
     const interval = window.setInterval(() => {
       setDots((prev) => (prev.length >= 3 ? '' : prev + '.'));
     }, 450);
-    return (
+    return () => window.clearInterval(interval);
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
+  return (
     <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden bg-[#020611] animate-fade-in">
       <img src={palaceNightStageBg} alt="" aria-hidden="true" className="pointer-events-none absolute inset-0 h-full w-full object-cover object-center opacity-90" />
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(2,7,17,.48)_0%,rgba(2,7,17,.30)_42%,rgba(2,7,17,.88)_100%)]" />
