@@ -2847,7 +2847,7 @@ export default function App() {
             <header
               className={`relative z-30 w-full flex items-center justify-between shrink-0 ${
                 isGameScreen
-                  ? 'h-[32px] px-3 bg-[#040e09]/92 border-b border-[#c8a668]/25'
+                  ? 'h-[52px] min-h-[52px] px-2 sm:px-3 bg-[#040e09]/95 border-b border-[#c8a668]/30 overflow-x-auto overflow-y-hidden'
                   : 'h-[36px] pt-1.5 px-5'
               }`}
             >
@@ -3172,7 +3172,7 @@ export default function App() {
         )}
 
           {/* 3. CENTER LANDSCAPE BODY (ROYAL BACKGAMMON 3D LOBBY ON HOME, 3D TABLE IN GAME) */}
-          <div className="relative z-10 w-full h-full flex flex-row items-center overflow-hidden">
+          <div className="relative z-10 flex-1 min-h-0 w-full flex flex-row items-center overflow-hidden">
             {/* 3D GLB BACKGAMMON BOARD STAGE (Active and visible when on Game Screen) */}
             <div
               className={`h-full flex items-center justify-center transition-all duration-300 ${
@@ -3183,7 +3183,7 @@ export default function App() {
             >
                 <div
                   ref={canvasContainerRef}
-                  className={`w-full h-full ${
+                  className={`relative w-full h-full min-h-0 ${
                     isGameScreen
                       ? isBoardHovered
                         ? 'cursor-pointer pointer-events-auto'
@@ -3327,7 +3327,7 @@ export default function App() {
           {!isHomeScreen && (
             <footer
               className={`relative z-30 w-full flex items-center justify-between shrink-0 border-t border-[#c8a668]/25 bg-[#040d09]/92 transition-opacity duration-300 ${
-                isGameScreen ? 'h-[28px] px-4' : 'h-[34px] px-5'
+                isGameScreen ? 'h-[42px] min-h-[42px] px-2 sm:px-4' : 'h-[34px] px-5'
               }`}
             >
             <nav className="flex items-center h-full pointer-events-auto">
