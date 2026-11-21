@@ -722,7 +722,7 @@ export function WalletView({
               onClick={onOpenSupport}
               className="px-2 py-0.5 rounded bg-[#0a281c] border border-[#52f29c]/50 hover:bg-[#113a28] font-cinzel text-[7.5px] font-bold text-[#52f29c] flex items-center gap-1 cursor-pointer transition-colors shadow-sm"
             >
-              🎧 SUPPORT (پشتیبانی مالی)
+              🎧 SUPPORT
             </button>
           )}
           <span className="font-cormorant text-[9.5px] text-[#a39e93]">
@@ -826,7 +826,7 @@ export function WalletView({
                 <div>
                   <div className="flex items-center justify-between border-b border-[#c8a668]/25 pb-1 mb-2">
                     <span className="font-cinzel text-[9px] font-bold text-[#52f29c]">
-                      DEPOSIT USDT TO VAULT (واریز تتر)
+                      DEPOSIT USDT TO VAULT
                     </span>
                     <button
                       type="button"
@@ -894,7 +894,7 @@ export function WalletView({
                       </div>
                       <div>
                         <label className="font-cinzel text-[6.5px] text-[#8e8a80] block mb-0.5">
-                          TXID HASH (اختیاری برای تست)
+                          TXID HASH (OPTIONAL FOR TESTING)
                         </label>
                         <input
                           type="text"
@@ -921,7 +921,7 @@ export function WalletView({
                 <div>
                   <div className="flex items-center justify-between border-b border-[#c8a668]/25 pb-1 mb-2">
                     <span className="font-cinzel text-[9px] font-bold text-[#f5dca8]">
-                      WITHDRAW USDT (برداشت تتر)
+                      WITHDRAW USDT
                     </span>
                     <button
                       type="button"
@@ -1017,7 +1017,7 @@ export function WalletView({
                 <div>
                   <div className="flex items-center justify-between border-b border-[#c8a668]/25 pb-1 mb-2">
                     <span className="font-cinzel text-[9px] font-bold text-[#f5dca8]">
-                      USDT FINANCIAL TRANSACTION LEDGER (دفتر کل تراکنش‌ها)
+                      USDT TRANSACTION HISTORY
                     </span>
                     <span className="font-cinzel text-[7px] text-[#52f29c]">
                       {usdtTransactions.length} ENTRIES
