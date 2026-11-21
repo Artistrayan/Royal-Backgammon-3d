@@ -462,12 +462,13 @@ let currentLanguage: SupportedLanguage = 'en';
 
 export function getLanguage(): SupportedLanguage {
   if (typeof window !== 'undefined') {
-    const saved = localStorage.getItem('royal_app_lang') as SupportedLanguage;
-    if (saved && TRANSLATIONS[saved]) {
-      currentLanguage = saved;
-    } else {
-      currentLanguage = 'en';
+    const migrationKey = 'royal_app_language_default_en_v1';
+    if (localStorage.getItem(migrationKey) !== 'done') {
+      localStorage.setItem('royal_app_lang', 'en');
+      localStorage.setItem(migrationKey, 'done');
     }
+    const saved = localStorage.getItem('royal_app_lang') as SupportedLanguage;
+    currentLanguage = saved && TRANSLATIONS[saved] ? saved : 'en';
   }
   return currentLanguage;
 }
