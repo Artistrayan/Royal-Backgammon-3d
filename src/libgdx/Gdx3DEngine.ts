@@ -750,6 +750,7 @@ export class Gdx3DEngine {
   private isGameStage = false;
   private zoomLevel: BoardZoomLevel = 'xl';
   private disposed = false;
+  private resizeObserver: ResizeObserver | null = null;
 
   // 3D Highlight Rings for Selected Checker, Valid Destination Points & Right-Side 3D Dice Roll Zone
   private highlightGroup = new THREE.Group();
@@ -1278,6 +1279,13 @@ export class Gdx3DEngine {
     dom.addEventListener('pointermove', onPointerMove);
     dom.addEventListener('pointerdown', onPointerDown);
     window.addEventListener('resize', this.handleResize);
+    // The board begins in a zero-width lobby stage; observe its element size
+    // so the WebGL viewport is restored as soon as a match screen is shown.
+    if (typeof ResizeObserver !== 'undefined') {
+      this.resizeObserver = new ResizeObserver(() => this.handleResize());
+      this.resizeObserver.observe(this.container);
+    }
+    requestAnimationFrame(() => this.handleResize());
   }
 
   private handleResize = () => {
@@ -1323,6 +1331,8 @@ export class Gdx3DEngine {
       this.rafId = null;
     }
     window.removeEventListener('resize', this.handleResize);
+    this.resizeObserver?.disconnect();
+    this.resizeObserver = null;
 
     // Deep scene resource disposal to eliminate WebGL memory leaks
     this.scene.traverse((obj) => {
