@@ -168,7 +168,7 @@ export function TelegramLoginScreen({ onLoginSuccess }: TelegramLoginScreenProps
         >
           <span className="pointer-events-none absolute inset-[3px] rounded-[11px] border border-[#fff3ce]/45" />
           {isDbConnecting || isOpening ? <span className="h-5 w-5 animate-spin rounded-full border-2 border-[#39240a] border-t-transparent" /> : null}
-          <span className="relative">{isDbConnecting ? 'Connecting…' : isOpening ? 'Entering…' : 'ورود به بازی'}</span>
+          <span className="relative">{isDbConnecting ? 'Connecting…' : isOpening ? 'Entering…' : 'ENTER GAME'}</span>
           {!isDbConnecting && !isOpening && <span className="relative text-2xl leading-none">↗</span>}
         </button>
         <div className="mt-3 text-[9px] tracking-[.12em] text-white/35">ROYAL BACKGAMMON 3D</div>
