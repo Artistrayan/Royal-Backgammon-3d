@@ -18,7 +18,7 @@ import {
   TournamentMatch,
   TOURNAMENT_TIERS,
 } from '../network/tournamentTypes';
-import { RoyalCrownIcon, WalletIcon } from './RoyalIcons';
+import { RoyalCrownIcon } from './RoyalIcons';
 
 interface TournamentLobbyModalProps {
   isOpen: boolean;
@@ -88,9 +88,9 @@ export function TournamentLobbyModal({
       participants: [],
       swissMatches: {},
       bracket: null,
-      totalCollectedUsdt: 160,
-      platformFeeUsdt: 24,
-      prizePoolUsdt: 136,
+      totalCollectedUsdt: 0,
+      platformFeeUsdt: 0,
+      prizePoolUsdt: 0,
       prizesPaid: false,
       createdAt: Date.now(),
     } as TournamentState);
