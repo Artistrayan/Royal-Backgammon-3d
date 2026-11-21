@@ -94,10 +94,10 @@ export function RoyalBackgammonHomeLobby({
 
         <div className="flex shrink-0 items-center gap-1 sm:gap-2">
           <button type="button" onClick={() => tap(onOpenStore)} className="flex items-center gap-1 rounded-full border border-[#c28a28]/65 bg-black/70 px-1.5 py-2 text-[10px] font-extrabold sm:gap-2 sm:px-3 sm:text-xs">
-            <span>🪙</span><span>{Number(userCoins || 26).toLocaleString()}</span><span className="hidden rounded bg-green-600 px-1.5 text-sm leading-5 sm:inline">+</span>
+            <span>🪙</span><span>{Number(userCoins || 26).toLocaleString('en-US')}</span><span className="hidden rounded bg-green-600 px-1.5 text-sm leading-5 sm:inline">+</span>
           </button>
           <button type="button" onClick={() => tap(onOpenWallet)} className="flex items-center gap-1 rounded-full border border-[#369de4]/65 bg-black/70 px-1.5 py-2 text-[10px] font-extrabold sm:gap-2 sm:px-3 sm:text-xs">
-            <span>💎</span><span>{Number(userUsdt || 1350).toLocaleString()}</span><span className="hidden rounded bg-green-600 px-1.5 text-sm leading-5 sm:inline">+</span>
+            <span>💎</span><span>{Number(userUsdt || 1350).toLocaleString('en-US')}</span><span className="hidden rounded bg-green-600 px-1.5 text-sm leading-5 sm:inline">+</span>
           </button>
         </div>
       </header>
