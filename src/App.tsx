@@ -2858,7 +2858,7 @@ export default function App() {
                   <button
                     type="button"
                     onClick={() => navigateToScreen('home')}
-                    className="px-1.5 py-0.5 rounded-[2px] bg-[#061810]/92 hover:bg-[#0c261b] border border-[#c8a668]/50 font-cinzel text-[6px] font-semibold tracking-[0.12em] text-[#f0e5ce] cursor-pointer"
+                    className="px-1.5 py-0.5 rounded-[2px] bg-[#061810]/92 hover:bg-[#0c261b] border border-[#c8a668]/50 font-cinzel text-[8px] font-semibold tracking-[0.12em] text-[#f0e5ce] cursor-pointer"
                   >
                     &lt; LOBBY
                   </button>
@@ -2874,9 +2874,9 @@ export default function App() {
                     <img
                       src={boardCrestImg}
                       alt="Player"
-                      className="w-2.5 h-2.5 rounded-full object-cover border border-[#e3c485]"
+                      className="w-3 h-3 rounded-full object-cover border border-[#e3c485]"
                     />
-                    <span className="font-cinzel text-[6px] font-semibold tracking-[0.08em] text-[#f5dca8] tabular-nums">
+                    <span className="font-cinzel text-[8px] font-semibold tracking-[0.08em] text-[#f5dca8] tabular-nums">
                       {gameMode === 'online' || gameMode === 'friend'
                         ? assignedMultiplayerColor === 'light'
                           ? `${realState.playerName} (YOU)`
@@ -2890,7 +2890,7 @@ export default function App() {
 
                   {/* Real Player Turn Countdown Timer (تایمر حرکت بازیکن) */}
                   <div
-                    className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded-[2px] border font-cinzel text-[6px] font-bold tracking-[0.1em] tabular-nums ${
+                    className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded-[2px] border font-cinzel text-[8px] font-bold tracking-[0.1em] tabular-nums ${
                       turnTimeLeft <= 7
                         ? 'bg-[#361410]/95 border-[#f28b6c] text-[#ffd4c4] animate-pulse'
                         : 'bg-[#061b12]/95 border-[#c8a668]/55 text-[#f5dca8]'
@@ -2913,7 +2913,7 @@ export default function App() {
                     }`}
                   >
                     <span className="w-2 h-2 rounded-full bg-[#8e97a2] border border-white/40 inline-block" />
-                    <span className="font-cinzel text-[6px] font-semibold tracking-[0.08em] text-[#d8dee6] tabular-nums">
+                    <span className="font-cinzel text-[8px] font-semibold tracking-[0.08em] text-[#d8dee6] tabular-nums">
                       {gameMode === 'online' || gameMode === 'friend'
                         ? assignedMultiplayerColor === 'dark'
                           ? `${realState.playerName} (YOU)`
@@ -2929,7 +2929,7 @@ export default function App() {
 
                   {/* Tournament Crawford Rule or Match Indicator */}
                   {activeTournamentMatch && (
-                    <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-[2px] bg-[#0b291d] border border-[#52f29c]/40 font-cinzel text-[6px] font-bold text-[#52f29c]">
+                    <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-[2px] bg-[#0b291d] border border-[#52f29c]/40 font-cinzel text-[8px] font-bold text-[#52f29c]">
                       <span>🏆 MATCH TO {activeTournamentMatch.targetPoints}</span>
                       <span>[{tournamentMatchScore.p1} - {tournamentMatchScore.p2}]</span>
                       {isTournamentCrawfordGame && (
@@ -2943,7 +2943,7 @@ export default function App() {
                     type="button"
                     onClick={() => setIsProvablyFairModalOpen(true)}
                     title="Provably Fair Cryptographic Verification (HMAC-SHA256)"
-                    className="px-1 py-0.5 rounded-[2px] bg-[#061810]/90 hover:bg-[#0b291d] border border-[#52f29c]/40 font-cinzel text-[5.8px] font-bold text-[#52f29c] cursor-pointer"
+                    className="px-1 py-0.5 rounded-[2px] bg-[#061810]/90 hover:bg-[#0b291d] border border-[#52f29c]/40 font-cinzel text-[7px] font-bold text-[#52f29c] cursor-pointer"
                   >
                     🎲 FAIR
                   </button>
@@ -2953,7 +2953,7 @@ export default function App() {
                     type="button"
                     onClick={() => setIsAnalysisModalOpen(true)}
                     title="Smart Move Analysis & Performance Rating (PR)"
-                    className="px-1 py-0.5 rounded-[2px] bg-[#061810]/90 hover:bg-[#0b291d] border border-[#c8a668]/40 font-cinzel text-[5.8px] font-bold text-[#ffe4a0] cursor-pointer"
+                    className="px-1 py-0.5 rounded-[2px] bg-[#061810]/90 hover:bg-[#0b291d] border border-[#c8a668]/40 font-cinzel text-[7px] font-bold text-[#ffe4a0] cursor-pointer"
                   >
                     📊 PR:{analysisSummary.performanceRating}
                   </button>
@@ -2966,7 +2966,7 @@ export default function App() {
                     type="button"
                     onClick={handleOfferDouble}
                     title="Offer Doubling Cube (2x, 4x, 8x, 16x, 32x, 64x)"
-                    className={`px-1.5 py-0.5 rounded-[2px] border font-cinzel text-[6px] font-bold tracking-[0.1em] transition-all cursor-pointer tabular-nums ${
+                    className={`px-1.5 py-0.5 rounded-[2px] border font-cinzel text-[8px] font-bold tracking-[0.1em] transition-all cursor-pointer tabular-nums ${
                       !hasRolledThisTurn &&
                       !winner &&
                       doublingCubeValue < 64 &&
@@ -2983,7 +2983,7 @@ export default function App() {
                     <button
                       type="button"
                       onClick={handleStartNewMatch}
-                      className="px-2 py-0.5 rounded-[2px] brass-button-surface border border-[#ead4a4]/80 font-cinzel text-[6px] font-bold tracking-[0.12em] text-[#140e05] cursor-pointer"
+                      className="px-2 py-0.5 rounded-[2px] brass-button-surface border border-[#ead4a4]/80 font-cinzel text-[8px] font-bold tracking-[0.12em] text-[#140e05] cursor-pointer"
                     >
                       PLAY AGAIN
                     </button>
@@ -2992,7 +2992,7 @@ export default function App() {
                       type="button"
                       onClick={handleSwapDiceOrder}
                       title="Click to Swap Dice Order"
-                      className="px-1.5 py-0.5 rounded-[2px] bg-[#04100b]/92 hover:bg-[#0b2419] border border-[#c8a668]/55 font-cinzel text-[6px] tracking-[0.1em] text-[#f2dca8] tabular-nums cursor-pointer"
+                      className="px-1.5 py-0.5 rounded-[2px] bg-[#04100b]/92 hover:bg-[#0b2419] border border-[#c8a668]/55 font-cinzel text-[8px] tracking-[0.1em] text-[#f2dca8] tabular-nums cursor-pointer"
                     >
                       {diceValues[0]}-{diceValues[1]}
                       {remainingDice.length > 0
@@ -3010,7 +3010,7 @@ export default function App() {
                     type="button"
                     disabled={moveHistory.length === 0 || Boolean(winner)}
                     onClick={handleUndoMove}
-                    className={`px-1.5 py-0.5 rounded-[2px] border font-cinzel text-[6px] font-semibold tracking-[0.1em] transition-all ${
+                    className={`px-1.5 py-0.5 rounded-[2px] border font-cinzel text-[8px] font-semibold tracking-[0.1em] transition-all ${
                       moveHistory.length > 0 && !winner
                         ? 'brass-button-surface border-[#ead4a4]/85 text-[#140e05] cursor-pointer active:scale-95'
                         : 'bg-[#04100b]/70 border-[#c8a668]/20 text-[#6e6a60] cursor-not-allowed'
@@ -3023,7 +3023,7 @@ export default function App() {
                   <button
                     type="button"
                     onClick={handleToggleAutoRoll}
-                    className={`px-1.5 py-0.5 rounded-[2px] border font-cinzel text-[5.8px] font-semibold tracking-[0.08em] transition-all cursor-pointer ${
+                    className={`px-1.5 py-0.5 rounded-[2px] border font-cinzel text-[7px] font-semibold tracking-[0.08em] transition-all cursor-pointer ${
                       realState.autoRoll
                         ? 'brass-button-surface border-[#ead4a4]/80 text-[#140e05]'
                         : 'bg-[#061810]/90 border-[#c8a668]/40 text-[#cbbca0]'
@@ -3036,7 +3036,7 @@ export default function App() {
                   <button
                     type="button"
                     onClick={handleToggleAutoBearOff}
-                    className={`px-1.5 py-0.5 rounded-[2px] border font-cinzel text-[5.8px] font-semibold tracking-[0.08em] transition-all cursor-pointer ${
+                    className={`px-1.5 py-0.5 rounded-[2px] border font-cinzel text-[7px] font-semibold tracking-[0.08em] transition-all cursor-pointer ${
                       realState.autoBearOff
                         ? 'brass-button-surface border-[#ead4a4]/80 text-[#140e05]'
                         : 'bg-[#061810]/90 border-[#c8a668]/40 text-[#cbbca0]'
@@ -3048,7 +3048,7 @@ export default function App() {
                   <button
                     type="button"
                     onClick={handleStartNewMatch}
-                    className="px-1.5 py-0.5 rounded-[2px] bg-[#061810]/92 hover:bg-[#0c261b] border border-[#c8a668]/40 font-cinzel text-[5.8px] tracking-[0.08em] text-[#e5dccb] cursor-pointer"
+                    className="px-1.5 py-0.5 rounded-[2px] bg-[#061810]/92 hover:bg-[#0c261b] border border-[#c8a668]/40 font-cinzel text-[7px] tracking-[0.08em] text-[#e5dccb] cursor-pointer"
                   >
                     RESET
                   </button>
@@ -3059,7 +3059,7 @@ export default function App() {
                     onClick={() => navigateToScreen('settings')}
                     className="p-0.5 text-[#c5a263] hover:text-[#ebd09a] cursor-pointer"
                   >
-                    <GearSettingsIcon className="w-3.5 h-3.5" />
+                    <GearSettingsIcon className="w-4 h-4" />
                   </button>
                 </div>
               </>
@@ -3079,13 +3079,13 @@ export default function App() {
                         className="w-full h-full object-cover"
                       />
                     </div>
-                    <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full bg-[#15803d] border border-white text-[6.5px] font-bold font-cinzel text-white flex items-center justify-center">
+                    <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-[#15803d] border border-white text-[8px] font-bold font-cinzel text-white flex items-center justify-center">
                       {playerLevel}
                     </div>
                   </div>
                   <div className="flex flex-col text-left">
                     <div className="flex items-center gap-1">
-                      <RoyalCrownIcon className="w-2.5 h-2.5 text-[#f5dca8]" />
+                      <RoyalCrownIcon className="w-3 h-3 text-[#f5dca8]" />
                       <span className="font-cinzel text-[8px] font-black tracking-wider text-white group-hover:text-[#f5dca8]">
                         {realState.playerName}
                       </span>
@@ -3097,7 +3097,7 @@ export default function App() {
                           style={{ width: `${Math.min(100, (realState.xp || 50) % 100)}%` }}
                         />
                       </div>
-                      <span className="font-cinzel text-[6px] text-[#52f29c] font-bold">
+                      <span className="font-cinzel text-[8px] text-[#52f29c] font-bold">
                         LVL {playerLevel}
                       </span>
                     </div>
@@ -3337,8 +3337,8 @@ export default function App() {
                 onClick={() => navigateToScreen('home')}
                 className="relative h-full px-2 flex items-center gap-1 transition-colors cursor-pointer whitespace-nowrap group text-[#7e7c74] hover:text-[#ebe3d2]"
               >
-                <HomeIcon className="w-2.5 h-2.5 shrink-0 transition-colors text-[#7e7c74] group-hover:text-[#c8a668]" />
-                <span className="font-cinzel text-[7px] tracking-[0.15em]">
+                <HomeIcon className="w-3.5 h-3.5 shrink-0 transition-colors text-[#7e7c74] group-hover:text-[#c8a668]" />
+                <span className="font-cinzel text-[8px] tracking-[0.15em]">
                   {typedMap.navHome || 'HOME'}
                   {renderCursor('navHome')}
                 </span>
@@ -3357,13 +3357,13 @@ export default function App() {
                 }`}
               >
                 <CollectionIcon
-                  className={`w-2.5 h-2.5 shrink-0 transition-colors ${
+                  className={`w-3.5 h-3.5 shrink-0 transition-colors ${
                     activeScreen === 'collection'
                       ? 'text-[#c8a668]'
                       : 'text-[#7e7c74] group-hover:text-[#c8a668]'
                   }`}
                 />
-                <span className="font-cinzel text-[7px] tracking-[0.15em]">
+                <span className="font-cinzel text-[8px] tracking-[0.15em]">
                   {typedMap.navCollection || 'COLLECTION'}
                   {renderCursor('navCollection')}
                 </span>
@@ -3385,13 +3385,13 @@ export default function App() {
                 }`}
               >
                 <SinglePlayerIcon
-                  className={`w-2.5 h-2.5 shrink-0 transition-colors ${
+                  className={`w-3.5 h-3.5 shrink-0 transition-colors ${
                     activeScreen === 'profile'
                       ? 'text-[#c8a668]'
                       : 'text-[#7e7c74] group-hover:text-[#c8a668]'
                   }`}
                 />
-                <span className="font-cinzel text-[7px] tracking-[0.15em]">
+                <span className="font-cinzel text-[8px] tracking-[0.15em]">
                   {typedMap.navProfile || 'PROFILE'}
                   {renderCursor('navProfile')}
                 </span>
@@ -3413,13 +3413,13 @@ export default function App() {
                 }`}
               >
                 <WalletIcon
-                  className={`w-2.5 h-2.5 shrink-0 transition-colors ${
+                  className={`w-3.5 h-3.5 shrink-0 transition-colors ${
                     activeScreen === 'wallet'
                       ? 'text-[#c8a668]'
                       : 'text-[#7e7c74] group-hover:text-[#c8a668]'
                   }`}
                 />
-                <span className="font-cinzel text-[7px] tracking-[0.15em]">
+                <span className="font-cinzel text-[8px] tracking-[0.15em]">
                   {typedMap.navWallet || 'WALLET'}
                   {renderCursor('navWallet')}
                 </span>
@@ -3447,7 +3447,7 @@ export default function App() {
                     } CHECKER TO MOVE`}
               </span>
             ) : (
-              <span className="flex items-center font-cinzel text-[7px] tracking-[0.16em] text-[#7a7870] whitespace-nowrap select-none">
+              <span className="flex items-center font-cinzel text-[8px] tracking-[0.16em] text-[#7a7870] whitespace-nowrap select-none">
                 {typedMap.motto || 'A HIGHER KIND OF PLAY'}
                 {renderCursor('motto')}
               </span>
