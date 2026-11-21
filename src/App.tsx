@@ -589,21 +589,8 @@ export default function App() {
     royalSound.muted = !realState.sfxEnabled;
   }, [realState.sfxEnabled]);
 
-  // Request fullscreen for better immersion
-  useEffect(() => {
-    const tg = getTelegramWebApp();
-    if (tg && tg.isVersionAtLeast && tg.isVersionAtLeast('8.0') && typeof tg.requestFullscreen === 'function') {
-      try {
-        tg.requestFullscreen();
-      } catch (e) {
-        console.warn('Telegram Fullscreen request failed:', e);
-      }
-    } else if (document.documentElement.requestFullscreen) {
-      document.documentElement.requestFullscreen().catch((e) => {
-        console.warn('Browser Fullscreen request failed:', e);
-      });
-    }
-  }, []);
+  // Respect the launcher's configured Mini App window mode.
+  // Do not force Telegram or browser fullscreen from inside the app.
 
   // Persist real state to localStorage + Telegram CloudStorage
   useEffect(() => {
@@ -2764,7 +2751,7 @@ export default function App() {
   if (isHomeScreen) {
     return (
       <div
-        className="fixed inset-0 w-full h-full bg-black overflow-hidden select-none touch-none"
+        className="fixed inset-x-0 top-2 h-[calc(100dvh-8px)] w-full bg-black overflow-hidden select-none touch-none"
         style={isRotatedView && isPortrait ? {
           position: 'fixed',
           width: '100dvh',
@@ -2827,7 +2814,7 @@ export default function App() {
   }
 
   return (
-    <div className="w-full h-full min-h-screen bg-[#020705] text-[#e8dfd0] overflow-hidden select-none flex flex-col justify-between relative touch-none overscroll-none">
+    <div className="w-full h-[calc(100dvh-8px)] min-h-0 pt-2 bg-[#020705] text-[#e8dfd0] overflow-hidden select-none flex flex-col justify-between relative touch-none overscroll-none">
       {/* 1. Photorealistic Luxury Dark Emerald Parlor & Velvet Table Background */}
           <div className="absolute inset-0 z-0 pointer-events-none">
             <img
