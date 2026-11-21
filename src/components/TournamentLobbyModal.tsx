@@ -112,10 +112,10 @@ export function TournamentLobbyModal({
   const matchesForSelectedRound = currentTourn.swissMatches[selectedRound] || [];
 
   const tournamentStatusLabel = {
-    registering: 'ثبت‌نام فعال',
-    swiss_stage: 'مرحله سوئیسی در جریان',
-    knockout_stage: 'مرحله حذفی',
-    completed: 'پایان‌یافته',
+    registering: 'Registration Open',
+    swiss_stage: 'Swiss Stage',
+    knockout_stage: 'Knockout Stage',
+    completed: 'Completed',
   }[currentTourn.status];
 
   return (
@@ -134,7 +134,7 @@ export function TournamentLobbyModal({
               <div className="min-w-0">
                 <p className="font-cinzel text-[9px] font-bold tracking-[.28em] text-[#65dcd4]">ROYAL BACKGAMMON</p>
                 <h2 className="truncate font-cinzel text-[15px] font-black tracking-[.08em] text-[#e8fbff] sm:text-lg">CHAMPIONSHIP ARENA</h2>
-                <p className="font-cormorant text-[10px] text-[#b9ad96]">تورنمنت رسمی</p>
+                <p className="font-cormorant text-[10px] text-[#b9ad96]">OFFICIAL TOURNAMENT</p>
               </div>
             </div>
             <div className="flex shrink-0 items-center gap-2">
@@ -204,32 +204,32 @@ export function TournamentLobbyModal({
             <div className="rounded-xl border border-white/10 bg-[#0a1826]/95 p-3">
               <span className="block font-cinzel text-[7px] tracking-wider text-[#8f958f]">PLATFORM FEE</span>
               <strong className="mt-1 block font-cinzel text-lg text-[#c7a66a] tabular-nums">{currentTourn.platformFeeUsdt.toFixed(2)}</strong>
-              <span className="font-cormorant text-[9px] text-[#a9a18f]">کارمزد</span>
+              <span className="font-cormorant text-[9px] text-[#a9a18f]">PLATFORM FEE</span>
             </div>
           </section>
 
           <section className="mb-4 flex flex-col gap-3 rounded-2xl border border-[#d4b574]/45 bg-[linear-gradient(105deg,rgba(38,31,21,.96),rgba(9,18,30,.98))] p-3 shadow-[0_12px_30px_rgba(0,0,0,.3)] sm:flex-row sm:items-center sm:justify-between sm:p-4">
             <div className="min-w-0">
               <span className="font-cinzel text-[9px] font-bold tracking-[.12em] text-[#f3d99e]">{isUserRegistered ? 'YOUR SEAT IS RESERVED' : 'CLAIM YOUR PLACE IN THE ARENA'}</span>
-              <p className="mt-1 font-cormorant text-[10px] text-[#c6baa2]">{isUserRegistered ? 'ثبت‌نام فعال' : `ورودی: ${entryFee} USDT`}</p>
-              {!isUserRegistered && !hasEnoughBalance && <p className="mt-1 font-cormorant text-[10px] text-[#e2a88f]">BALANCE ناکافی</p>}
+              <p className="mt-1 font-cormorant text-[10px] text-[#c6baa2]">{isUserRegistered ? 'Registration Open' : `Entry: ${entryFee} USDT`}</p>
+              {!isUserRegistered && !hasEnoughBalance && <p className="mt-1 font-cormorant text-[10px] text-[#e2a88f]">INSUFFICIENT BALANCE</p>}
             </div>
             <div className="flex shrink-0 gap-2">
-              {!hasEnoughBalance && !isUserRegistered && <button type="button" onClick={onOpenWallet} className="rounded-xl border border-[#c9a45f]/55 bg-[#102431] px-3 py-2 font-cinzel text-[8px] font-bold text-[#e9d39f]">کیف پول</button>}
+              {!hasEnoughBalance && !isUserRegistered && <button type="button" onClick={onOpenWallet} className="rounded-xl border border-[#c9a45f]/55 bg-[#102431] px-3 py-2 font-cinzel text-[8px] font-bold text-[#e9d39f]">WALLET</button>}
               {isUserRegistered ? (
-                <button type="button" disabled={currentTourn.status !== 'registering'} onClick={() => onUnregisterTournament(currentTourn.id)} className="rounded-xl border border-[#b97963]/55 bg-[#351b19] px-4 py-2.5 font-cinzel text-[8px] font-bold text-[#f0c8b8] disabled:opacity-40">لغو ثبت‌نام و بازگشت وجه</button>
+                <button type="button" disabled={currentTourn.status !== 'registering'} onClick={() => onUnregisterTournament(currentTourn.id)} className="rounded-xl border border-[#b97963]/55 bg-[#351b19] px-4 py-2.5 font-cinzel text-[8px] font-bold text-[#f0c8b8] disabled:opacity-40">CANCEL & REFUND</button>
               ) : (
-                <button type="button" disabled={!hasEnoughBalance || currentTourn.participants.length >= currentTourn.config.maxParticipants} onClick={() => onRegisterTournament(selectedTier)} className="rounded-xl border border-[#8df1e8] bg-[linear-gradient(180deg,#8af0e6,#23878a)] px-5 py-2.5 font-cinzel text-[9px] font-black tracking-wider text-[#041a20] shadow-[0_5px_20px_rgba(203,163,82,.22)] transition hover:brightness-110 disabled:cursor-not-allowed disabled:grayscale disabled:opacity-20">{hasEnoughBalance ? `ورود به مسابقات · ${entryFee} USDT` : 'BALANCE ناکافی'}</button>
+                <button type="button" disabled={!hasEnoughBalance || currentTourn.participants.length >= currentTourn.config.maxParticipants} onClick={() => onRegisterTournament(selectedTier)} className="rounded-xl border border-[#8df1e8] bg-[linear-gradient(180deg,#8af0e6,#23878a)] px-5 py-2.5 font-cinzel text-[9px] font-black tracking-wider text-[#041a20] shadow-[0_5px_20px_rgba(203,163,82,.22)] transition hover:brightness-110 disabled:cursor-not-allowed disabled:grayscale disabled:opacity-20">{hasEnoughBalance ? `JOIN TOURNAMENT · ${entryFee} USDT` : 'INSUFFICIENT BALANCE'}</button>
               )}
             </div>
           </section>
 
           <nav className="mb-3 grid grid-cols-4 gap-1 rounded-2xl border border-[#5ddbd2]/20 bg-[#07131f]/95 p-1">
             {[
-              { id: 'standings', title: 'رتبه‌ها' },
-              { id: 'pairings', title: 'بازی‌ها' },
-              { id: 'bracket', title: 'فینال' },
-              { id: 'rules', title: 'قوانین' },
+              { id: 'standings', title: 'STANDINGS' },
+              { id: 'pairings', title: 'MATCHES' },
+              { id: 'bracket', title: 'FINALS' },
+              { id: 'rules', title: 'RULES' },
             ].map((tab) => (
               <button key={tab.id} type="button" onClick={() => setActiveTab(tab.id as typeof activeTab)} className={`rounded-xl px-1 py-2 text-center transition-all ${activeTab === tab.id ? 'border border-[#65ded5]/60 bg-[linear-gradient(180deg,#17656b,#10232e)] text-[#d9fffb] shadow-[inset_0_1px_0_rgba(255,235,190,.2)]' : 'text-[#8e918f] hover:bg-white/5'}`}>
                 <span className="block font-cinzel text-[9px] font-bold">{tab.title}</span>
@@ -248,7 +248,7 @@ export function TournamentLobbyModal({
                   <div className="flex min-h-[190px] flex-col items-center justify-center text-center">
                     <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-full border border-[#c9a45f]/35 bg-[radial-gradient(circle,#5d4726,#121722_72%)] shadow-[0_0_25px_rgba(201,164,95,.12)]"><RoyalCrownIcon className="h-8 w-8 text-[#d9bd80]" /></div>
                     <p className="font-cinzel text-[9px] font-bold tracking-wider text-[#e8d3a6]">THE TABLE IS WAITING</p>
-                    <p className="mt-1 font-cormorant text-[11px] text-[#969487]">در انتظار PLAYERSان</p>
+                    <p className="mt-1 font-cormorant text-[11px] text-[#969487]">WAITING FOR PLAYERS</p>
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -259,7 +259,7 @@ export function TournamentLobbyModal({
                       return (
                         <div key={p.userId} className={`grid grid-cols-[28px_1fr_auto_auto] items-center gap-2 rounded-xl border px-2.5 py-2 ${isMe ? 'border-[#e0c27e]/65 bg-[#33291c]/80' : 'border-white/8 bg-[#0d1d2b]/90'}`}>
                           <span className={`flex h-7 w-7 items-center justify-center rounded-lg font-cinzel text-[10px] font-black ${idx < 3 ? 'bg-[linear-gradient(145deg,#e4c783,#76552a)] text-[#041a20]' : 'bg-[#1c2939] text-[#c6b58f]'}`}>{idx + 1}</span>
-                          <div className="min-w-0"><p className="truncate font-cinzel text-[9px] font-bold text-[#f0e2c5]">{p.username}{isMe && <span className="ml-1 text-[#d9bd80]">YOU</span>}</p><p className="font-cormorant text-[10px] text-[#8f958f]">ELO {p.rating} · {p.matchesPlayed} مسابقه</p></div>
+                          <div className="min-w-0"><p className="truncate font-cinzel text-[9px] font-bold text-[#f0e2c5]">{p.username}{isMe && <span className="ml-1 text-[#d9bd80]">YOU</span>}</p><p className="font-cormorant text-[10px] text-[#8f958f]">ELO {p.rating} · {p.matchesPlayed} MATCHES</p></div>
                           <div className="text-center"><b className="block font-cinzel text-[11px] text-[#e7c77f]">{p.swissPoints}</b><span className="font-cinzel text-[6px] text-[#858b89]">POINTS</span></div>
                           <span className={`rounded-md px-2 py-1 font-cinzel text-[7px] ${isTop8 ? 'border border-[#b99a5e]/35 bg-[#153d43] text-[#9af4ec]' : 'bg-[#202733] text-[#9a9b96]'}`}>{isTop8 ? 'TOP 8' : `DIFF ${diff > 0 ? '+' : ''}${diff}`}</span>
                         </div>
@@ -276,11 +276,11 @@ export function TournamentLobbyModal({
                 <div className="mb-3 flex gap-1.5 overflow-x-auto pb-1">
                   {[1, 2, 3, 4, 5].map((rnd) => <button key={rnd} type="button" onClick={() => setSelectedRound(rnd)} className={`shrink-0 rounded-lg border px-3 py-2 font-cinzel text-[8px] font-bold ${selectedRound === rnd ? 'border-[#65ded5] bg-[#17656b] text-[#e8fbff]' : 'border-white/10 bg-[#111b2a] text-[#92958f]'}`}>ROUND {rnd}</button>)}
                 </div>
-                {matchesForSelectedRound.length === 0 ? <div className="flex min-h-[160px] items-center justify-center text-center font-cormorant text-[13px] text-[#969487]">برنامه این راند هنوز از سرور دریافت نشده است.</div> : <div className="grid gap-2 sm:grid-cols-2">
+                {matchesForSelectedRound.length === 0 ? <div className="flex min-h-[160px] items-center justify-center text-center font-cormorant text-[13px] text-[#969487]">Pairings for this round are not available yet.</div> : <div className="grid gap-2 sm:grid-cols-2">
                   {matchesForSelectedRound.map((m) => <article key={m.matchId} className="rounded-xl border border-[#5ddbd2]/20 bg-[#0a1a28] p-3">
                     <div className="mb-3 flex items-center justify-between"><span className="font-cinzel text-[7px] tracking-wider text-[#b99a5e]">ROUND {m.roundIndex ?? m.round} · TO {m.targetPoints}</span><span className={`rounded-md px-2 py-1 font-cinzel text-[7px] ${m.status === 'completed' ? 'bg-[#253c2d] text-[#b8d8b2]' : m.status === 'in_progress' ? 'bg-[#4a321c] text-[#f2d18a]' : 'bg-[#202733] text-[#aeb1b2]'}`}>{m.status === 'completed' ? 'FINAL' : m.status === 'in_progress' ? 'LIVE' : 'UPCOMING'}</span></div>
                     {[m.player1, m.player2].map((p, i) => <div key={p.userId} className="flex items-center justify-between border-t border-white/5 py-2"><span className="truncate font-cinzel text-[9px] text-[#e8dcc2]">{p.username}</span><b className="font-cinzel text-sm text-[#9af4ec]">{i === 0 ? m.scoreP1 : m.scoreP2}</b></div>)}
-                    <div className="mt-2 flex items-center justify-between"><span className="font-cinzel text-[7px] text-[#888e8e]">CUBE {m.doublingCubeValue ?? 1}X</span><button type="button" onClick={() => onSpectateMatch(m)} className="rounded-lg border border-[#5ddbd2]/35 bg-[#1a2635] px-3 py-1.5 font-cinzel text-[7px] font-bold text-[#9af4ec]">تماشای بازی</button></div>
+                    <div className="mt-2 flex items-center justify-between"><span className="font-cinzel text-[7px] text-[#888e8e]">CUBE {m.doublingCubeValue ?? 1}X</span><button type="button" onClick={() => onSpectateMatch(m)} className="rounded-lg border border-[#5ddbd2]/35 bg-[#1a2635] px-3 py-1.5 font-cinzel text-[7px] font-bold text-[#9af4ec]">WATCH MATCH</button></div>
                   </article>)}
                 </div>}
               </div>
@@ -291,15 +291,15 @@ export function TournamentLobbyModal({
                 <div className="mb-3"><h3 className="font-cinzel text-[10px] font-bold tracking-wider text-[#f2d99f]">FINAL BRACKET</h3></div>
                 <div className="grid gap-3 sm:grid-cols-3">
                   {[
-                    { title: 'QUARTERFINALS', fa: 'یک‌چهارم نهایی', rows: currentTourn.bracket?.quarters || [], count: 4, target: 7 },
-                    { title: 'SEMIFINALS', fa: 'نیمه‌نهایی', rows: currentTourn.bracket?.semis || [], count: 2, target: 9 },
-                    { title: 'GRAND FINAL', fa: 'فینال قهرمانی', rows: currentTourn.bracket?.final ? [currentTourn.bracket.final] : [], count: 1, target: 11 },
+                    { title: 'QUARTERFINALS', fa: 'Quarterfinals', rows: currentTourn.bracket?.quarters || [], count: 4, target: 7 },
+                    { title: 'SEMIFINALS', fa: 'Semifinals', rows: currentTourn.bracket?.semis || [], count: 2, target: 9 },
+                    { title: 'GRAND FINAL', fa: 'FINALS قهرمانی', rows: currentTourn.bracket?.final ? [currentTourn.bracket.final] : [], count: 1, target: 11 },
                   ].map((stage) => <div key={stage.title} className="rounded-xl border border-[#5ddbd2]/20 bg-[#091a28] p-2.5">
-                    <p className="font-cinzel text-[8px] font-bold tracking-wider text-[#e2c27e]">{stage.title}</p><p className="mb-2 font-cormorant text-[10px] text-[#92958f]">{stage.fa} · تا {stage.target} امتیاز</p>
+                    <p className="font-cinzel text-[8px] font-bold tracking-wider text-[#e2c27e]">{stage.title}</p><p className="mb-2 font-cormorant text-[10px] text-[#92958f]">{stage.fa} · First to {stage.target} points</p>
                     {Array.from({ length: stage.count }, (_, i) => {
                       const match: any = stage.rows[i];
-                      const p1 = match?.player1?.username || 'در انتظار صعود';
-                      const p2 = match?.player2?.username || 'در انتظار صعود';
+                      const p1 = match?.player1?.username || 'Awaiting qualifier';
+                      const p2 = match?.player2?.username || 'Awaiting qualifier';
                       return <div key={i} className="mb-2 rounded-lg border border-white/8 bg-[#102431] p-2">
                         <div className="flex items-center justify-between py-1"><span className="truncate font-cinzel text-[8px] text-[#e6dcc6]">{p1}</span><b className="font-cinzel text-[10px] text-[#e1c17b]">{match?.player1?.score ?? '—'}</b></div>
                         <div className="flex items-center justify-between border-t border-white/5 py-1"><span className="truncate font-cinzel text-[8px] text-[#e6dcc6]">{p2}</span><b className="font-cinzel text-[10px] text-[#e1c17b]">{match?.player2?.score ?? '—'}</b></div>
@@ -314,11 +314,11 @@ export function TournamentLobbyModal({
               <div className="space-y-3">
                 <div><h3 className="font-cinzel text-[10px] font-bold tracking-wider text-[#f2d99f]">RULES</h3></div>
                 {[
-                  ['ساختار مسابقات', '۵ راند سوئیسی برگزار می‌شود. هشت PLAYERS برتر جدول به مرحله حذفی تک‌حذفی راه پیدا می‌کنند.'],
-                  ['امتیاز هر مرحله', 'راندهای سوئیسی تا ۵، یک‌چهارم نهایی تا ۷، نیمه‌نهایی تا ۹ و فینال تا ۱۱ امتیاز است.'],
-                  ['قانون کرافورد', 'در شرایط کرافورد، مکعب دوبرابر طبق قانون مسابقه غیرفعال خواهد بود.'],
-                  ['توزیع جوایز', 'طبق ساختار تعریف‌شده تورنمنت، ۸۵٪ استخر جوایز برای PLAYERSان و ۱۵٪ کارمزد پلتفرم در نظر گرفته شده است.'],
-                  ['تاس منصفانه', 'نتایج تاس باید از سازوکار Provably Fair سمت سرور قابل بررسی باشند.'],
+                  ['Tournament Format', '۵ راند سوئیسی برگزار می‌شود. هشت PLAYERS برتر جدول به Knockout Stage تک‌حذفی راه پیدا می‌کنند.'],
+                  ['Match Targets', 'راندهای سوئیسی تا ۵، Quarterfinals تا ۷، Semifinals تا ۹ و FINALS تا ۱۱ امتیاز است.'],
+                  ['Crawford Rule', 'در شرایط کرافورد، مکعب دوبرابر طبق قانون MATCHES غیرفعال خواهد بود.'],
+                  ['Prize Distribution', 'طبق ساختار تعریف‌شده تورنمنت، ۸۵٪ استخر جوایز برای PLAYERSان و ۱۵٪ PLATFORM FEE پلتفرم در نظر گرفته شده است.'],
+                  ['Fair Dice', 'Dice results can be verified through the server-side Provably Fair system.'],
                 ].map(([title, desc], i) => <div key={title} className="flex gap-3 rounded-xl border border-white/8 bg-[#101a28] p-3"><span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-[#c9a45f]/35 bg-[#12363e] font-cinzel text-[9px] text-[#9af4ec]">{i + 1}</span><div><h4 className="font-cinzel text-[8px] font-bold text-[#e8d3a6]">{title}</h4><p className="mt-1 font-cormorant text-[12px] leading-relaxed text-[#b6ad9b]">{desc}</p></div></div>)}
               </div>
             )}
