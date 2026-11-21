@@ -838,6 +838,7 @@ export default function App() {
     royalSound.playOptionClickSound();
     setIsSpectating(true);
     setSpectatingMatchInfo(match);
+    setGameMode('online');
     setIsTournamentModalOpen(false);
     setActiveScreen('game');
     multiplayerClient.send({
@@ -3223,15 +3224,18 @@ export default function App() {
 
             {/* 3D GLB BACKGAMMON BOARD STAGE (Active and visible when on Game Screen) */}
             <div
-              className={`h-full flex items-center justify-center transition-all duration-300 ${
+              className={`absolute inset-0 z-10 h-full w-full transition-opacity duration-300 ${
                 isGameScreen
-                  ? 'w-full opacity-100 pointer-events-auto'
-                  : 'w-0 opacity-0 pointer-events-none absolute inset-0'
+                  ? 'opacity-100 pointer-events-auto visible'
+                  : 'opacity-0 pointer-events-none invisible'
               }`}
+              data-game-mode={gameMode}
+              aria-label={isGameScreen ? '3D backgammon game board' : undefined}
             >
                 <div
                   ref={canvasContainerRef}
-                  className={`relative w-full h-full min-h-0 ${
+                  style={{ width: '100%', height: '100%', minHeight: 0 }}
+                  className={`relative w-full h-full min-h-0 overflow-hidden ${
                     isGameScreen
                       ? isBoardHovered
                         ? 'cursor-pointer pointer-events-auto'
