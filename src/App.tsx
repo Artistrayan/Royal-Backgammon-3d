@@ -1821,7 +1821,7 @@ export default function App() {
   const startLineByLineTyping = useCallback(() => {
     const lines: { key: LineKey; text: string }[] = [
       { key: 'brand', text: 'ROYAL BACKGAMMON' },
-      { key: 'coins', text: `${realState.coins.toLocaleString()} COINS` },
+      { key: 'coins', text: `${realState.coins.toLocaleString('en-US')} COINS` },
       { key: 'hero1', text: 'YOUR TABLE' },
       { key: 'hero2', text: 'AWAITS' },
       { key: 'opt1Title', text: 'ONLINE MATCH' },
@@ -2399,7 +2399,7 @@ export default function App() {
       showToastNotification(
         item.id,
         'INSUFFICIENT COINS',
-        `Requires ${item.price.toLocaleString()} Coins (Claim in Wallet)`
+        `Requires ${item.price.toLocaleString('en-US')} Coins (Claim in Wallet)`
       );
     }
   };
@@ -2434,7 +2434,7 @@ export default function App() {
     }));
     showToastNotification(
       `pack-${amount}`,
-      `+${amount.toLocaleString()} COINS ADDED`,
+      `+${amount.toLocaleString('en-US')} COINS ADDED`,
       packName
     );
   };
@@ -3114,7 +3114,7 @@ export default function App() {
                   >
                     <span className="text-[9px]">🟡</span>
                     <span className="font-cinzel text-[8px] font-black text-[#f5dca8] tabular-nums">
-                      {realState.coins.toLocaleString()}
+                      {realState.coins.toLocaleString('en-US')}
                     </span>
                     <span className="w-3 h-3 rounded bg-[#c8a668] text-[#140e05] font-bold text-[7px] flex items-center justify-center">
                       +
