@@ -3142,7 +3142,7 @@ export default function App() {
                   <button
                     type="button"
                     onClick={() => setIsLeaderboardModalOpen(true)}
-                    title="رتبه‌بندی جهانی (Leaderboard)"
+                    title="Global Leaderboard"
                     className="w-6 h-6 rounded-lg bg-[#061c12] hover:bg-[#0c3120] border border-[#52f29c]/40 text-[#52f29c] flex items-center justify-center shadow cursor-pointer transition-all active:scale-95 text-[10px] font-bold"
                   >
                     🏆
@@ -3151,7 +3151,7 @@ export default function App() {
                   <button
                     type="button"
                     onClick={() => setIsSupportModalOpen(true)}
-                    title="پشتیبانی ۲۴ ساعته"
+                    title="24/7 Support"
                     className="w-6 h-6 rounded-lg bg-[#061810] hover:bg-[#0c2b1e] border border-[#52f29c]/40 text-[#52f29c] flex items-center justify-center shadow cursor-pointer transition-all active:scale-95 text-[10px]"
                   >
                     🎧
@@ -3160,7 +3160,7 @@ export default function App() {
                   <button
                     type="button"
                     onClick={() => navigateToScreen(activeScreen === 'settings' ? 'home' : 'settings')}
-                    title="تنظیمات"
+                    title="Settings"
                     className="w-6 h-6 rounded-lg bg-[#04100b] hover:bg-[#0b261b] border border-[#c8a668]/40 text-[#c8a668] flex items-center justify-center shadow cursor-pointer transition-all active:scale-95 text-[10px]"
                   >
                     ⚙️
