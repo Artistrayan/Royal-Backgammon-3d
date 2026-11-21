@@ -134,7 +134,7 @@ export function TournamentLobbyModal({
               <div className="min-w-0">
                 <p className="font-cinzel text-[9px] font-bold tracking-[.28em] text-[#c9a45f]">ROYAL BACKGAMMON</p>
                 <h2 className="truncate font-cinzel text-[15px] font-black tracking-[.08em] text-[#fff0c9] sm:text-lg">CHAMPIONSHIP ARENA</h2>
-                <p className="font-cormorant text-[11px] text-[#b9ad96]">تالار رقابت‌های رسمی رویال</p>
+                <p className="font-cormorant text-[10px] text-[#b9ad96]">تورنمنت رسمی</p>
               </div>
             </div>
             <div className="flex shrink-0 items-center gap-2">
@@ -156,11 +156,9 @@ export function TournamentLobbyModal({
                   <span className="font-cinzel text-[8px] font-bold tracking-[.25em] text-[#e2c27f]">THE ROAD TO THE CROWN</span>
                 </div>
                 <h3 className="font-cinzel text-[17px] font-black leading-tight text-[#fff0c9] sm:text-2xl">قهرمانی فقط یک برنده دارد</h3>
-                <p className="mt-1 max-w-xl font-cormorant text-[13px] text-[#c9bea8]">در پنج راند سوئیسی رقابت کن؛ هشت نفر برتر به جدول حذفی راه پیدا می‌کنند.</p>
+                <p className="mt-1 font-cinzel text-[10px] tracking-[.18em] text-[#c9bea8]">5 ROUNDS <span className="px-2 text-[#c9a45f]">✦</span> TOP 8 <span className="px-2 text-[#c9a45f]">✦</span> FINAL</p>
                 <div className="mt-3 flex flex-wrap gap-2">
-                  <span className="rounded-full border border-[#c9a45f]/35 bg-black/25 px-3 py-1 font-cinzel text-[8px] text-[#e8d3a6]">۵ راند سوئیسی</span>
-                  <span className="rounded-full border border-[#c9a45f]/35 bg-black/25 px-3 py-1 font-cinzel text-[8px] text-[#e8d3a6]">۸ فینالیست</span>
-                  <span className="rounded-full border border-[#c9a45f]/35 bg-black/25 px-3 py-1 font-cinzel text-[8px] text-[#e8d3a6]">قانون کرافورد</span>
+                  <span className="rounded-full border border-[#c9a45f]/35 bg-black/25 px-3 py-1 font-cinzel text-[8px] text-[#e8d3a6]">CRAWFORD</span>
                 </div>
               </div>
               <div className="mx-auto flex h-28 w-28 items-center justify-center rounded-full border border-[#e5c77f]/55 bg-[radial-gradient(circle_at_35%_25%,#b58b49,#4c3519_48%,#10131b_76%)] shadow-[0_0_0_7px_rgba(215,174,93,.07),0_0_42px_rgba(215,174,93,.2),inset_0_2px_8px_rgba(255,239,190,.3)] sm:mr-5 sm:h-36 sm:w-36">
@@ -180,7 +178,7 @@ export function TournamentLobbyModal({
                   {active && <span className="absolute right-0 top-0 rounded-bl-xl bg-[#e4c783] px-2 py-1 font-cinzel text-[7px] font-black tracking-wider text-[#201707]">SELECTED</span>}
                   <span className="block font-cinzel text-[8px] tracking-[.16em] text-[#c9a45f]">{tId === 'swiss_5' ? 'ROYAL CUP' : 'ELITE SERIES'}</span>
                   <span className="mt-1 block font-cinzel text-[13px] font-black text-[#fff0c9] sm:text-base">{conf.entryFeeUsdt} USDT <span className="text-[8px] font-medium text-[#c9bea8]">ENTRY</span></span>
-                  <span className="mt-1 block font-cormorant text-[11px] text-[#c8bda7]">{conf.persianTitle}</span>
+                  <span className="mt-1 block font-cormorant text-[10px] text-[#c8bda7]">{conf.persianTitle}</span>
                   <span className="mt-2 flex items-center justify-between border-t border-white/10 pt-2 font-cinzel text-[8px] text-[#d9bd80]"><span>ظرفیت</span><b>{conf.maxParticipants} نفر</b></span>
                 </button>
               );
@@ -191,30 +189,30 @@ export function TournamentLobbyModal({
             <div className="rounded-xl border border-white/10 bg-[#0b1421]/90 p-3">
               <span className="block font-cinzel text-[7px] tracking-wider text-[#8f958f]">PLAYERS</span>
               <strong className="mt-1 block font-cinzel text-lg text-[#f4dfb0] tabular-nums">{currentTourn.participants.length}<small className="ml-1 text-[9px] text-[#8f958f]">/ {currentTourn.config.maxParticipants}</small></strong>
-              <span className="font-cormorant text-[10px] text-[#a9a18f]">شرکت‌کنندگان</span>
+              <span className="font-cormorant text-[9px] text-[#a9a18f]">بازیکن</span>
             </div>
             <div className="rounded-xl border border-[#c9a45f]/25 bg-[#171526]/90 p-3">
               <span className="block font-cinzel text-[7px] tracking-wider text-[#b89a61]">PRIZE POOL</span>
               <strong className="mt-1 block font-cinzel text-lg text-[#e8c77f] tabular-nums">{currentTourn.prizePoolUsdt.toFixed(2)}</strong>
-              <span className="font-cormorant text-[10px] text-[#b9ad96]">USDT جوایز</span>
+              <span className="font-cormorant text-[9px] text-[#b9ad96]">جایزه · USDT</span>
             </div>
             <div className="rounded-xl border border-white/10 bg-[#0b1421]/90 p-3">
               <span className="block font-cinzel text-[7px] tracking-wider text-[#8f958f]">YOUR BALANCE</span>
               <strong className="mt-1 block font-cinzel text-lg text-[#f4dfb0] tabular-nums">{userUsdtBalance.toFixed(2)}</strong>
-              <span className="font-cormorant text-[10px] text-[#a9a18f]">موجودی USDT</span>
+              <span className="font-cormorant text-[9px] text-[#a9a18f]">موجودی</span>
             </div>
             <div className="rounded-xl border border-white/10 bg-[#0b1421]/90 p-3">
               <span className="block font-cinzel text-[7px] tracking-wider text-[#8f958f]">PLATFORM FEE</span>
               <strong className="mt-1 block font-cinzel text-lg text-[#c7a66a] tabular-nums">{currentTourn.platformFeeUsdt.toFixed(2)}</strong>
-              <span className="font-cormorant text-[10px] text-[#a9a18f]">کارمزد USDT</span>
+              <span className="font-cormorant text-[9px] text-[#a9a18f]">کارمزد</span>
             </div>
           </section>
 
           <section className="mb-4 flex flex-col gap-3 rounded-2xl border border-[#d4b574]/45 bg-[linear-gradient(105deg,rgba(38,31,21,.96),rgba(9,18,30,.98))] p-3 shadow-[0_12px_30px_rgba(0,0,0,.3)] sm:flex-row sm:items-center sm:justify-between sm:p-4">
             <div className="min-w-0">
               <span className="font-cinzel text-[9px] font-bold tracking-[.12em] text-[#f3d99e]">{isUserRegistered ? 'YOUR SEAT IS RESERVED' : 'CLAIM YOUR PLACE IN THE ARENA'}</span>
-              <p className="mt-1 font-cormorant text-[12px] text-[#c6baa2]">{isUserRegistered ? 'ثبت‌نام شما در این تورنمنت فعال است.' : `برای ورود به این رقابت، ${entryFee} USDT موجودی لازم است.`}</p>
-              {!isUserRegistered && !hasEnoughBalance && <p className="mt-1 font-cormorant text-[11px] text-[#e2a88f]">موجودی کافی نیست؛ ابتدا کیف پول را شارژ کنید.</p>}
+              <p className="mt-1 font-cormorant text-[10px] text-[#c6baa2]">{isUserRegistered ? 'ثبت‌نام فعال' : `ورودی: ${entryFee} USDT`}</p>
+              {!isUserRegistered && !hasEnoughBalance && <p className="mt-1 font-cormorant text-[10px] text-[#e2a88f]">موجودی ناکافی</p>}
             </div>
             <div className="flex shrink-0 gap-2">
               {!hasEnoughBalance && !isUserRegistered && <button type="button" onClick={onOpenWallet} className="rounded-xl border border-[#c9a45f]/55 bg-[#111d2b] px-3 py-2 font-cinzel text-[8px] font-bold text-[#e9d39f]">کیف پول</button>}
@@ -228,15 +226,14 @@ export function TournamentLobbyModal({
 
           <nav className="mb-3 grid grid-cols-4 gap-1 rounded-2xl border border-[#c9a45f]/25 bg-[#060d17]/90 p-1">
             {[
-              { id: 'standings', title: 'رده‌بندی', sub: 'STANDINGS' },
-              { id: 'pairings', title: 'مسابقات', sub: 'MATCHES' },
-              { id: 'bracket', title: 'حذفی', sub: 'FINALS' },
-              { id: 'rules', title: 'قوانین', sub: 'RULES' },
+              { id: 'standings', title: 'رتبه‌ها' },
+              { id: 'pairings', title: 'بازی‌ها' },
+              { id: 'bracket', title: 'فینال' },
+              { id: 'rules', title: 'قوانین' },
             ].map((tab) => (
               <button key={tab.id} type="button" onClick={() => setActiveTab(tab.id as typeof activeTab)} className={`rounded-xl px-1 py-2 text-center transition-all ${activeTab === tab.id ? 'border border-[#d7b66d]/65 bg-[linear-gradient(180deg,#5b4528,#241d17)] text-[#ffebbd] shadow-[inset_0_1px_0_rgba(255,235,190,.2)]' : 'text-[#8e918f] hover:bg-white/5'}`}>
                 <span className="block font-cinzel text-[9px] font-bold">{tab.title}</span>
-                <span className="mt-0.5 block font-cinzel text-[6px] tracking-[.12em] opacity-65">{tab.sub}</span>
-              </button>
+               </button>
             ))}
           </nav>
 
@@ -244,14 +241,14 @@ export function TournamentLobbyModal({
             {activeTab === 'standings' && (
               <div>
                 <div className="mb-3 flex items-center justify-between gap-2">
-                  <div><h3 className="font-cinzel text-[10px] font-bold tracking-wider text-[#f2d99f]">SWISS LEADERBOARD</h3><p className="font-cormorant text-[11px] text-[#a9a18f]">جدول امتیازات و رتبه بازیکنان</p></div>
+                  <div><h3 className="font-cinzel text-[10px] font-bold tracking-wider text-[#f2d99f]">LEADERBOARD</h3></div>
                   <span className="rounded-lg border border-[#c9a45f]/30 bg-[#171b22] px-2 py-1 font-cinzel text-[7px] text-[#d9bd80]">TOP 8 → FINALS</span>
                 </div>
                 {sortedParticipants.length === 0 ? (
                   <div className="flex min-h-[190px] flex-col items-center justify-center text-center">
                     <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-full border border-[#c9a45f]/35 bg-[radial-gradient(circle,#5d4726,#121722_72%)] shadow-[0_0_25px_rgba(201,164,95,.12)]"><RoyalCrownIcon className="h-8 w-8 text-[#d9bd80]" /></div>
                     <p className="font-cinzel text-[9px] font-bold tracking-wider text-[#e8d3a6]">THE TABLE IS WAITING</p>
-                    <p className="mt-1 font-cormorant text-[12px] text-[#969487]">هنوز بازیکنی در این تورنمنت ثبت‌نام نکرده است.</p>
+                    <p className="mt-1 font-cormorant text-[11px] text-[#969487]">در انتظار بازیکنان</p>
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -275,7 +272,7 @@ export function TournamentLobbyModal({
 
             {activeTab === 'pairings' && (
               <div>
-                <div className="mb-3"><h3 className="font-cinzel text-[10px] font-bold tracking-wider text-[#f2d99f]">ROUND FIXTURES</h3><p className="font-cormorant text-[11px] text-[#a9a18f]">برنامه و نتیجه رویارویی‌ها</p></div>
+                <div className="mb-3"><h3 className="font-cinzel text-[10px] font-bold tracking-wider text-[#f2d99f]">MATCHES</h3></div>
                 <div className="mb-3 flex gap-1.5 overflow-x-auto pb-1">
                   {[1, 2, 3, 4, 5].map((rnd) => <button key={rnd} type="button" onClick={() => setSelectedRound(rnd)} className={`shrink-0 rounded-lg border px-3 py-2 font-cinzel text-[8px] font-bold ${selectedRound === rnd ? 'border-[#e2c27e] bg-[#72552b] text-[#fff0c9]' : 'border-white/10 bg-[#111b2a] text-[#92958f]'}`}>ROUND {rnd}</button>)}
                 </div>
@@ -291,7 +288,7 @@ export function TournamentLobbyModal({
 
             {activeTab === 'bracket' && (
               <div>
-                <div className="mb-3"><h3 className="font-cinzel text-[10px] font-bold tracking-wider text-[#f2d99f]">KNOCKOUT ROAD</h3><p className="font-cormorant text-[11px] text-[#a9a18f]">مسیر رسیدن به فینال</p></div>
+                <div className="mb-3"><h3 className="font-cinzel text-[10px] font-bold tracking-wider text-[#f2d99f]">FINAL BRACKET</h3></div>
                 <div className="grid gap-3 sm:grid-cols-3">
                   {[
                     { title: 'QUARTERFINALS', fa: 'یک‌چهارم نهایی', rows: currentTourn.bracket?.quarters || [], count: 4, target: 7 },
@@ -315,7 +312,7 @@ export function TournamentLobbyModal({
 
             {activeTab === 'rules' && (
               <div className="space-y-3">
-                <div><h3 className="font-cinzel text-[10px] font-bold tracking-wider text-[#f2d99f]">CHAMPIONSHIP RULEBOOK</h3><p className="font-cormorant text-[11px] text-[#a9a18f]">قوانین و ساختار رقابت</p></div>
+                <div><h3 className="font-cinzel text-[10px] font-bold tracking-wider text-[#f2d99f]">RULES</h3></div>
                 {[
                   ['ساختار مسابقات', '۵ راند سوئیسی برگزار می‌شود. هشت بازیکن برتر جدول به مرحله حذفی تک‌حذفی راه پیدا می‌کنند.'],
                   ['امتیاز هر مرحله', 'راندهای سوئیسی تا ۵، یک‌چهارم نهایی تا ۷، نیمه‌نهایی تا ۹ و فینال تا ۱۱ امتیاز است.'],
@@ -328,7 +325,7 @@ export function TournamentLobbyModal({
           </section>
         </main>
         <footer className="shrink-0 border-t border-[#c9a45f]/20 bg-[#040912]/95 px-4 py-2 text-center sm:px-6">
-          <span className="font-cinzel text-[7px] tracking-[.18em] text-[#777d7b]">ROYAL BACKGAMMON · OFFICIAL TOURNAMENT ARENA</span>
+          <span className="font-cinzel text-[7px] tracking-[.18em] text-[#777d7b]">ROYAL BACKGAMMON</span>
         </footer>
       </section>
     </div>
