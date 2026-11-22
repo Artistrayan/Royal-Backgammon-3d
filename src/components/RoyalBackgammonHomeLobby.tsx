@@ -16,6 +16,7 @@ export interface RoyalBackgammonHomeLobbyProps {
   onOpenPractice: () => void;
   onOpenFriends: () => void;
   onOpenProvablyFair: () => void;
+  onOpenTutorial: () => void;
   onOpenLeaderboard: () => void;
   onOpenVariants: () => void;
   onOpenProfile: () => void;
@@ -31,7 +32,7 @@ type LobbyPage = 'home' | 'backgammon';
 export function RoyalBackgammonHomeLobby({
   onlineCount, userCoins, userUsdt, playerLevel, playerRating, playerName,
   onPlayOneOnOne, onOpenTournaments, onOpenPractice, onOpenFriends,
-  onOpenProvablyFair, onOpenLeaderboard, onOpenVariants, onOpenProfile,
+  onOpenProvablyFair, onOpenTutorial, onOpenLeaderboard, onOpenVariants, onOpenProfile,
   onOpenWallet, onOpenStore, onOpenSettings, onOpenSupport,
 }: RoyalBackgammonHomeLobbyProps) {
   const [page, setPage] = useState<LobbyPage>('home');
@@ -128,7 +129,7 @@ export function RoyalBackgammonHomeLobby({
               {menuItem('🏆','Tournaments','Join competitions and follow live matches.',onOpenTournaments,'green')}
               {menuItem('♧','Play with a friend','Find friends or invite someone to a match.',onOpenFriends,'blue')}
               {menuItem('✦','Game variants','Standard, Narde and Hypergammon rules.',onOpenVariants)}
-              {menuItem('◎','Learn the game','Dice, legal moves, hitting, bearing off and strategy.',onOpenProvablyFair,'green')}
+              {menuItem('◎','Learn the game','Rules, dice, legal moves and winning strategy.',onOpenTutorial,'green')}
             </div>
             <div className="mt-4 grid grid-cols-2 gap-2">
               <button type="button" onClick={() => run(onLeaderboard)} className="rounded-xl border border-white/10 bg-white/5 px-3 py-3 text-xs font-semibold text-slate-300">Leaderboard</button>
