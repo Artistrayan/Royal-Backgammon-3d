@@ -87,6 +87,7 @@ import { ProvablyFairModal } from './components/ProvablyFairModal';
 import { LeaderboardSeasonsModal } from './components/LeaderboardSeasonsModal';
 import { GameVariantsModal } from './components/GameVariantsModal';
 import { AIDifficultyModal } from './components/AIDifficultyModal';
+import { BackgammonTutorialModal } from './components/BackgammonTutorialModal';
 import { MatchEndModal } from './components/MatchEndModal';
 import { GameAnalysisModal } from './components/GameAnalysisModal';
 import { RoyalBackgammonHomeLobby } from './components/RoyalBackgammonHomeLobby';
@@ -478,6 +479,7 @@ export default function App() {
   // AI Opponent Personality / Difficulty Level
   const [aiDifficulty, setAiDifficulty] = useState<AIDifficulty>('intermediate');
   const [isAIDifficultyModalOpen, setIsAIDifficultyModalOpen] = useState(false);
+  const [isTutorialModalOpen, setIsTutorialModalOpen] = useState(false);
 
   // Smart Game Analysis & PR Rating State
   const [isAnalysisModalOpen, setIsAnalysisModalOpen] = useState(false);
@@ -2720,6 +2722,8 @@ export default function App() {
           showToastNotification('variant-changed', `VARIANT: ${vId.toUpperCase()}`, 'Board reconfigured for chosen variant rules');
         }}
       />
+
+      <BackgammonTutorialModal isOpen={isTutorialModalOpen} onClose={() => setIsTutorialModalOpen(false)} />
 
       {/* AI Opponent Personality & Difficulty Modal */}
       <AIDifficultyModal
