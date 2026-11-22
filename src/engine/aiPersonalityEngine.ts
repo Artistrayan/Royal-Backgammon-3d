@@ -8,7 +8,7 @@ import {
 } from './backgammonRuleEngine';
 import { chooseBestGrandmasterMoveStep } from './grandmasterAI';
 
-export type AIDifficulty = 'beginner' | 'novice' | 'intermediate' | 'grandmaster';
+export type AIDifficulty = 'beginner' | 'novice' | 'intermediate' | 'advanced' | 'grandmaster';
 
 export interface AIDifficultyProfile {
   id: AIDifficulty;
@@ -59,6 +59,17 @@ export const AI_DIFFICULTY_PROFILES: Record<AIDifficulty, AIDifficultyProfile> =
     persianDescription:
       'استراتژی‌های پایه‌ای ساختن خانه و مسدودسازی را می‌داند اما حدود ۲۵ تا ۳۵ درصد در بازی‌های حساس و سرعت حرکت اشتباه می‌کند.',
   },
+  advanced: {
+    id: 'advanced',
+    name: 'ADVANCED',
+    persianName: 'پیشرفته',
+    badge: 'ADVANCED 12%',
+    themeColor: '#60a5fa',
+    errorRate: '10-15%',
+    moveDelayMs: 750,
+    persianTagline: 'بازی استراتژیک با خطاهای محدود و تصمیم‌گیری دقیق‌تر',
+    persianDescription: 'از ارزیابی موقعیت و انتخاب حرکت‌های قوی استفاده می‌کند، اما گاهی خطای تاکتیکی دارد.',
+  },
   grandmaster: {
     id: 'grandmaster',
     name: 'ROYAL GRANDMASTER',
@@ -81,6 +92,8 @@ export function getAIDelays(difficulty: AIDifficulty): { rollDelayMs: number; mo
       return { rollDelayMs: 350, moveDelayMs: 500 };
     case 'intermediate':
       return { rollDelayMs: 450, moveDelayMs: 650 };
+    case 'advanced':
+      return { rollDelayMs: 525, moveDelayMs: 750 };
     case 'grandmaster':
     default:
       return { rollDelayMs: 600, moveDelayMs: 850 };
@@ -105,6 +118,7 @@ export function chooseAIMoveStep(
   if (difficulty === 'beginner') errorProb = 0.65;
   else if (difficulty === 'novice') errorProb = 0.45;
   else if (difficulty === 'intermediate') errorProb = 0.30;
+  else if (difficulty === 'advanced') errorProb = 0.12;
 
   const isMistake = Math.random() < errorProb;
 
@@ -135,6 +149,10 @@ export function evaluateAIDoubleResponse(
   if (difficulty === 'intermediate') {
     const take = Math.random() < 0.6;
     return { take, reason: take ? 'Reasonable Take' : 'Calculated Drop' };
+  }
+  if (difficulty === 'advanced') {
+    const take = Math.random() < 0.82;
+    return { take, reason: take ? 'Advanced Equity Take' : 'Conservative Drop' };
   }
   // Grandmaster calculation
   const myPips = calculatePipCount(checkers, isLight);
