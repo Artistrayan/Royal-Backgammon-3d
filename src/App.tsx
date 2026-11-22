@@ -2798,6 +2798,7 @@ export default function App() {
           onOpenProvablyFair={() => {
             setIsProvablyFairModalOpen(true);
           }}
+          onOpenTutorial={() => setIsTutorialModalOpen(true)}
           onOpenLeaderboard={() => {
             setIsLeaderboardModalOpen(true);
           }}
