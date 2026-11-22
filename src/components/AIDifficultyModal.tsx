@@ -17,7 +17,8 @@ const LEVELS: Array<{ id: AIDifficulty; rank: string; title: string; summary: st
   { id: 'beginner', rank: '01', title: 'Beginner', summary: 'A relaxed table to learn the flow of the game.', accent: '#77b9ff', glow: 'rgba(71,153,255,.16)', mark: 'I', skill: 22 },
   { id: 'novice', rank: '02', title: 'Novice', summary: 'Build confidence against a developing opponent.', accent: '#63d4c2', glow: 'rgba(60,211,187,.14)', mark: 'II', skill: 42 },
   { id: 'intermediate', rank: '03', title: 'Club Player', summary: 'Test your timing, structure and tactical choices.', accent: '#e8bd70', glow: 'rgba(232,189,112,.15)', mark: 'III', skill: 68 },
-  { id: 'grandmaster', rank: '04', title: 'Royal Grandmaster', summary: 'Face the strongest strategic challenge.', accent: '#d6a4ff', glow: 'rgba(194,130,255,.16)', mark: 'IV', skill: 96 },
+  { id: 'advanced', rank: '04', title: 'Advanced', summary: 'Practice stronger positional and tactical decisions.', accent: '#60a5fa', glow: 'rgba(96,165,250,.16)', mark: 'IV', skill: 84 },
+  { id: 'grandmaster', rank: '05', title: 'Royal Grandmaster', summary: 'Face the strongest strategic challenge.', accent: '#d6a4ff', glow: 'rgba(194,130,255,.16)', mark: 'V', skill: 98 },
 ];
 
 export function AIDifficultyModal({ isOpen, onClose, selectedDifficulty, onSelectDifficulty }: AIDifficultyModalProps) {
@@ -46,7 +47,7 @@ export function AIDifficultyModal({ isOpen, onClose, selectedDifficulty, onSelec
           </div>
         </header>
         <main className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-5 pt-1 sm:px-7">
-          <div className="mb-3 flex items-center justify-between"><span className="font-cinzel text-[8px] font-bold tracking-[.22em] text-[#8192a8]">SELECT SKILL LEVEL</span><span className="text-[9px] text-[#667b94]">4 AI profiles</span></div>
+          <div className="mb-3 flex items-center justify-between"><span className="font-cinzel text-[8px] font-bold tracking-[.22em] text-[#8192a8]">SELECT SKILL LEVEL</span><span className="text-[9px] text-[#667b94]">5 AI profiles</span></div>
           <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3">
             {LEVELS.map((level) => {
               const profile = AI_DIFFICULTY_PROFILES[level.id];
