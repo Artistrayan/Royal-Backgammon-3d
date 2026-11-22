@@ -1,10 +1,7 @@
 import React, { useState } from 'react';
 import palaceNightStageBg from '../assets/images/royal_palace_night_stage_1792268375096.jpg';
-import goldenPiggyBankImg from '../assets/images/golden_piggy_bank_1792268437912.jpg';
 import { royalSound } from '../libgdx/Gdx3DEngine';
 import { triggerTelegramHaptic } from '../telegram/telegramMiniApp';
-import { t } from '../i18n/translations';
-import { ThreeDCardCarousel } from './ThreeDCardCarousel';
 
 export interface RoyalBackgammonHomeLobbyProps {
   onlineCount: number;
@@ -29,98 +26,130 @@ export interface RoyalBackgammonHomeLobbyProps {
   onClaimDailyReward: () => void;
 }
 
+type LobbyPage = 'home' | 'backgammon';
+
 export function RoyalBackgammonHomeLobby({
-  onlineCount, isRotatedLayout = false, userCoins, userUsdt, playerLevel, playerRating, playerName,
+  onlineCount, userCoins, userUsdt, playerLevel, playerRating, playerName,
   onPlayOneOnOne, onOpenTournaments, onOpenPractice, onOpenFriends,
   onOpenProvablyFair, onOpenLeaderboard, onOpenVariants, onOpenProfile,
-  onOpenWallet, onOpenStore, onOpenSettings, onOpenSupport, onClaimDailyReward,
+  onOpenWallet, onOpenStore, onOpenSettings, onOpenSupport,
 }: RoyalBackgammonHomeLobbyProps) {
-  const [activeTab, setActiveTab] = useState<'home' | 'profile' | 'wallet' | 'store' | 'settings' | 'help'>('home');
-  const [piggyBankClaimed, setPiggyBankClaimed] = useState(false);
-  const displayName = playerName || 'Masoud';
+  const [page, setPage] = useState<LobbyPage>('home');
+  const displayName = playerName || 'Player';
 
-  const tap = (action: () => void) => {
+  const run = (action: () => void) => {
     triggerTelegramHaptic('light');
     royalSound.playOptionClickSound();
     action();
   };
 
-  const navButton = (tab: typeof activeTab, icon: string, label: string, action: () => void, locked = false) => (
-    <button key={tab} type="button" onClick={() => { setActiveTab(tab); tap(action); }}
-      className={`relative flex min-w-0 flex-1 items-center justify-center gap-1 rounded-xl border px-1.5 py-2 transition-all sm:flex-none sm:gap-2 sm:px-3 sm:py-2.5 ${activeTab === tab ? 'border-[#e5b74e] bg-gradient-to-b from-[#5d4218]/80 to-[#130d07]/95 text-[#ffe08a] shadow-[0_0_18px_rgba(255,185,48,.32)]' : 'border-[#71849a]/25 bg-[#020812]/85 text-white/75 hover:border-[#d7b66d]/70 hover:text-white'}`}>
-      <span className="text-xl leading-none sm:text-2xl">{icon}</span>
-      <span className="hidden text-xs font-semibold sm:inline">{label}</span>
-      {locked && <span className="hidden text-[9px] text-[#e5b74e] sm:inline">🔒</span>}
+  const menuItem = (icon: string, title: string, detail: string, action: () => void, accent = 'gold') => (
+    <button key={title} type="button" onClick={() => run(action)}
+      className="group flex min-h-[76px] w-full items-center gap-3 rounded-2xl border border-white/10 bg-[#0a1724]/90 px-3.5 py-3 text-left shadow-[0_8px_24px_rgba(0,0,0,.22)] transition hover:border-[#d9b66d]/55 hover:bg-[#102337] active:scale-[.99]">
+      <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border text-xl ${accent === 'blue' ? 'border-sky-300/25 bg-sky-300/10 text-sky-200' : accent === 'green' ? 'border-emerald-300/25 bg-emerald-300/10 text-emerald-200' : 'border-[#e3c47e]/30 bg-[#e3c47e]/10 text-[#f4d995]'}`}>{icon}</span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-[14px] font-bold tracking-wide text-[#f5ead4]">{title}</span>
+        <span className="mt-1 block text-[11px] leading-relaxed text-slate-400">{detail}</span>
+      </span>
+      <span className="text-lg text-slate-500 transition group-hover:translate-x-0.5 group-hover:text-[#e5c47c]">›</span>
     </button>
   );
 
   return (
-    <div className="absolute inset-0 z-40 flex h-full w-full flex-col overflow-hidden bg-[#020611] font-sans text-white select-none">
-      <div className="pointer-events-none absolute inset-0 z-0">
-        <img src={palaceNightStageBg} alt="Royal palace at night" className="h-full w-full object-cover object-center" />
-        <div className="absolute inset-0 bg-gradient-to-b from-[#020713]/65 via-[#020713]/15 to-black/80" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_55%,rgba(0,133,255,.16),transparent_55%)]" />
+    <div className="absolute inset-0 z-40 flex h-full w-full flex-col overflow-hidden bg-[#030914] font-sans text-white">
+      <div className="pointer-events-none absolute inset-0">
+        <img src={palaceNightStageBg} alt="" className="h-full w-full object-cover object-center opacity-35" />
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(2,8,17,.78),rgba(3,10,19,.9)_45%,#020711)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_35%,rgba(26,92,130,.2),transparent_62%)]" />
       </div>
 
-      <header className="relative z-30 mx-1.5 mt-1.5 flex min-h-[54px] shrink-0 items-center justify-between gap-1 rounded-xl border border-[#b4c8e0]/20 bg-[#020916]/90 px-1.5 shadow-[0_8px_35px_rgba(0,0,0,.55)] backdrop-blur-xl sm:mx-4 sm:mt-3 sm:min-h-[70px] sm:gap-2 sm:rounded-2xl sm:px-4">
-        <button type="button" onClick={() => tap(onOpenProfile)} className="flex min-w-0 shrink items-center gap-1.5 text-left sm:gap-2">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-[#f4c65f] bg-gradient-to-br from-[#583b13] to-[#020713] text-lg text-[#ffd76a] shadow-[0_0_18px_rgba(255,190,65,.35)] sm:h-12 sm:w-12 sm:text-xl">♛</span>
+      <header className="relative z-10 flex shrink-0 items-center justify-between border-b border-white/10 bg-[#050d18]/80 px-4 pb-3 pt-[max(12px,env(safe-area-inset-top))] backdrop-blur-xl sm:px-7">
+        <button type="button" onClick={() => run(onOpenProfile)} className="flex min-w-0 items-center gap-3 text-left">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#e6c77f]/60 bg-[#241b0d] text-xl text-[#f3d58f]">♛</span>
           <span className="min-w-0">
-            <span className="block max-w-[74px] truncate text-[10px] font-extrabold tracking-wide sm:max-w-none sm:text-sm">{displayName}</span>
-            <span className="mt-1 flex items-center gap-1">
-              <span className="rounded-md border border-[#ffe18a] bg-gradient-to-b from-[#ffdc68] to-[#9d6419] px-1.5 text-[9px] font-black text-[#201302]">{playerLevel || 18}</span>
-              <span className="relative block h-3 w-[54px] overflow-hidden rounded-sm border border-white/30 bg-black/80 sm:w-[94px]">
-                <span className="absolute inset-y-0 left-0 w-[97%] bg-gradient-to-r from-[#b77b19] via-[#ffe174] to-[#f6b72d]" />
-                <span className="absolute inset-0 flex items-center justify-center text-[8px] font-bold drop-shadow">{Math.min(165, playerRating || 165)}/170</span>
-              </span>
+            <span className="block max-w-[150px] truncate text-sm font-bold tracking-wide">{displayName}</span>
+            <span className="mt-1 flex items-center gap-2 text-[10px] text-slate-400">
+              <span className="rounded bg-[#b98a36]/20 px-1.5 py-0.5 text-[#f2d18a]">LEVEL {playerLevel}</span>
+              <span>RATING {playerRating.toLocaleString('en-US')}</span>
             </span>
           </span>
         </button>
-
-        <div className="flex shrink-0 items-center gap-0.5 sm:gap-2">
-          <button type="button" onClick={() => tap(onClaimDailyReward)} className="flex flex-col items-center rounded-lg px-1 py-1 text-[#ffe08a] hover:bg-white/5 sm:px-3">
-            <span className="relative text-xl sm:text-3xl">🎁<span className="absolute -right-1 -top-1 rounded-full bg-red-600 px-1 text-[9px] text-white">!</span></span>
-            <span className="hidden text-[10px] font-bold sm:block">{t('rewards')}</span>
+        <div className="flex items-center gap-2">
+          <button type="button" onClick={() => run(onOpenWallet)} className="rounded-xl border border-sky-300/25 bg-sky-300/10 px-3 py-2 text-right">
+            <span className="block text-[9px] uppercase tracking-wider text-sky-200/70">USDT</span>
+            <span className="text-xs font-bold tabular-nums text-sky-100">{userUsdt.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</span>
           </button>
-          <button type="button" onClick={() => tap(onOpenLeaderboard)} className="flex flex-col items-center rounded-lg px-1 py-1 text-white hover:bg-white/5 sm:px-3">
-            <span className="text-xl sm:text-3xl">🏆</span>
-            <span className="hidden text-[10px] font-bold sm:block">{t('leaderboards')}</span>
-          </button>
-          <button type="button" onClick={() => tap(onOpenStore)} className="flex flex-col items-center rounded-lg px-1 py-1 text-white hover:bg-white/5 sm:px-3">
-            <span className="text-xl sm:text-3xl">🏪</span>
-            <span className="hidden text-[10px] font-bold sm:block">{t('shop')}</span>
-          </button>
-        </div>
-
-        <div className="flex shrink-0 items-center gap-1 sm:gap-2">
-          <button type="button" onClick={() => tap(onOpenStore)} className="flex items-center gap-1 rounded-full border border-[#c28a28]/65 bg-black/70 px-1.5 py-2 text-[10px] font-extrabold sm:gap-2 sm:px-3 sm:text-xs">
-            <span>🪙</span><span>{Number(userCoins || 26).toLocaleString('en-US')}</span><span className="hidden rounded bg-green-600 px-1.5 text-sm leading-5 sm:inline">+</span>
-          </button>
-          <button type="button" onClick={() => tap(onOpenWallet)} className="flex items-center gap-1 rounded-full border border-[#369de4]/65 bg-black/70 px-1.5 py-2 text-[10px] font-extrabold sm:gap-2 sm:px-3 sm:text-xs">
-            <span>💎</span><span>{Number(userUsdt || 1350).toLocaleString('en-US')}</span><span className="hidden rounded bg-green-600 px-1.5 text-sm leading-5 sm:inline">+</span>
+          <button type="button" onClick={() => run(onOpenStore)} className="rounded-xl border border-[#e3c47e]/25 bg-[#e3c47e]/10 px-3 py-2 text-right">
+            <span className="block text-[9px] uppercase tracking-wider text-[#e9ca8a]/70">COINS</span>
+            <span className="text-xs font-bold tabular-nums text-[#f5dda8]">{userCoins.toLocaleString('en-US')}</span>
           </button>
         </div>
       </header>
 
-      <main className="relative z-10 flex min-h-0 flex-1 flex-col">
-        <div className="flex min-h-0 flex-1 items-stretch justify-center overflow-hidden">
-          <ThreeDCardCarousel onPlayOneOnOne={onPlayOneOnOne} onOpenTournaments={onOpenTournaments} onOpenPractice={onOpenPractice} onOpenFriends={onOpenFriends} onOpenVariants={onOpenVariants} />
-        </div>
+      <main className="relative z-10 flex min-h-0 flex-1 flex-col overflow-y-auto px-4 pb-4 pt-5 sm:px-7 sm:pt-7">
+        {page === 'home' ? (
+          <section className="mx-auto flex w-full max-w-3xl flex-1 flex-col justify-center">
+            <div className="mb-7 text-center">
+              <p className="text-[10px] font-bold tracking-[.35em] text-[#d7b66d]">ROYAL GAME CLUB</p>
+              <h1 className="mt-2 font-cinzel text-2xl font-black tracking-[.12em] text-[#fff0ce] sm:text-4xl">CHOOSE YOUR GAME</h1>
+              <p className="mt-2 text-xs text-slate-400">Select a game to continue</p>
+            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <button type="button" onClick={() => { setPage('backgammon'); run(() => {}); }}
+                className="group relative flex min-h-[220px] flex-col justify-end overflow-hidden rounded-3xl border border-[#e0bd70]/45 bg-[linear-gradient(145deg,#47351b,#111b22_62%,#07101b)] p-5 text-left shadow-[0_18px_50px_rgba(0,0,0,.42)] transition hover:-translate-y-1 hover:border-[#f0d58f] sm:min-h-[270px]">
+                <div className="pointer-events-none absolute -right-8 -top-10 h-48 w-48 rounded-full border border-[#f1d18a]/15 bg-[#d6a94e]/10 shadow-[0_0_65px_rgba(210,165,70,.15)]" />
+                <div className="relative mb-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-[#e8c779]/40 bg-black/25 text-3xl text-[#f5d991]">♟</div>
+                <span className="relative text-xl font-black tracking-[.1em] text-[#fff0ce]">BACKGAMMON</span>
+                <span className="relative mt-1 text-xs text-[#d8c49c]">Online matches, AI practice and tournaments</span>
+                <span className="relative mt-5 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#f1d18a]">Enter game <span>→</span></span>
+              </button>
+
+              <div aria-disabled="true" className="relative flex min-h-[220px] flex-col justify-end overflow-hidden rounded-3xl border border-white/10 bg-[linear-gradient(145deg,#26313b,#111923_65%,#080e17)] p-5 opacity-75 sm:min-h-[270px]">
+                <div className="mb-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-black/20 text-3xl text-slate-300">◉</div>
+                <span className="text-xl font-black tracking-[.1em] text-slate-200">CARROM</span>
+                <span className="mt-1 text-xs text-slate-400">Carrom game mode is not available yet</span>
+                <span className="mt-5 inline-flex w-fit rounded-full border border-slate-400/20 bg-black/20 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">Coming soon · Disabled</span>
+              </div>
+            </div>
+          </section>
+        ) : (
+          <section className="mx-auto w-full max-w-2xl">
+            <div className="mb-5 flex items-center gap-3">
+              <button type="button" onClick={() => setPage('home')} aria-label="Back to game selection" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-xl text-[#f0d18b]">‹</button>
+              <div>
+                <p className="text-[9px] font-bold tracking-[.3em] text-[#d7b66d]">ROYAL GAME CLUB</p>
+                <h2 className="mt-1 text-lg font-black tracking-wider text-[#fff0ce]">BACKGAMMON</h2>
+              </div>
+              <span className="ml-auto rounded-full border border-emerald-300/20 bg-emerald-300/10 px-3 py-1 text-[10px] text-emerald-200">{onlineCount.toLocaleString('en-US')} online</span>
+            </div>
+            <div className="grid grid-cols-1 gap-2.5">
+              {menuItem('⚔','Online 1 vs 1','Find a real opponent and play online.',onPlayOneOnOne,'blue')}
+              {menuItem('♟','Practice with AI','Choose a bot from beginner to grandmaster.',onOpenPractice)}
+              {menuItem('🏆','Tournaments','Join competitions and follow live matches.',onOpenTournaments,'green')}
+              {menuItem('♧','Play with a friend','Find friends or invite someone to a match.',onOpenFriends,'blue')}
+              {menuItem('✦','Game variants','Standard, Narde and Hypergammon rules.',onOpenVariants)}
+              {menuItem('◎','Learn the game','Dice, legal moves, hitting, bearing off and strategy.',onOpenProvablyFair,'green')}
+            </div>
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <button type="button" onClick={() => run(onLeaderboard)} className="rounded-xl border border-white/10 bg-white/5 px-3 py-3 text-xs font-semibold text-slate-300">Leaderboard</button>
+              <button type="button" onClick={() => run(onOpenSupport)} className="rounded-xl border border-white/10 bg-white/5 px-3 py-3 text-xs font-semibold text-slate-300">Support</button>
+            </div>
+          </section>
+        )}
       </main>
 
-      <footer className="relative z-30 mx-1.5 mb-1.5 flex min-h-[56px] shrink-0 items-center justify-between gap-1 rounded-xl border border-[#8fa9c4]/25 bg-[#020813]/95 p-1 shadow-[0_-8px_30px_rgba(0,0,0,.55)] backdrop-blur-xl sm:mx-4 sm:mb-3 sm:min-h-[76px] sm:gap-2 sm:rounded-2xl sm:p-2">
-        <nav className="flex min-w-0 flex-1 items-center gap-1 sm:gap-2">
-          {navButton('home', '⌂', t('home'), () => setActiveTab('home'))}
-          {navButton('profile', '♙', t('profile'), onOpenProfile)}
-          {navButton('wallet', '▣', t('wallet'), onOpenWallet, true)}
-          {navButton('store', '🏪', t('store'), onOpenStore, true)}
-          {navButton('settings', '⚙', t('settings'), onOpenSettings, true)}
-          {navButton('help', '?', t('help'), onOpenSupport)}
-        </nav>
-        <button type="button" onClick={() => { if (piggyBankClaimed) return; setPiggyBankClaimed(true); tap(onClaimDailyReward); }} className="flex shrink-0 items-center gap-1 rounded-xl border border-[#e3b44f]/70 bg-gradient-to-r from-[#05213a] to-[#07101f] px-1.5 py-1.5 shadow-[0_0_15px_rgba(37,146,255,.25)] sm:gap-2 sm:px-3">
-          <img src={goldenPiggyBankImg} alt="Golden piggy bank" className="h-8 w-8 object-contain sm:h-12 sm:w-12" />
-          <span className="hidden flex-col text-left sm:flex"><span className="text-[10px] font-bold">Your Piggy Bank</span><span className="rounded bg-gradient-to-r from-[#ffe17a] to-[#c88a20] px-1.5 py-0.5 text-center text-[9px] font-black uppercase text-[#251704]">{piggyBankClaimed ? 'CLAIMED' : t('piggyBankFull')}</span></span>
-        </button>
+      <footer className="relative z-10 flex shrink-0 items-center justify-around border-t border-white/10 bg-[#050d18]/90 px-2 pb-[max(9px,env(safe-area-inset-bottom))] pt-2 backdrop-blur-xl">
+        {[
+          { icon: '♙', label: 'Profile', action: onOpenProfile },
+          { icon: '◈', label: 'Wallet', action: onOpenWallet },
+          { icon: '▤', label: 'Store', action: onOpenStore },
+          { icon: '⚙', label: 'Settings', action: onOpenSettings },
+        ].map(item => (
+          <button key={item.label} type="button" onClick={() => run(item.action)} className="flex min-w-[64px] flex-col items-center gap-1 rounded-xl px-3 py-1.5 text-slate-400 transition hover:bg-white/5 hover:text-[#f2d28e]">
+            <span className="text-lg">{item.icon}</span>
+            <span className="text-[10px] font-semibold">{item.label}</span>
+          </button>
+        ))}
       </footer>
     </div>
   );
